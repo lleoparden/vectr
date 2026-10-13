@@ -12,6 +12,8 @@
   cloud services, and proposal extensions afterward.
 - Core architecture constraints for future MCP and built-in-agent support
   recorded before implementation begins.
+- IDE work explicitly deferred beyond core parity, compiler, known extras, and
+  future owner-selected expansion.
 
 ## Next
 

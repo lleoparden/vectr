@@ -53,8 +53,9 @@
   AI assistant, Mockup Import, and analytics are planned after the main app.
 - A future MCP server lets agents operate Vectr within the signed-in account's
   explicit permissions. It must not bypass normal validation or safety controls.
-- A full visual-design-tool-plus-IDE experience is a far-future possibility,
-  not current scope.
+- A full visual-design-tool-plus-IDE experience is a distant possibility after
+  core parity, compiler, known extras, and later owner-selected features—not a
+  normal roadmap phase or current scope.
 - The implementation stack is undecided and is no longer bound to the original
   proposal's web/Paper.js/Node architecture.
 

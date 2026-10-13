@@ -27,7 +27,9 @@ remains the short operational checklist for the active phase.
 - [ ] Add an account-scoped MCP server for authorized AI agents.
 - [ ] Add Supabase, shared library, AI assistant, mockup import, and analytics
   after the core application and compiler.
-- [ ] Consider a full design-tool-plus-IDE workspace only as a far-future phase.
+- [ ] Add future owner-selected features after the currently known extras.
+- [ ] Consider a full design-tool-plus-IDE workspace only as a distant
+  possibility after all earlier work.
 - [ ] Add import/export formats and reusable component options.
 - [ ] Improve compiler output, accessibility, and project collaboration.
 

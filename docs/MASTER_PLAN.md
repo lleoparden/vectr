@@ -158,6 +158,12 @@ placeholder menu items.
 
 **Exit:** users can reliably exchange the formats promised by the catalog.
 
+## Core parity gate
+
+Before the compiler begins, finish the agreed VectorCraft/Illustrator parity
+catalog for the core application. Any remaining unsupported item must be an
+explicit, owner-approved exception—not an untracked gap.
+
 ## Phase 6 — React and Tailwind compiler
 
 **Goal:** turn a Vectr document into maintainable application code.
@@ -212,29 +218,38 @@ application and compiler are established.
 **Exit:** these features extend the proven core instead of defining or blocking
 it.
 
-## Phase 9 — Far-future design tool and IDE convergence
+## Phase 9 — Further product expansion
+
+**Goal:** add new capabilities chosen after the currently known extra features
+are complete.
+
+This phase is intentionally open-ended. New ideas get their own approved plan,
+catalog entries, and purpose-specific branches; none should be precommitted
+just to fill a roadmap slot.
+
+## Phase 10 — Distant possibility: design tool and IDE convergence
 
 **Goal:** explore a workspace where Vectr is both the visual illustration app
 and an editable code environment.
 
-This phase may evolve the Design/Code tabs into a true IDE experience, but it
-does not belong in the core reconstruction or compiler scope. It requires a
-separate product decision and plan.
+This may someday evolve the Design/Code tabs into a true IDE experience, but
+it is not near any currently planned feature. It becomes discussable only after
+core parity, compiler, known extra features, and later owner-selected product
+expansion are complete. It requires a separate product decision and plan.
 
-## Phase 10 — Parity closure and agent handover
+## Ongoing stewardship and handover
 
 **Goal:** finish the declared catalog and prepare the owner to continue safely.
 
-1. Work remaining parity-catalog items by user value, dependencies, and risk.
-2. Resolve every `partial`, `fallback`, and `blocked` compiler entry or record
+1. Resolve every `partial`, `fallback`, and `blocked` compiler entry or record
    an explicit supported-limit decision.
-3. Complete desktop packaging, update/recovery behavior, accessibility, and
+2. Complete desktop packaging, update/recovery behavior, accessibility, and
    documentation for supported targets.
-4. Produce a handover map: architecture, active decisions, feature catalog,
+3. Maintain a handover map: architecture, active decisions, feature catalog,
    open limitations, contribution rules, and next priorities.
 
-**Exit:** the catalog's agreed scope is complete and the owner can add features
-with an accurate map of the product.
+**Milestone:** after core parity and compiler, the owner can add features with
+an accurate map of the product; stewardship continues as Vectr grows.
 
 ## Operating cadence
 

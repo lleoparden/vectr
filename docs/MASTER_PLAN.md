@@ -3,12 +3,29 @@
 ## Outcome
 
 Build a desktop-first vector design application with VectorCraft/Illustrator
-feature parity, without copying VectorCraft source or branding. Its defining
-addition is a compiler that converts a Vectr document's layer tree into
+feature parity, without copying VectorCraft source or branding. The primary
+program is the illustration application itself. Its first major addition after
+that core is a compiler that converts a Vectr document's layer tree into
 readable, usable React components styled with Tailwind.
 
 This is a living delivery plan, not an approval to start product code. Each
 phase becomes an approved feature plan before implementation.
+
+## Priority and historical context
+
+The original graduation-project proposal remains useful product research, but
+it is not the current specification. The current owner direction overrides it:
+
+- Vectr is a long-running product, not a graduation project.
+- Reconstructing the Illustrator/VectorCraft-class application is the main
+  program. Recent reverse-engineering capability makes this a realistic,
+  evidence-led effort.
+- The compiler follows the core application and shares its document model.
+- Mockup import, AI assistant, shared library, analytics, cloud services, and
+  IDE-like code editing are later features. The core architecture must leave
+  extension points for them without prematurely implementing them.
+- The stack is deliberately undecided and will change from the proposal's
+  web/Paper.js/Node direction.
 
 ## How progress is measured
 
@@ -25,17 +42,20 @@ The project will maintain a parity catalog. Every catalog item has:
 next approved work. The catalog is the source of truth for the parity claim;
 no percentage is published until the catalog exists.
 
-## Phase 0 — Scope and platform decision
+## Phase 0 — Reference catalog and platform decision
 
 **Goal:** establish what will be built and on which desktop foundation.
 
 1. Inventory VectorCraft and Illustrator capabilities into the parity catalog:
    tools, panels, commands, document features, effects, import/export formats,
    shortcuts, and accessibility behavior.
-2. Decide desktop targets, rendering approach, language/runtime, UI framework,
+2. Define the lawful, evidence-led reconstruction workflow: behavior and
+   publicly observable artifacts may guide Vectr; VectorCraft source and
+   branding must not be copied.
+3. Decide desktop targets, rendering approach, language/runtime, UI framework,
    packaging, local-storage model, and Supabase boundaries.
-3. Define the product's original visual identity and licensing policy.
-4. Define performance budgets, offline expectations, crash recovery, and a
+4. Define the product's original visual identity and licensing policy.
+5. Define performance budgets, offline expectations, crash recovery, and a
    feature-completion standard.
 
 **Exit:** approved technology ADRs, parity catalog v1, and a scoped MVP.
@@ -48,9 +68,11 @@ no percentage is published until the catalog exists.
    vector shapes, paths, images, style/transform data, and metadata.
 2. Implement local project creation, autosave, undo/redo, recovery, selection,
    layers, artboards, zoom/pan, and a desktop command/menu framework.
-3. Add authenticated project metadata and backup/sync boundaries through
-   Supabase without making the editor unusable offline.
-4. Establish fixtures that cover document save/reopen and layer-tree integrity.
+3. Establish fixtures that cover document save/reopen and layer-tree integrity.
+
+Cloud identity, Supabase persistence, and shared storage are intentionally out
+of this phase. The document model must still be versioned and portable enough
+to support them later.
 
 **Exit:** a user can create, edit, save, reopen, and recover a layered document.
 
@@ -69,7 +91,7 @@ no percentage is published until the catalog exists.
 
 **Exit:** users can create polished layered vector artwork with standard tools.
 
-## Phase 3 — Type, images, and visual appearance
+## Phase 3 — Full illustration parity
 
 **Goal:** support the non-path content that real design files require.
 
@@ -132,7 +154,50 @@ placeholder menu items.
 **Exit:** a supported layered document exports to understandable React/Tailwind
 code that renders as expected and can be edited by a developer.
 
-## Phase 7 — Parity closure and agent handover
+## Phase 7 — MCP server for account-scoped agents
+
+**Goal:** let authenticated AI agents operate Vectr through a deliberate,
+auditable control surface.
+
+1. Define an MCP server that exposes document, canvas, layer, selection, tool,
+   import, export, and command operations in terms of the same application
+   model used by people.
+2. Bind every MCP session to a signed-in Vectr account and its projects. An
+   agent may act only within that account's permissions and explicit grants.
+3. Require confirmation or policy controls for destructive, expensive, or
+   externally visible actions; record an audit trail for agent actions.
+4. Ensure agents and people can collaborate on the same document without
+   corrupting document state or bypassing normal validation.
+
+**Exit:** an authorized agent can perform supported Vectr work for its account
+through the app's safe, observable command surface.
+
+## Phase 8 — Cloud, collaboration, and proposal extensions
+
+**Goal:** add the original proposal's supporting capabilities after the core
+application and compiler are established.
+
+1. Add Supabase sign-in, project backup/sync, encrypted storage, concurrent
+   shared-library behavior, and backend API-key proxying where needed.
+2. Add the shared editable vector library and usage analytics.
+3. Add the context-aware AI assistant with reviewable suggested changes only.
+4. Add Mockup Import: classical raster tracing first, then optional learned
+   cleanup, grouping, semantic labeling, and fusion into the standard document
+   model.
+
+**Exit:** these features extend the proven core instead of defining or blocking
+it.
+
+## Phase 9 — Far-future design tool and IDE convergence
+
+**Goal:** explore a workspace where Vectr is both the visual illustration app
+and an editable code environment.
+
+This phase may evolve the Design/Code tabs into a true IDE experience, but it
+does not belong in the core reconstruction or compiler scope. It requires a
+separate product decision and plan.
+
+## Phase 10 — Parity closure and agent handover
 
 **Goal:** finish the declared catalog and prepare the owner to continue safely.
 
@@ -165,4 +230,5 @@ For each catalog capability:
 - Whether cloud project files are source-of-truth, backup-only, or optional.
 - The exact baseline/version of Illustrator and VectorCraft used for parity.
 - The public/private licensing and release model for Vectr.
+- The first operating systems and desktop distribution model.
 - MVP boundaries before the full parity program begins.

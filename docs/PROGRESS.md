@@ -8,11 +8,12 @@
 - Agent-first delivery, branch naming, and progress-tracking policies recorded.
 - Private GitHub repository created and configured locally as `origin`; no local
   commit has been pushed.
-- ECC-guided master delivery plan drafted.
+- Master delivery plan revised: core reconstruction first; compiler next; MCP,
+  cloud services, and proposal extensions afterward.
 
 ## Next
 
-- Decide whether Vectr is a desktop app or a web app, then choose the stack.
+- Choose the desktop technology and supported operating systems.
 - Build and approve the Phase 0 product and technical plan.
 - Turn the master plan into a parity catalog before estimating delivery.
 

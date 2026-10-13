@@ -3,26 +3,29 @@
 The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). This file
 remains the short operational checklist for the active phase.
 
-## Phase 0 — Product and platform decision
+## Phase 0 — Reference catalog and platform decision
 
 - [ ] Choose desktop technology and supported operating systems.
 - [ ] Build parity catalog v1 and define its feature-completion standard.
 - [ ] Define the document model for layers, groups, text, shapes, and images.
-- [ ] Define the React and Tailwind export contract.
-- [ ] Choose the approach for Supabase authentication and project storage.
+- [ ] Define lawful reverse-engineering/reconstruction evidence rules.
+- [ ] Define the React and Tailwind export contract for the post-core compiler.
 
-## Phase 1 — MVP
+## Phase 1 — Core application foundation
 
-- [ ] Sign in and create a project.
 - [ ] Create, select, reorder, and group layers.
 - [ ] Support text, shapes, images, and nested groups.
 - [ ] Save and reopen projects.
-- [ ] Export each layer as a readable React component using Tailwind.
+- [ ] Establish the desktop document/editor foundation before cloud features.
 
 ## Later phases
 
 - [ ] Reach VectorCraft/Illustrator-level feature parity without copying source.
-- [ ] Keep the React/Tailwind compiler working across every supported feature.
+- [ ] Build the React/Tailwind compiler on the completed document model.
+- [ ] Add an account-scoped MCP server for authorized AI agents.
+- [ ] Add Supabase, shared library, AI assistant, mockup import, and analytics
+  after the core application and compiler.
+- [ ] Consider a full design-tool-plus-IDE workspace only as a far-future phase.
 - [ ] Add import/export formats and reusable component options.
 - [ ] Improve compiler output, accessibility, and project collaboration.
 

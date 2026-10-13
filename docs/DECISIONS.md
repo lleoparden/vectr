@@ -42,3 +42,18 @@
   and handover.
 - A Vectr feature is not implicitly compiler-supported. The catalog tracks its
   explicit compiler support level and any fidelity limitation.
+
+## 2026-10-13 — Current product priority
+
+- The original proposal is historical context, not the controlling
+  specification. Current owner direction overrides it.
+- Core VectorCraft/Illustrator-class reconstruction is the main program; the
+  React/Tailwind compiler follows on its shared document model.
+- Cloud auth/storage, autosave sync, encrypted project storage, shared library,
+  AI assistant, Mockup Import, and analytics are planned after the main app.
+- A future MCP server lets agents operate Vectr within the signed-in account's
+  explicit permissions. It must not bypass normal validation or safety controls.
+- A full visual-design-tool-plus-IDE experience is a far-future possibility,
+  not current scope.
+- The implementation stack is undecided and is no longer bound to the original
+  proposal's web/Paper.js/Node architecture.

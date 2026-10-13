@@ -1,0 +1,10 @@
+:root { color: #ececf1; background: #171719; font-family: Inter, system-ui, sans-serif; }
+body { margin: 0; }
+main { display: grid; gap: 1rem; padding: 1.5rem; }
+header, .controls { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+h1, p { margin: 0; }
+p { color: #a0a0aa; }
+button { border: 1px solid #555560; border-radius: .4rem; background: #28282d; color: inherit; padding: .5rem .75rem; cursor: pointer; }
+button[aria-pressed="true"] { border-color: #9d7aff; }
+.canvas { width: 100%; max-height: 70vh; background: #fbfbfc; }
+pre { max-height: 16rem; overflow: auto; background: #222227; padding: 1rem; }

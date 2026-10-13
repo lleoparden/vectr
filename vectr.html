@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vectr — Project Proposal 2026/27</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=IBM+Plex+Mono:wght@300;400;500&family=Instrument+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f7f5f0;
+  --ink: #111010;
+  --ink-2: #555;
+  --ink-3: #999;
+  --accent: #c8391a;
+  --accent-light: #fdf0ed;
+  --accent-2: #1a3a8f;
+  --accent-2-light: #edf0fd;
+  --green: #1a6b3a;
+  --green-light: #edf6f1;
+  --card: #ffffff;
+  --border: rgba(0,0,0,0.09);
+  --rule: 1px solid var(--border);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Instrument Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem 3rem;
+  background: rgba(247,245,240,0.9);
+  backdrop-filter: blur(16px);
+  border-bottom: var(--rule);
+}
+.nav-logo {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+.nav-links {
+  display: flex; gap: 0;
+  list-style: none;
+  border-left: var(--rule);
+  padding-left: 2rem;
+}
+.nav-links a {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 4px 14px;
+  border-right: var(--rule);
+  letter-spacing: 0.01em;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+/* ─── HERO ─── */
+.hero {
+  padding: 9rem 3rem 5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.hero-meta {
+  display: flex; align-items: center; gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+.hero-type {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid rgba(200,57,26,0.2);
+  padding: 5px 14px;
+  border-radius: 3px;
+}
+.hero-dept {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 300;
+}
+.hero h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(52px, 8vw, 100px);
+  line-height: 0.97;
+  letter-spacing: -0.04em;
+  font-weight: 300;
+  margin-bottom: 2.5rem;
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+.hero h1 span {
+  display: block;
+  font-size: 0.52em;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+  margin-top: 0.5rem;
+}
+.hero-columns {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 4rem;
+  align-items: start;
+  margin-top: 4rem;
+  padding-top: 3rem;
+  border-top: var(--rule);
+}
+.hero-desc p {
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--ink-2);
+  font-weight: 300;
+  margin-bottom: 1.25rem;
+}
+.hero-desc p strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1rem 0;
+  border-bottom: var(--rule);
+}
+.stat-row:first-child { border-top: var(--rule); }
+.stat-label {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.stat-val {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+/* ─── MOCKUP ─── */
+.mockup-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 3rem 6rem;
+  position: relative; z-index: 1;
+}
+.mockup {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+.mock-bar {
+  background: #f4f4f4;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 7px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+.mock-url {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  color: #bbb;
+  margin-left: 10px;
+}
+.mock-tabs {
+  background: #f8f8f8;
+  border-bottom: 1px solid #e8e8e8;
+  display: flex; align-items: center;
+  padding: 0 16px;
+}
+.tab {
+  font-size: 12.5px;
+  padding: 9px 20px;
+  color: #bbb;
+  border-bottom: 2px solid transparent;
+  cursor: default;
+  letter-spacing: 0.01em;
+}
+.tab.on { color: #111; border-bottom-color: var(--accent); font-weight: 500; }
+.split-hint {
+  margin-left: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: #ccc;
+  padding: 9px 0;
+}
+.mock-body {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  min-height: 380px;
+}
+.canvas-pane {
+  border-right: 1px solid #eee;
+  padding: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #fdfdfd;
+}
+.tools {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.tool-btn {
+  width: 32px; height: 32px;
+  border: 1px solid #e5e5e5;
+  border-radius: 7px;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.tool-btn.active { background: var(--accent-light); border-color: rgba(200,57,26,0.3); }
+.code-pane {
+  background: #0d0d0d;
+  padding: 2rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  line-height: 2;
+  overflow: hidden;
+  color: #ccc;
+}
+.kw{color:#e06c75;} .fn{color:#61afef;} .str{color:#98c379;} .tag{color:#e5c07b;} .attr{color:#d19a66;} .cm{color:#3d3d3d;font-style:italic;}
+.inline-label {
+  position: absolute;
+  top: 14px; right: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-3);
+  background: var(--bg);
+  border: var(--rule);
+  padding: 3px 10px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+}
+
+/* ─── SECTION BASE ─── */
+section.blk {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 5rem 3rem;
+  border-top: var(--rule);
+  position: relative; z-index: 1;
+}
+.ey {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+.ey.blue { color: var(--accent-2); }
+.ey.green { color: var(--green); }
+h2.serif {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(26px, 3.5vw, 42px);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  font-weight: 300;
+  max-width: 620px;
+  margin-bottom: 1rem;
+}
+.lead {
+  font-size: 16.5px;
+  color: var(--ink-2);
+  font-weight: 300;
+  max-width: 640px;
+  line-height: 1.75;
+  margin-bottom: 3rem;
+}
+
+/* ─── PROBLEM ─── */
+.problem-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 3rem;
+}
+.prob-card {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  padding: 2rem 2rem 2.25rem;
+}
+.prob-card .who {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 1rem;
+}
+.prob-card h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+.prob-card p {
+  font-size: 14.5px;
+  color: var(--ink-2);
+  font-weight: 300;
+  line-height: 1.7;
+}
+.prob-card.bad h3 { color: var(--accent); }
+.problem-bridge {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.bridge-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 0.5rem;
+}
+.bridge-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: var(--rule);
+}
+.bridge-row:last-child { border-bottom: none; }
+.bridge-icon {
+  width: 32px; height: 32px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  background: var(--green-light);
+}
+.bridge-row h4 { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
+.bridge-row p { font-size: 13px; color: var(--ink-2); font-weight: 300; line-height: 1.6; }
+
+/* ─── APP SECTIONS ─── */
+.app-tabs-explain {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 3rem;
+}
+.tab-card {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tab-card-head {
+  padding: 1.5rem 1.75rem 1.25rem;
+  border-bottom: var(--rule);
+  display: flex; align-items: center; gap: 1rem;
+}
+.tab-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  width: 28px; height: 28px;
+  border: var(--rule);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.tab-card-head h3 { font-size: 16px; font-weight: 500; }
+.tab-card-body {
+  padding: 1.5rem 1.75rem;
+}
+.tab-card-body p {
+  font-size: 14px;
+  color: var(--ink-2);
+  font-weight: 300;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+.feat-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.feat-list li {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 300;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.feat-list li::before {
+  content: '→';
+  color: var(--accent);
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.splitview-explain {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  padding: 2rem 2.25rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+.splitview-side h4 { font-size: 14px; font-weight: 500; margin-bottom: 0.5rem; }
+.splitview-side p { font-size: 13px; color: var(--ink-2); font-weight: 300; line-height: 1.65; }
+.splitview-divider {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* ─── CS CARDS ─── */
+.cs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.cs-card {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  padding: 1.75rem 2rem;
+}
+.cs-card-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+.cs-card h3 { font-size: 16px; font-weight: 500; margin-bottom: 0.75rem; }
+.cs-card p { font-size: 13.5px; color: var(--ink-2); font-weight: 300; line-height: 1.7; margin-bottom: 1rem; }
+.course-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.ctag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--accent-2);
+  background: var(--accent-2-light);
+  border: 1px solid rgba(26,58,143,0.15);
+  padding: 3px 10px;
+  border-radius: 3px;
+}
+
+/* ─── PIPELINE ─── */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+.pipe-step {
+  flex: 1;
+  padding: 2rem 1.75rem;
+  border-right: var(--rule);
+}
+.pipe-step:last-child { border-right: none; }
+.pipe-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.08em;
+}
+.pipe-step h4 { font-size: 14px; font-weight: 500; margin-bottom: 0.5rem; }
+.pipe-step p { font-size: 12.5px; color: var(--ink-2); font-weight: 300; line-height: 1.65; }
+
+/* ─── AI ASSISTANT ─── */
+.ai-card {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 1.25rem;
+}
+.ai-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  border-bottom: var(--rule);
+  background: #fafafa;
+}
+.ai-index {
+  font-family: 'Fraunces', serif;
+  font-size: 42px;
+  line-height: 1;
+  color: #e8e8e8;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  width: 56px;
+}
+.ai-head-text h3 { font-size: 17px; font-weight: 500; margin-bottom: 3px; }
+.ai-head-text p { font-size: 13px; color: var(--ink-3); font-weight: 300; }
+.ai-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 3px;
+  background: var(--accent-2-light);
+  color: var(--accent-2);
+  border: 1px solid rgba(26,58,143,0.2);
+}
+.ai-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+}
+.ai-body-col {
+  padding: 1.75rem 2rem;
+  border-right: var(--rule);
+}
+.ai-body-col:last-child { border-right: none; }
+.ai-body-col h4 {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 0.75rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.ai-body-col p { font-size: 13.5px; color: var(--ink-2); font-weight: 300; line-height: 1.7; }
+.courses-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0.25rem;
+}
+.courses-list li {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.courses-list li::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  flex-shrink: 0;
+}
+
+/* ─── LIBRARY ─── */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+.lib-item {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.lib-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.lib-badge {
+  font-size: 10px; font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.editable { background: var(--green-light); color: var(--green); border: 1px solid rgba(26,107,58,0.2); }
+.locked { background: #f1f1f1; color: #999; border: 1px solid #e0e0e0; }
+.lib-explain {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+}
+.lib-explain h4 { font-size: 14px; font-weight: 500; margin-bottom: 0.5rem; }
+.lib-explain p { font-size: 13.5px; color: var(--ink-2); font-weight: 300; line-height: 1.7; }
+
+/* ─── EXPORT ─── */
+.export-box {
+  background: #0d0d0d;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+.export-bar {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.export-filename {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: #555;
+}
+.export-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: #98c379;
+  background: rgba(152,195,121,0.1);
+  border: 1px solid rgba(152,195,121,0.2);
+  padding: 3px 10px;
+  border-radius: 3px;
+}
+.export-code {
+  padding: 1.75rem 1.5rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  line-height: 2;
+  color: #ccc;
+}
+.export-code .kw{color:#e06c75;} .export-code .fn{color:#61afef;} .export-code .str{color:#98c379;} .export-code .tag{color:#e5c07b;} .export-code .attr{color:#d19a66;} .export-code .cm{color:#3a3a3a;font-style:italic;}
+
+/* ─── COURSE MAP ─── */
+.course-map {
+  background: var(--card);
+  border: var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+.course-map-head {
+  padding: 1.25rem 2rem;
+  border-bottom: var(--rule);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.course-map-head span {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.course-map-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  border-bottom: var(--rule);
+  align-items: stretch;
+}
+.course-map-row:last-child { border-bottom: none; }
+.course-name {
+  padding: 1rem 2rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+  border-right: var(--rule);
+  display: flex;
+  align-items: center;
+}
+.course-where {
+  padding: 1rem 2rem;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 300;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  border-top: var(--rule);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4rem 3rem;
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
+  gap: 2rem;
+}
+.footer-logo {
+  font-family: 'Fraunces', serif;
+  font-size: 48px;
+  letter-spacing: -0.04em;
+  font-weight: 300;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+footer p { font-size: 14px; color: var(--ink-3); font-weight: 300; }
+.footer-meta { text-align: right; }
+.footer-meta p {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  line-height: 1.9;
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero h1 { animation: fadeUp 0.7s ease both; }
+.hero-meta { animation: fadeUp 0.5s ease both; }
+.hero-columns { animation: fadeUp 0.9s ease 0.2s both; }
+.mockup-wrap .mockup { animation: fadeUp 0.8s ease 0.1s both; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 800px) {
+  nav { padding: 1rem 1.25rem; grid-template-columns: 1fr auto; }
+  .nav-links { display: none; }
+  .hero, section.blk, .mockup-wrap { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .hero h1 { font-size: clamp(40px, 12vw, 70px); }
+  .hero-columns, .problem-split, .app-tabs-explain, .cs-grid, .lib-explain { grid-template-columns: 1fr; }
+  .mock-body { grid-template-columns: 1fr; }
+  .code-pane { display: none; }
+  .ai-body { grid-template-columns: 1fr; }
+  .library-grid { grid-template-columns: repeat(2, 1fr); }
+  .pipeline { flex-direction: column; }
+  .pipe-step { border-right: none; border-bottom: var(--rule); }
+  .pipe-step:last-child { border-bottom: none; }
+  .splitview-explain { grid-template-columns: 1fr; }
+  .course-map-row { grid-template-columns: 1fr; }
+  .course-name { border-right: none; border-bottom: var(--rule); }
+  .footer-meta { text-align: left; }
+  footer { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Vectr</div>
+  <ul class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#tool">The Tool</a>
+    <a href="#cs">How It's Built</a>
+    <a href="#import">Mockup Import</a>
+    <a href="#ai">AI Assistant</a>
+    <a href="#library">Library</a>
+    <a href="#export">Export</a>
+  </ul>
+  <div class="nav-tag">Grad Project · 2026 / 2027</div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-meta">
+    <div class="hero-type">Project Proposal</div>
+    <div class="hero-dept">Computer Science — Graduation Project</div>
+  </div>
+  <h1><em>Vectr</em><span>Draw vectors. Get React code.</span></h1>
+
+  <div class="hero-columns">
+    <div class="hero-desc">
+      <p>Vectr is a <strong>design-to-code tool</strong> that closes the gap between what a designer draws and what a developer can actually use. Every vector drawn on the canvas is simultaneously clean, readable, component-ready React and SVG code.</p>
+      <p>The tool has two tabs — a <strong>Design tab</strong> (a canvas like Illustrator) and a <strong>Code tab</strong> (live React output) — with an optional split view. An AI assistant lives inside the tool, always aware of the current code state, so developers can ask it questions or request changes in plain language.</p>
+      <p>This is a <strong>pure CS project</strong>. The canvas engine, the code generation pipeline, the architecture, the AI integration, the export system — all of it is built from the ground up and maps directly to the CS curriculum.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-row">
+        <span class="stat-label">type</span>
+        <span class="stat-val">Web Application</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">output</span>
+        <span class="stat-val">React / SVG</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">AI</span>
+        <span class="stat-val">LLM assistant</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">team</span>
+        <span class="stat-val">CS only</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">year</span>
+        <span class="stat-val">2026 / 2027</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOCKUP -->
+<div class="mockup-wrap">
+  <div class="mockup">
+    <div class="mock-bar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <span class="mock-url">vectr.app / workspace / untitled-01</span>
+    </div>
+    <div class="mock-tabs">
+      <div class="tab on">Design</div>
+      <div class="tab">Code</div>
+      <div class="split-hint">⌥S — split view</div>
+    </div>
+    <div class="mock-body">
+      <div class="canvas-pane">
+        <div class="inline-label">live canvas</div>
+        <div class="tools">
+          <div class="tool-btn active">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 12L5 8L9 10L12 3" stroke="#c8391a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="tool-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="2.5" y="2.5" width="9" height="9" rx="1" stroke="#999" stroke-width="1.2"/>
+            </svg>
+          </div>
+          <div class="tool-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="4.5" stroke="#999" stroke-width="1.2"/>
+            </svg>
+          </div>
+        </div>
+        <svg width="200" height="220" viewBox="0 0 240 240">
+          <path d="M50 190 C50 110 85 40 120 35 C155 40 190 110 190 190 Q160 205 120 200 Q80 205 50 190Z"
+            fill="rgba(200,57,26,0.06)" stroke="#c8391a" stroke-width="1.5"/>
+          <line x1="50" y1="190" x2="50" y2="110" stroke="#c8391a" stroke-width="0.6" stroke-dasharray="3,3" opacity="0.4"/>
+          <line x1="85" y1="40" x2="148" y2="75" stroke="#c8391a" stroke-width="0.6" stroke-dasharray="3,3" opacity="0.4"/>
+          <line x1="190" y1="190" x2="190" y2="110" stroke="#c8391a" stroke-width="0.6" stroke-dasharray="3,3" opacity="0.4"/>
+          <circle cx="50" cy="110" r="4" fill="white" stroke="#c8391a" stroke-width="1.2"/>
+          <circle cx="148" cy="75" r="4" fill="white" stroke="#c8391a" stroke-width="1.2"/>
+          <circle cx="190" cy="110" r="4" fill="white" stroke="#c8391a" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="code-pane">
+        <div><span class="cm">// auto-generated · live</span></div>
+        <br/>
+        <div><span class="kw">const</span> anchor_bottom_left &nbsp;= { x: <span class="str">50</span>,  y: <span class="str">190</span> }</div>
+        <div><span class="kw">const</span> anchor_top &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= { x: <span class="str">120</span>, y: <span class="str">35</span>  }</div>
+        <div><span class="kw">const</span> anchor_bottom_right = { x: <span class="str">190</span>, y: <span class="str">190</span> }</div>
+        <br/>
+        <div><span class="kw">const</span> cp_left_1  = { x: <span class="str">50</span>,  y: <span class="str">110</span> }</div>
+        <div><span class="kw">const</span> cp_left_2  = { x: <span class="str">85</span>,  y: <span class="str">40</span>  }</div>
+        <div><span class="kw">const</span> cp_right_1 = { x: <span class="str">155</span>, y: <span class="str">40</span>  }</div>
+        <div><span class="kw">const</span> cp_right_2 = { x: <span class="str">190</span>, y: <span class="str">110</span> }</div>
+        <br/>
+        <div><span class="kw">export const</span> <span class="fn">MainCurve</span> = ({ fill, stroke }) =&gt; {</div>
+        <div>&nbsp;&nbsp;<span class="kw">const</span> d = `</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;M ${anchor_bottom_left.x} ${anchor_bottom_left.y}</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;C ${cp_left_1.x} ${cp_left_1.y},</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${cp_left_2.x} ${cp_left_2.y},</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${anchor_top.x} ${anchor_top.y}</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;C ${cp_right_1.x} ${cp_right_1.y},</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${cp_right_2.x} ${cp_right_2.y},</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${anchor_bottom_right.x} ${anchor_bottom_right.y} Z</div>
+        <div>&nbsp;&nbsp;`</div>
+        <div>&nbsp;&nbsp;<span class="kw">return</span> <span class="tag">&lt;path</span> <span class="attr">d</span>={d} <span class="attr">fill</span>={fill} <span class="attr">stroke</span>={stroke} <span class="tag">/&gt;</span></div>
+        <div>}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="blk" id="problem">
+  <div class="ey">01 — The Problem</div>
+  <h2 class="serif">Design and code don't speak the same language</h2>
+  <p class="lead">When a designer draws a custom vector or complex shape, a developer has no good way to turn it into usable code. The design loses its soul in translation — and today's tools make this worse, not better.</p>
+
+  <div class="problem-split">
+    <div class="prob-card">
+      <div class="who">The designer</div>
+      <h3>Makes something beautiful</h3>
+      <p>Custom shapes, detailed paths, intricate illustrations — drawn with precision, built to be scalable, animatable, and alive. They work in Illustrator or Figma. They know exactly what they want and they produced it. The vector is perfect.</p>
+    </div>
+    <div class="prob-card bad">
+      <div class="who">The developer</div>
+      <h3>Gets a PNG and guesses</h3>
+      <p>No scalability. No interactivity. No way to animate it, theme it, or respond to events. Or they get a 400-line SVG export from Illustrator that nobody wants to touch — full of transform matrices and meaningless auto-generated IDs with no component structure at all.</p>
+    </div>
+  </div>
+
+  <div class="problem-bridge">
+    <div class="bridge-title">What happens today — and why it fails</div>
+    <div class="bridge-row">
+      <div class="bridge-icon">🖼</div>
+      <div>
+        <h4>Export as PNG</h4>
+        <p>Loses all scalability. Can't be animated or themed. Not a living part of the codebase — just a static image file that breaks on retina displays and can't respond to anything.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">📄</div>
+      <div>
+        <h4>Export SVG from Illustrator</h4>
+        <p>Produces hundreds of lines of unreadable SVG. No component structure. Impossible to modify programmatically. Developers copy-paste it as a black box and nobody touches it again.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">🔁</div>
+      <div>
+        <h4>Developer hand-rewrites the shape</h4>
+        <p>Takes hours. Introduces discrepancies. Requires constant back-and-forth with the designer. The developer has to guess at bezier control handles from looking at a PNG. Not sustainable at any scale.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">✓</div>
+      <div>
+        <h4>Vectr's approach</h4>
+        <p>The vector <em>is</em> the code from the moment it's drawn. The designer works on the canvas. The developer works in the code tab. Both see the same thing in their own language, in real time, with no translation step in between.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE TOOL -->
+<section class="blk" id="tool">
+  <div class="ey">02 — The Tool</div>
+  <h2 class="serif">Two tabs. One source of truth.</h2>
+  <p class="lead">A design tool and a code editor living in the same workspace. Every change on the canvas is immediately reflected in the code, whether you're looking at it or not. The code is always clean, always current, always exportable.</p>
+
+  <div class="app-tabs-explain">
+    <div class="tab-card">
+      <div class="tab-card-head">
+        <div class="tab-num">01</div>
+        <h3>Design Tab — the canvas</h3>
+      </div>
+      <div class="tab-card-body">
+        <p>A canvas that feels like Illustrator. Designers work the way they already know how — draw, adjust, refine. No code knowledge required. The tool handles everything underneath.</p>
+        <ul class="feat-list">
+          <li>Pen tool with full bezier curve support — place anchor points, drag control handles, close paths, edit existing nodes</li>
+          <li>Shape tools — rectangle, circle, ellipse, polygon, freehand path</li>
+          <li>Fill, stroke, opacity, layer management, grouping</li>
+          <li>Pre-built vector library to drag and start from</li>
+          <li>UI component primitives — buttons, navbars, inputs — editable on canvas</li>
+          <li>Transform tools — scale, rotate, skew, flip, align</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tab-card">
+      <div class="tab-card-head">
+        <div class="tab-num">02</div>
+        <h3>Code Tab — live output</h3>
+      </div>
+      <div class="tab-card-body">
+        <p>Everything drawn on the canvas is reflected here instantly as clean, readable React and SVG. The code updates in the background whether or not you're looking at it. Developers can read it, copy from it, or ask the AI assistant to work with it.</p>
+        <ul class="feat-list">
+          <li>React component output — named, structured, importable</li>
+          <li>Each shape gets its own component with named props (fill, stroke, size, className)</li>
+          <li>Component hierarchy mirrors visual grouping on the canvas</li>
+          <li>Bezier paths become components with named variables for every anchor and control handle — not raw coordinate strings</li>
+          <li>Syntax highlighted, formatted, and readable by a human</li>
+          <li>AI assistant panel inline — ask about any part of the code</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="splitview-explain">
+    <div class="splitview-side">
+      <h4>Design tab</h4>
+      <p>The canvas. Draw, edit, style. Fully functional. The code generation pipeline runs silently in the background — every canvas change updates the JSON state, which immediately re-runs the generator.</p>
+    </div>
+    <div class="splitview-divider">⌥S — split view</div>
+    <div class="splitview-side">
+      <h4>Code tab</h4>
+      <p>Live React and SVG. Clean, readable, component-ready. Updated continuously, even when you're not looking at it. Open split view and watch the code change in real time as the designer moves anchor points on the canvas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT'S BUILT -->
+<section class="blk" id="cs">
+  <div class="ey blue">03 — How It's Built</div>
+  <h2 class="serif">The engineering underneath</h2>
+  <p class="lead">Vectr is built entirely by the CS team. Four distinct engineering problems — each one a real challenge, each one producing something visible and testable in the final product.</p>
+
+  <div class="cs-grid">
+    <div class="cs-card">
+      
+      <h3>Canvas &amp; Rendering Engine</h3>
+      <p>This is the entire design canvas — the pen tool, shape tools, bezier curve manipulation, anchor point handles, layers, selection, and transformations. It's built using Paper.js, a vector-native canvas library that gives us direct access to paths, curves, and scene graph management.</p>
+      <p>Every element on the canvas — a rectangle, a bezier path, a circle — has a live internal representation as structured data: anchor positions, control handle positions, fill color, stroke, opacity, z-index. This is the canvas state tree, and it's the single source of truth that every other part of the system reads from. Getting this right is the most critical architectural decision in the whole project.</p>
+      <p>Managing all user input events correctly (mouse, touch, keyboard shortcuts), redrawing efficiently on every frame, and handling selection, drag, and resize without visual glitches — this is a core computer graphics and real-time rendering problem.</p>
+      <div class="course-tags">
+        <span class="ctag">Computer Graphics</span>
+        <span class="ctag">Software Engineering</span>
+        <span class="ctag">Data Structures</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      
+      <h3>Code Generation Pipeline</h3>
+      <p>This is the core innovation of the project. At any given moment, the canvas state is a structured JSON object — a complete description of every shape and path with all their properties. The code generation pipeline reads that JSON and produces clean, readable React components in real time.</p>
+      <p>Think of this as a compiler where the <em>source language</em> is the visual canvas and the <em>target language</em> is React/JSX. Every shape type has its own generator function. A rectangle becomes a component with named variables for x, y, width, height, radius, fill, and opacity. A bezier path becomes a component where every anchor point and every control handle is a named variable — not a raw coordinate dump. The output is code a developer can actually read, understand, and modify.</p>
+      <p>The pipeline also handles grouping, nesting, naming conventions, and ordering consistently — which is an algorithms problem as much as it is a language design problem.</p>
+      <div class="course-tags">
+        <span class="ctag">Compiler Theory</span>
+        <span class="ctag">Concepts of Programming Languages</span>
+        <span class="ctag">Analysis &amp; Algorithms</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      
+      <h3>Architecture &amp; Infrastructure</h3>
+      <p>The full system design — how every part of the application connects and communicates. The frontend is React. The backend is Node.js, handling API requests, user authentication, project storage, and the autosave system. The database stores projects as JSON snapshots of the canvas state, which the frontend can reload and reconstruct exactly.</p>
+      <p>The autosave system triggers every 5 minutes and on every Ctrl+S. Because running a full code generation pass on every single keystroke would be too expensive, the save system is decoupled from the live code generation — generation runs continuously but saves are batched and queued.</p>
+      <p>Security is not optional: projects contain proprietary design work. User authentication, encrypted project storage, and a backend API key proxy (so the AI key is never exposed to the client) are hard requirements. The distributed side covers how the system handles multiple users accessing the shared library simultaneously without conflicts.</p>
+      <div class="course-tags">
+        <span class="ctag">Operating Systems</span>
+        <span class="ctag">Computer Networks</span>
+        <span class="ctag">Distributed Computing</span>
+        <span class="ctag">Cybersecurity</span>
+        <span class="ctag">System Analysis &amp; Design</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      
+      <h3>Export Tool &amp; Data Mining</h3>
+      <p>The export tool takes the generated React/SVG code and packages it into a clean, self-contained component file — formatted, named correctly, and ready to drop into any project with a single import. No cleanup. No runtime dependency on Vectr itself. This involves file system operations, code formatting, dependency resolution, and ensuring the output is always optimized and human-readable.</p>
+      <p>The data mining layer tracks usage patterns across the tool — which shapes get drawn most, how paths are typically structured, what users ask the AI assistant most often. This feeds directly into training data improvement and informs future feature decisions. Pattern recognition identifies recurring shape types and helps surface the most useful vectors in the shared library.</p>
+      <div class="course-tags">
+        <span class="ctag">Analysis &amp; Algorithms</span>
+        <span class="ctag">Data Mining</span>
+        <span class="ctag">Pattern Recognition</span>
+        <span class="ctag">Software Engineering</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num">INPUT</div>
+      <h4>Canvas interaction</h4>
+      <p>Designer draws on canvas. Mouse/touch events captured. Paths built from anchor points and bezier handles in real time.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">STATE</div>
+      <h4>Canvas JSON</h4>
+      <p>Every change updates the canvas state tree. A complete structured JSON description of all shapes, layers, and properties on the canvas.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">COMPILE</div>
+      <h4>Code generator</h4>
+      <p>The code generation pipeline reads the JSON. Each shape type maps to a generator function. Output is clean, named React components.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">OUTPUT</div>
+      <h4>React / SVG code</h4>
+      <p>Code tab updates in real time. Every anchor point is a named variable. Every shape is a readable, importable component.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">AI</div>
+      <h4>Assistant reads state</h4>
+      <p>The AI assistant always receives the current component code as context. Developers ask questions or request changes in plain language.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MOCKUP IMPORT PIPELINE -->
+<section class="blk" id="import">
+  <div class="ey">04 — Mockup Import Pipeline</div>
+  <h2 class="serif">A raster sketch goes in. Editable vector layers come out.</h2>
+  <p class="lead">Vector art is math — curves and points that stay sharp at any zoom. A raster image (a PNG, a phone photo of a sketch, an exported logo) is just a grid of colored pixels with no structure underneath. Mockup Import is a small pipeline of trained models that takes a flat raster image and reconstructs it as real, editable Vectr paths — anchor points, curve handles, grouped layers, and readable names — the way a designer would have drawn it by hand.</p>
+
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num">01 — BASELINE</div>
+      <h4>Classical trace</h4>
+      <p>A classical vectorization algorithm (potrace-style edge tracing) produces a rough first-pass set of bezier paths — fast, deterministic, no training required, and a working fallback on day one.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">02 — REFINE</div>
+      <h4>Learned cleanup</h4>
+      <p>A trained model looks at the rough baseline trace and predicts which points to merge, which segments are noise, and which curves to smooth — turning a jittery mechanical trace into deliberate, designer-like paths.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">03 — GROUP</div>
+      <h4>Find what belongs together</h4>
+      <p>A second model looks at the cleaned paths and clusters the ones that form a single logical object — the paths that make up one leaf, one letterform, one icon glyph.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">04 — LABEL</div>
+      <h4>Recognize what it is</h4>
+      <p>A third model looks at each finished group and classifies its role — leaf, star, arrow, ring — which becomes the actual variable name in the generated code, not <code>path_1</code>, <code>path_2</code>.</p>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">05 — FUSE</div>
+      <h4>Assemble the result</h4>
+      <p>Paths, groupings, and labels are combined into one canvas state object — the exact same JSON structure the hand-drawn canvas already produces. From here it's a normal, fully editable Vectr layer.</p>
+    </div>
+  </div>
+
+  <div class="cs-grid">
+    <div class="cs-card">
+      <div class="cs-card-num">Stage 01</div>
+      <h3>Baseline tracer (classical)</h3>
+      <p>Fully learned raster-to-vector tracing is an active, not-fully-solved computer vision research problem — attempting it from scratch as the very first stage of a first ML pipeline is a real risk to the whole timeline. Instead, the baseline uses a classical edge-tracing algorithm (potrace-style), which finds where colors change and fits curves there. No training required, deterministic, and gives the team a working end-to-end pipeline from week one.</p>
+      <p>This baseline is the safety net: even if the learned refinement stage underperforms, the pipeline still produces a usable — if rougher — vector result. The project is never blocked waiting on a research-grade model to converge.</p>
+      <div class="course-tags">
+        <span class="ctag">Computer Graphics</span>
+        <span class="ctag">Analysis &amp; Algorithms</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-num">Stage 02</div>
+      <h3>Learned refinement model</h3>
+      <p>This is where the real ML work — and the real risk — lives, scoped down to something achievable. Instead of learning to trace from raw pixels, this model only has to learn one narrower job: look at the baseline tracer's rough output and predict which anchor points are redundant, which segments are noise, and how to smooth a jittery mechanical curve into something a designer would actually draw.</p>
+      <p>"Clean up an existing trace" is a much smaller, better-defined learning problem than "invent a trace from nothing" — closer to a solvable coursework-scale project than an open research problem, while still being genuine, defensible, trained-model work.</p>
+      <div class="course-tags">
+        <span class="ctag">Computer Vision</span>
+        <span class="ctag">Neural Networks &amp; Deep Learning</span>
+        <span class="ctag">Machine Learning</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-num">Stage 03</div>
+      <h3>Grouping model</h3>
+      <p>A traced image is just a scattered pile of independent paths with no relationships between them. This model looks at proximity, shared color, and shape context to decide which paths are one logical unit — the same way a designer's layer panel groups related shapes instead of leaving 40 ungrouped paths.</p>
+      <p>Getting this wrong means every imported mockup arrives as an unusable flat list of shapes — exactly the "developer gets a 400-line SVG with no structure" problem Vectr already exists to solve, just reintroduced through the back door if this stage is skipped.</p>
+      <div class="course-tags">
+        <span class="ctag">Pattern Recognition</span>
+        <span class="ctag">Analysis &amp; Algorithms</span>
+        <span class="ctag">Data Structures</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-num">Stage 04</div>
+      <h3>Semantic labeling model</h3>
+      <p>This is the stage that plugs directly into Vectr's existing differentiator. A classifier looks at each finished group — its shape, position, and context relative to everything around it — and predicts what it actually represents, so the code generator can name it <code>sunRayLine</code> or <code>leafShape</code> instead of an anonymous index.</p>
+      <p>Training data comes from labeled vector icon sets (SVG libraries already carry semantic layer names) paired with rendered raster versions — giving a natural source of supervised examples without hand-labeling from scratch.</p>
+      <div class="course-tags">
+        <span class="ctag">Machine Learning</span>
+        <span class="ctag">Natural Language Processing</span>
+        <span class="ctag">Neural Networks &amp; Deep Learning</span>
+      </div>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-num">Stage 05</div>
+      <h3>Fusion &amp; integration</h3>
+      <p>The three model outputs don't get shown to the user separately — they're merged into a single confidence-weighted result and written directly into the same canvas state JSON that the hand-drawn tool already uses. That means every downstream system — the code generator, the AI assistant, the shared library — works on an imported mockup exactly the same way it works on anything drawn by hand. No separate code path, no second-class citizen.</p>
+      <p>The import itself streams stage-by-stage into the canvas — boxes and curves appear first, then grouping, then names settle in — instead of a spinner that hides the whole process until it's done.</p>
+      <div class="course-tags">
+        <span class="ctag">Software Engineering</span>
+        <span class="ctag">System Analysis &amp; Design</span>
+        <span class="ctag">Distributed Computing</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-bridge">
+    <div class="bridge-title">Why a pipeline of small models, not one big one</div>
+    <div class="bridge-row">
+      <div class="bridge-icon">🎯</div>
+      <div>
+        <h4>Each stage is a narrower, gradeable problem</h4>
+        <p>Tracing, grouping, and labeling are each well-defined enough to have their own dataset, their own evaluation metric, and their own failure cases — instead of one opaque model where nobody can tell which part is actually wrong when the output looks bad.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">🧩</div>
+      <div>
+        <h4>Failures stay contained</h4>
+        <p>If the labeling model guesses a wrong name, the traced geometry underneath is still correct and still usable — a bad guess in one stage doesn't corrupt the whole import the way it would in a single end-to-end black box.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">👥</div>
+      <div>
+        <h4>Splits cleanly across the team</h4>
+        <p>Three independent models with three independent datasets and evaluation pipelines is real, separable ML work — not one person training one model while everyone else waits.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">✓</div>
+      <div>
+        <h4>The model is load-bearing, not decorative</h4>
+        <p>Remove the pipeline and the Mockup Import feature doesn't exist in a worse form — it doesn't exist at all. This isn't a classifier bolted onto a finished app; it's the entire mechanism behind a real, demoable feature.</p>
+      </div>
+    </div>
+    <div class="bridge-row">
+      <div class="bridge-icon">🛟</div>
+      <div>
+        <h4>The highest-risk stage has a fallback built in</h4>
+        <p>Raw raster-to-vector tracing is the one genuinely open research problem in this pipeline. Rather than betting the whole feature on it, the classical baseline tracer (Stage 01) guarantees a working pipeline from day one, and the learned refinement model (Stage 02) is scoped to the narrower, well-defined problem of cleaning up an existing trace — real trained-model work without the risk of an unsolved research problem blocking the whole timeline.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI ASSISTANT -->
+<section class="blk" id="ai">
+  <div class="ey blue">05 — AI Assistant</div>
+  <h2 class="serif">A developer-facing AI that knows what's on screen</h2>
+  <p class="lead">The AI assistant is not a generic chatbot dropped into the sidebar. It's specifically integrated into the code state and responds to exactly what's currently on screen — giving developers a natural language interface to the generated code.</p>
+
+  <div class="ai-card">
+    <div class="ai-head">
+      <div class="ai-index">AI</div>
+      <div class="ai-head-text">
+        <h3>Context-Aware Code Assistant</h3>
+        <p>Lives inside the tool. Reads the live code panel on every message. Understands SVG structure, React anatomy, and the naming conventions the code generator produces.</p>
+      </div>
+      <div class="ai-tag">CS — NLP / Neural Networks</div>
+    </div>
+    <div class="ai-body">
+      <div class="ai-body-col">
+        <h4>What it does</h4>
+        <p>With every message, the assistant receives the full current component code as context. It's not a generic chatbot — it's specifically prompted to understand SVG structure, React component anatomy, and the naming conventions the code generator produces.</p>
+        <p>A developer can ask it what a control point does, ask it to make a shape responsive, turn a path into a reusable component with props, or animate a variable using Framer Motion. The assistant always knows exactly what's on screen.</p>
+      </div>
+      <div class="ai-body-col">
+        <h4>How the integration works</h4>
+        <p>The live code state is injected into every API call as a system context. The response is parsed and rendered in the assistant panel. When the assistant suggests a code change, the suggested diff is shown to the developer for review — nothing is applied without confirmation.</p>
+        <p>The AI API key lives on the backend and is never exposed to the client. All requests are proxied through the Node.js server, which also handles rate limiting and request logging.</p>
+      </div>
+      <div class="ai-body-col">
+        <h4>Courses covered</h4>
+        <ul class="courses-list">
+          <li>Natural Language Processing</li>
+          <li>Neural Networks &amp; Deep Learning</li>
+          <li>Software Engineering</li>
+          <li>Computer &amp; Network Security</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIBRARY -->
+<section class="blk" id="library">
+  <div class="ey">06 — The Vector Library</div>
+  <h2 class="serif">A shared library your team builds over time</h2>
+  <p class="lead">Designers can upload finished vectors to a shared library that the whole team can drag onto any canvas and start from. Each library item stores both the canvas JSON and the generated code — so everything is re-editable, not just a static file.</p>
+
+  <div class="library-grid">
+    <div class="lib-item">
+      <svg width="60" height="60" viewBox="0 0 60 60">
+        <path d="M10 50 C10 25 25 8 30 8 C35 8 50 25 50 50Z" fill="rgba(200,57,26,0.07)" stroke="#c8391a" stroke-width="1.2"/>
+      </svg>
+      <span class="lib-label">blob-01</span>
+      <span class="lib-badge editable">editable</span>
+    </div>
+    <div class="lib-item">
+      <svg width="60" height="60" viewBox="0 0 60 60">
+        <path d="M30 8 L35 25 L52 25 L38 35 L43 52 L30 42 L17 52 L22 35 L8 25 L25 25 Z" fill="rgba(26,58,143,0.07)" stroke="#1a3a8f" stroke-width="1.2"/>
+      </svg>
+      <span class="lib-label">star-04</span>
+      <span class="lib-badge editable">editable</span>
+    </div>
+    <div class="lib-item">
+      <svg width="60" height="60" viewBox="0 0 60 60">
+        <circle cx="30" cy="30" r="20" fill="rgba(26,107,58,0.07)" stroke="#1a6b3a" stroke-width="1.2"/>
+        <circle cx="30" cy="30" r="10" fill="none" stroke="#1a6b3a" stroke-width="1.2" stroke-dasharray="3,2"/>
+      </svg>
+      <span class="lib-label">ring-02</span>
+      <span class="lib-badge editable">editable</span>
+    </div>
+    <div class="lib-item">
+      <svg width="60" height="60" viewBox="0 0 60 60">
+        <path d="M5 30 Q15 10 30 15 Q45 20 55 30 Q45 50 30 45 Q15 50 5 30Z" fill="rgba(26,58,143,0.07)" stroke="#1a3a8f" stroke-width="1.2"/>
+      </svg>
+      <span class="lib-label">lens-07</span>
+      <span class="lib-badge editable">editable</span>
+    </div>
+    <div class="lib-item">
+      <svg width="60" height="60" viewBox="0 0 60 60">
+        <path d="M30 5 L55 20 L50 50 L10 50 L5 20 Z" fill="rgba(200,57,26,0.06)" stroke="#c8391a" stroke-width="1.2"/>
+      </svg>
+      <span class="lib-label">poly-03</span>
+      <span class="lib-badge editable">editable</span>
+    </div>
+  </div>
+
+  <div class="lib-explain">
+    <div>
+      <h4>How library items work</h4>
+      <p>When a designer uploads a finished vector, two things get stored: the canvas JSON (a complete structured description of every anchor point, curve, and property) and the generated React code. Either can be loaded back independently.</p>
+      <p>When someone pulls a library item onto the canvas, the tool reconstructs the full editable vector from the stored JSON — all the anchor points come back, the bezier handles are live, and the code panel updates immediately to match. It's not a static import; it's a full reconstruction.</p>
+    </div>
+    <div>
+      <h4>Building the library over time</h4>
+      <p>The shared library grows as the team uploads their best components and vectors. Frequently used shapes — a brand icon, a recurring UI element, a complex illustration that took hours to get right — get stored once and reused everywhere.</p>
+      <p>The data mining system tracks which library items get pulled onto the canvas most, which ones get modified immediately after being dragged in, and which ones get exported directly. Over time this creates a clear picture of what's actually useful, which feeds back into how the library is organized and surfaced.</p>
+      <div class="course-tags" style="margin-top: 1rem;">
+        <span class="ctag">Analysis &amp; Algorithms</span>
+        <span class="ctag">System Analysis &amp; Design</span>
+        <span class="ctag">Data Mining</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPORT -->
+<section class="blk" id="export">
+  <div class="ey blue">07 — Export</div>
+  <h2 class="serif">Drop it into any project</h2>
+  <p class="lead">When the design is done, the developer exports the generated code as a clean React component file — self-contained, dependency-free, ready to import. No copy-pasting. No cleanup. No post-processing. It just works in any React project.</p>
+
+  <div class="export-box">
+    <div class="export-bar">
+      <span class="export-filename">MyShape.jsx</span>
+      <span class="export-badge">✓ export ready</span>
+    </div>
+    <div class="export-code">
+      <div><span class="cm">/**</span></div>
+      <div><span class="cm">&nbsp;* MyShape — generated by Vectr</span></div>
+      <div><span class="cm">&nbsp;* Decomposed: MainCurve, TopArc, BottomFill</span></div>
+      <div><span class="cm">&nbsp;*/</span></div>
+      <br/>
+      <div><span class="kw">import</span> React <span class="kw">from</span> <span class="str">'react'</span></div>
+      <br/>
+      <div><span class="kw">const</span> <span class="fn">MainCurve</span> = ({ fill = <span class="str">'#c8391a'</span>, stroke = <span class="str">'#c8391a'</span> }) =&gt; {</div>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> anchor_bottom_left &nbsp;= { x: <span class="str">50</span>,  y: <span class="str">190</span> }</div>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> anchor_top &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= { x: <span class="str">120</span>, y: <span class="str">35</span>  }</div>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> anchor_bottom_right = { x: <span class="str">190</span>, y: <span class="str">190</span> }</div>
+      <br/>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> cp_left_1  = { x: <span class="str">50</span>,  y: <span class="str">110</span> }</div>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> cp_left_2  = { x: <span class="str">85</span>,  y: <span class="str">40</span>  }</div>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> cp_right_1 = { x: <span class="str">155</span>, y: <span class="str">40</span>  }</div>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> cp_right_2 = { x: <span class="str">190</span>, y: <span class="str">110</span> }</div>
+      <br/>
+      <div>&nbsp;&nbsp;<span class="kw">const</span> d = `</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;M ${anchor_bottom_left.x} ${anchor_bottom_left.y}</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;C ${cp_left_1.x} ${cp_left_1.y}, ${cp_left_2.x} ${cp_left_2.y},</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${anchor_top.x} ${anchor_top.y}</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;C ${cp_right_1.x} ${cp_right_1.y}, ${cp_right_2.x} ${cp_right_2.y},</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${anchor_bottom_right.x} ${anchor_bottom_right.y} Z</div>
+      <div>&nbsp;&nbsp;`</div>
+      <br/>
+      <div>&nbsp;&nbsp;<span class="kw">return</span> <span class="tag">&lt;path</span> <span class="attr">d</span>={d} <span class="attr">fill</span>={fill} <span class="attr">stroke</span>={stroke} <span class="attr">strokeWidth</span>=<span class="str">"1.5"</span> <span class="tag">/&gt;</span></div>
+      <div>}</div>
+      <br/>
+      <div><span class="kw">export default function</span> <span class="fn">MyShape</span>({ size = <span class="str">240</span>, fill, stroke }) {</div>
+      <div>&nbsp;&nbsp;<span class="kw">return</span> (</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag">&lt;svg</span> <span class="attr">width</span>={size} <span class="attr">height</span>={size} <span class="attr">viewBox</span>=<span class="str">"0 0 240 240"</span><span class="tag">&gt;</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag">&lt;MainCurve</span> <span class="attr">fill</span>={fill} <span class="attr">stroke</span>={stroke} <span class="tag">/&gt;</span></div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag">&lt;/svg&gt;</span></div>
+      <div>&nbsp;&nbsp;)</div>
+      <div>}</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">Vectr</div>
+    <p>Design and code, finally speaking the same language.</p>
+  </div>
+  <div class="footer-meta">
+    <p>Graduation Project — 2026 / 2027</p>
+    <p>Computer Science</p>
+    <p>vectr.app</p>
+  </div>
+</footer>
+
+</body>
+</html>

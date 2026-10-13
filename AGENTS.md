@@ -50,6 +50,10 @@ owner approves a feature plan.
   document copies, renderer allocations, background work, and dependencies;
   measure memory on representative and stress documents before declaring a
   capability ready.
+- Finish each approved outcome completely before asking the owner to review or
+  test it. Agents own implementation, self-review, and planned validation;
+  request owner review/testing only as the final handoff, unless new authority,
+  a safety decision, or an external blocker genuinely stops progress.
 
 ## Branch policy
 

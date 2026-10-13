@@ -37,6 +37,8 @@
   and UI production build pass. Packaged Windows execution is blocked because
   Electron Builder stalled during runtime packaging without producing an
   executable or result artifacts.
+- Agent completion rule added: owner review/testing happens only after agents
+  complete the approved outcome and their planned validation.
 
 ## Next
 

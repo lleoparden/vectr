@@ -116,3 +116,11 @@
   lazy compiler/agent workers, and explicit resource release on close.
 - If Electron misses the approved evidence-based budgets, compare the same
   workload against Tauri + React + TypeScript before choosing a replacement.
+
+## 2026-10-13 — Agent completion and owner handoff
+
+- Agents complete the approved outcome, self-review it, and run planned checks
+  before asking the owner to review or test.
+- Owner review/testing is the final handoff, not a substitute for unfinished
+  agent work. The only exception is a genuine need for new authority, a safety
+  decision, or an external blocker that prevents meaningful progress.

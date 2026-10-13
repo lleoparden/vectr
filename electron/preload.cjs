@@ -1,7 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('vectrBenchmark', {
-  reportReady: () => ipcRenderer.send('benchmark:ready'),
+  getMemory: () => ipcRenderer.invoke('benchmark:memory'),
   reportResult: (result) => ipcRenderer.invoke('benchmark:result', result),
-  onRun: (callback) => ipcRenderer.once('benchmark:run', callback),
 })

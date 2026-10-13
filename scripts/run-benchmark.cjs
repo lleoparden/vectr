@@ -4,7 +4,7 @@ const path = require('node:path')
 
 const root = path.resolve(__dirname, '..')
 const outputDirectory = path.join(root, '.ecc', 'benchmarks', 'phase-zero')
-const executable = path.join(root, 'dist', 'win-unpacked', 'Vectr Phase Zero Benchmark.exe')
+const executable = path.join(root, 'release', 'win-unpacked', 'Vectr Phase Zero Benchmark.exe')
 
 fs.mkdirSync(outputDirectory, { recursive: true })
 

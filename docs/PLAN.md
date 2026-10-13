@@ -8,10 +8,11 @@ remains the short operational checklist for the active phase.
 - [x] Approve Electron + React + TypeScript as the proposed desktop direction:
   Windows is the first fully tested release; macOS and Linux must build and
   launch early, with full support claimed only after platform testing.
-- [ ] Run a bounded renderer and memory benchmark before locking Electron and
-  SVG rendering for production. Compare realistic and stress documents;
-  measure all application processes rather than JavaScript heap alone; avoid a
-  GPU renderer unless the evidence requires one.
+- [x] Run the packaged Electron + SVG renderer/memory benchmark. Five Windows
+  runs are recorded in `.ecc/benchmarks/phase-zero/`; SVG fails the stress
+  interaction target and is not a production renderer candidate.
+- [ ] Run the same benchmark on Tauri before locking the desktop shell, because
+  Electron's empty working set is above the proposed memory target.
 - [x] Build parity catalog v1 and define its feature-completion standard in
   `docs/PARITY_CATALOG.md`.
 - [x] Approve a versioned, renderer-independent document model: stable layer
@@ -53,9 +54,9 @@ remains the short operational checklist for the active phase.
    rules and first prioritized MVP slice.
 
 **Approved scope:** benchmark harness and its Electron/React/TypeScript,
-Vite, packaging, and React type dependencies. Phase 0 remains open because
-the packaged Windows benchmark stalled before producing an executable or
-measurements; no Electron/SVG decision has been made from evidence.
+Vite, packaging, and React type dependencies. The Electron + SVG benchmark
+completed after packaging fixes; its evidence rejects SVG as the production
+renderer and requires a Tauri comparison before the shell is locked.
 
 ## Phase 1 — Core application foundation
 

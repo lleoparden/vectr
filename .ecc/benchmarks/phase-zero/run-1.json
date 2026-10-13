@@ -1,0 +1,111 @@
+{
+  "capturedAt": "2026-10-13T16:10:46.306Z",
+  "electron": "35.7.5",
+  "chrome": "134.0.6998.205",
+  "platform": "win32",
+  "arch": "x64",
+  "applicationProcesses": [
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 0.251073,
+        "percentCPUUsage": 6.4258658008658,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 34828,
+      "type": "Browser",
+      "creationTime": 1791907844734.881,
+      "memory": {
+        "workingSetSize": 91088,
+        "peakWorkingSetSize": 91088,
+        "privateBytes": 70252
+      },
+      "integrityLevel": "medium",
+      "sandboxed": false
+    },
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 0.288989,
+        "percentCPUUsage": 1.602046311254712,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 33948,
+      "type": "GPU",
+      "creationTime": 1791907844860.26,
+      "serviceName": "GPU",
+      "memory": {
+        "workingSetSize": 98088,
+        "peakWorkingSetSize": 101608,
+        "privateBytes": 98436
+      },
+      "integrityLevel": "low",
+      "sandboxed": true
+    },
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 0.049897,
+        "percentCPUUsage": 0,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 34852,
+      "type": "Utility",
+      "creationTime": 1791907844874.165,
+      "serviceName": "network.mojom.NetworkService",
+      "name": "Network Service",
+      "memory": {
+        "workingSetSize": 46400,
+        "peakWorkingSetSize": 46400,
+        "privateBytes": 13768
+      },
+      "integrityLevel": "medium",
+      "sandboxed": false
+    },
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 0.420705,
+        "percentCPUUsage": 8.584656084656084,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 33848,
+      "type": "Tab",
+      "creationTime": 1791907844908.247,
+      "memory": {
+        "workingSetSize": 175404,
+        "peakWorkingSetSize": 175404,
+        "privateBytes": 135408
+      },
+      "integrityLevel": "untrusted",
+      "sandboxed": true
+    }
+  ],
+  "rendererResult": {
+    "scenarios": [
+      {
+        "fixture": "empty",
+        "renderMs": 3.5,
+        "interactionMs": 8.199999999254942,
+        "saveReopenMs": 8.300000000745058,
+        "heapBytes": 10000000,
+        "privateBytes": 214511616,
+        "workingSetBytes": 316395520
+      },
+      {
+        "fixture": "representative",
+        "renderMs": 9,
+        "interactionMs": 7.200000002980232,
+        "saveReopenMs": 8.199999999254942,
+        "heapBytes": 10000000,
+        "privateBytes": 223809536,
+        "workingSetBytes": 323911680
+      },
+      {
+        "fixture": "stress",
+        "renderMs": 100.5,
+        "interactionMs": 84.40000000223517,
+        "saveReopenMs": 13.899999998509884,
+        "heapBytes": 10000000,
+        "privateBytes": 325464064,
+        "workingSetBytes": 420671488
+      }
+    ]
+  }
+}

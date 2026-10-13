@@ -34,14 +34,17 @@
   `main`; Phase 0 itself remains open until the blocked benchmark produces
   evidence for the Electron/SVG decision.
 - Benchmark harness started on `chore/renderer-memory-benchmark`: source test
-  and UI production build pass. Packaged Windows execution is blocked because
-  Electron Builder stalled during runtime packaging without producing an
-  executable or result artifacts.
+  and UI production build pass. An initial Electron Builder runtime-packaging
+  stall was repaired before the packaged Windows evidence run.
+- Packaging was repaired and the five-run packaged Windows benchmark completed.
+  SVG fails the stress performance target; Electron remains unapproved pending
+  the same benchmark on Tauri because its empty working set exceeds the
+  proposed memory target.
 
 ## Next
 
-- Resolve the Windows packaging stall, run the benchmark, and approve the
-  Electron/SVG decision from evidence.
+- Run the same fixture set on Tauri, then lock the desktop-shell and renderer
+  decisions from the comparison evidence.
 - Write and approve the first feature plan from the parity catalog.
 
 ## Known issues
@@ -49,5 +52,6 @@
 - No production editor code, packaged benchmark executable, measured renderer
   result, or GitHub labels exist yet.
 - Graphify is installed, but no knowledge graph exists until source code is added.
-- The Electron runtime package benchmark cannot run until the packaging/download
-  stall is resolved; no memory result or Electron decision has been claimed.
+- Electron's empty working set exceeds the proposed target, and SVG misses the
+  stress interaction target; Tauri comparison evidence is required before the
+  desktop shell can be locked.

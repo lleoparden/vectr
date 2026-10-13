@@ -116,3 +116,16 @@
   lazy compiler/agent workers, and explicit resource release on close.
 - If Electron misses the approved evidence-based budgets, compare the same
   workload against Tauri + React + TypeScript before choosing a replacement.
+
+## 2026-10-13 — Electron and SVG benchmark evidence
+
+- Five packaged Windows runs on an AMD Ryzen 5 9600X / 15.16 GiB Windows 11
+  machine are recorded in `.ecc/benchmarks/phase-zero/`.
+- Electron + SVG reached 303.90 MiB maximum whole-app working set on the empty
+  fixture and 410.00 MiB on the 10,000-layer/100,000-segment stress fixture.
+- SVG is rejected as the production renderer candidate: the stress fixture had
+  106.40 ms p95 render time and 86.00 ms p95 interaction time, above the
+  provisional 33 ms target.
+- Electron is not locked as the desktop shell. Its empty working set is above
+  the proposed 300 MiB target, so the same benchmark must be run on Tauri
+  before the shell decision is finalized.

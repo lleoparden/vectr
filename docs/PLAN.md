@@ -1,8 +1,12 @@
 # Vectr roadmap
 
+The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). This file
+remains the short operational checklist for the active phase.
+
 ## Phase 0 — Product and platform decision
 
 - [ ] Choose desktop technology and supported operating systems.
+- [ ] Build parity catalog v1 and define its feature-completion standard.
 - [ ] Define the document model for layers, groups, text, shapes, and images.
 - [ ] Define the React and Tailwind export contract.
 - [ ] Choose the approach for Supabase authentication and project storage.

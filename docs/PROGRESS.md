@@ -6,11 +6,15 @@
 - Agent rules, planning record, decision log, and GitHub templates prepared.
 - Stack-neutral agent roles, hooks, and planning/tracing workflows prepared.
 - Agent-first delivery, branch naming, and progress-tracking policies recorded.
+- Private GitHub repository created and configured locally as `origin`; no local
+  commit has been pushed.
+- ECC-guided master delivery plan drafted.
 
 ## Next
 
 - Decide whether Vectr is a desktop app or a web app, then choose the stack.
-- Write and approve the Phase 0 product and technical plan.
+- Build and approve the Phase 0 product and technical plan.
+- Turn the master plan into a parity catalog before estimating delivery.
 
 ## Known issues
 

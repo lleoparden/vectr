@@ -32,3 +32,13 @@
 - Every product work item uses one new, purpose-prefixed branch: `feat/`,
   `fix/`, `enhance/`, `update/`, `chore/`, or `docs/`. Branches are never
   reused for another work item, and `main` is not a product-work branch.
+
+## 2026-10-13 — Master delivery plan
+
+- The project is planned as a long-running parity program, measured by a
+  feature catalog rather than an ungrounded percentage.
+- The plan is phased: scope/platform, foundation, core vector work, content and
+  appearance, advanced editing, interoperability, compiler, then parity closure
+  and handover.
+- A Vectr feature is not implicitly compiler-supported. The catalog tracks its
+  explicit compiler support level and any fidelity limitation.

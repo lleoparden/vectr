@@ -27,6 +27,25 @@ it is not the current specification. The current owner direction overrides it:
 - The stack is deliberately undecided and will change from the proposal's
   web/Paper.js/Node direction.
 
+## Approved Phase 0 direction, pending benchmark
+
+Vectr will provisionally use Electron with React and TypeScript. Electron is a
+desktop shell, not the document model or a reason to put drawing state in the
+DOM. Windows is the first fully tested release target; macOS and Linux must
+build and launch early and are not declared fully supported before their own
+platform testing.
+
+SVG is the initial renderer candidate for the first editing slice. A bounded
+benchmark using representative and stress documents must measure interaction,
+visual correctness, and memory before Electron or SVG is locked for production.
+A GPU renderer is introduced only if this evidence makes it necessary.
+
+Memory efficiency is a non-negotiable product requirement. The editor must
+avoid unnecessary retained document copies, renderer allocations, background
+work, and dependencies. Phase and feature completion require documented memory
+behavior on representative and stress documents, alongside existing correctness
+and interaction checks.
+
 ## Agent-ready core architecture
 
 MCP and the built-in agent arrive later as product features, but the core app
@@ -88,7 +107,8 @@ without those updates is not ready for handoff.
 5. Define performance budgets, offline expectations, crash recovery, and a
    feature-completion standard.
 
-**Exit:** approved technology ADRs, parity catalog v1, and a scoped MVP.
+**Exit:** benchmark-confirmed desktop/rendering decision, parity catalog v1,
+and a scoped MVP.
 
 ## Phase 1 — Document and editor foundation
 

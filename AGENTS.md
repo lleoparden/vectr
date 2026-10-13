@@ -46,6 +46,10 @@ owner approves a feature plan.
   or change a remote GitHub repository without explicit approval.
 - Do not perform broad refactors without an approved plan.
 - Do not claim checks passed unless they were run in the current session.
+- Memory efficiency is a product requirement. Avoid unnecessary retained
+  document copies, renderer allocations, background work, and dependencies;
+  measure memory on representative and stress documents before declaring a
+  capability ready.
 
 ## Branch policy
 

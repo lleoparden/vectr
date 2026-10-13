@@ -75,3 +75,27 @@
   `docs/PROGRESS.md` before handoff, including limitations and blockers.
 - A capability may not be silently added outside the catalog or left with a
   stale status after its behavior changes.
+
+## 2026-10-13 — Approved Phase 0 direction
+
+- Electron, React, and TypeScript are the proposed desktop direction. This is
+  not locked until a bounded renderer and memory benchmark succeeds.
+- Windows is the first fully tested release target. macOS and Linux must build
+  and launch early; neither is called fully supported before platform testing.
+- The document is a versioned, renderer-independent layer tree with stable
+  IDs, order, geometry, transforms, styles, text, and assets. React/DOM is
+  never the source of truth.
+- UI, shortcuts, future MCP, and the future built-in agent share one validated,
+  serializable, undoable command model.
+- The compiler defaults to readable TSX + Tailwind, one component per layer,
+  and uses inline SVG when needed for visual fidelity. JSX and semantic or
+  responsive output are optional future choices when the source supports them.
+- REA may investigate narrowly defined, observable behavior with recorded
+  evidence and limitations. It must not be used to copy VectorCraft or Adobe
+  source, branding, or protected assets.
+- Vectr prioritizes memory efficiency. Features must avoid unnecessary retained
+  document copies, renderer allocations, background work, and dependencies;
+  representative and stress-document memory behavior is a release criterion.
+- The public project will use original Vectr branding. Apache-2.0 is the
+  proposed code license, with the Vectr name/logo reserved, pending the future
+  repository-license addition.

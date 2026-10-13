@@ -27,13 +27,17 @@
 - Independent architecture review conditionally supports Electron, subject to
   the still-unplanned renderer/memory benchmark; no benchmark or platform
   launch has been run.
+- Parity catalog v1 created with stable capability IDs, status definitions,
+  minimum acceptance behavior, compiler support states, and the first proposed
+  implementation slice.
 
 ## Next
 
 - Approve the recorded renderer/memory benchmark execution plan and its
   dependency list before adding application code.
-- Build the parity catalog v1 and its feature-completion standard.
-- Turn the master plan into a parity catalog before estimating delivery.
+- Resolve the Windows packaging stall, run the benchmark, and approve the
+  Electron/SVG decision from evidence.
+- Write and approve the first feature plan from the parity catalog.
 
 ## Known issues
 

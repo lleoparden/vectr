@@ -19,6 +19,17 @@ owner approves a feature plan.
 4. At the end, update `docs/PROGRESS.md`; log significant choices in
    `docs/DECISIONS.md`.
 
+## Agent workflow
+
+- Use the architect role to plan significant work, bounded implementation
+  workers to make approved changes, and the reviewer role to assess completed
+  changes before any merge decision.
+- Before changing an established code area, trace its user flow, data model,
+  compiler impact, and integration boundaries using `.agents/workflows/`.
+- When `graphify-out/graph.json` exists, use `graphify query`, `graphify
+  explain`, or `graphify path` before broad source exploration. Update the
+  graph after production-code changes.
+
 ## Working rules
 
 - Reuse existing patterns before creating a parallel helper or subsystem.
@@ -39,6 +50,8 @@ owner approves a feature plan.
   remote exists and the owner authorizes that change.
 - Issues need problem, scope, acceptance criteria, and risk notes.
 - Pull requests need summary, linked issue, user impact, and known risks.
+- Add `agent-ready` only when an issue has an approved plan, clear boundaries,
+  acceptance criteria, and no unresolved blocking decision.
 
 ## Definition of done
 

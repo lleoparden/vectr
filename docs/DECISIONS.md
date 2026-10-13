@@ -18,3 +18,6 @@
 - TrustFlow's reusable conventions are adopted in a simplified form: plan
   significant work first, reuse established patterns, record decisions, and
   make scope and risk explicit in GitHub work items.
+- Approved additions: Graphify, architect/worker/reviewer roles, safety and
+  context hooks, feature tracing, architecture planning, and agent-ready issue
+  criteria. Supabase safeguards and walkthroughs are deferred.

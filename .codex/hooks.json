@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_tool_use_policy.py\"",
+            "commandWindows": "py -3 \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_tool_use_policy.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_edit_context.py\"",
+            "commandWindows": "py -3 \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_edit_context.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

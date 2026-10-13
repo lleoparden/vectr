@@ -46,6 +46,11 @@ work, and dependencies. Phase and feature completion require documented memory
 behavior on representative and stress documents, alongside existing correctness
 and interaction checks.
 
+The repository remains private until the main Illustrator/compiler project is
+complete. Public release, code licensing, and any branding/trademark policy are
+deferred to that point; they must be explicitly approved before the repository
+visibility changes.
+
 ## Agent-ready core architecture
 
 MCP and the built-in agent arrive later as product features, but the core app

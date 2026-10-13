@@ -96,6 +96,23 @@
 - Vectr prioritizes memory efficiency. Features must avoid unnecessary retained
   document copies, renderer allocations, background work, and dependencies;
   representative and stress-document memory behavior is a release criterion.
-- The public project will use original Vectr branding. Apache-2.0 is the
-  proposed code license, with the Vectr name/logo reserved, pending the future
+- The repository remains private until the main Illustrator/compiler project is
+  complete. It will use original Vectr branding. Apache-2.0 is the proposed
+  code license, with the Vectr name/logo reserved, pending the future
   repository-license addition.
+
+## 2026-10-13 — Independent Electron review
+
+- An independent architecture review conditionally supports Electron as the
+  provisional desktop shell. Its consistent bundled Chromium is valuable for a
+  precision cross-platform editor, but it does not prove acceptable memory use.
+- Before the stack is locked, the renderer/memory benchmark must exercise empty,
+  representative, and stress documents; measure all application processes,
+  interaction, save/reopen, undo/redo, and repeated open/close behavior; and
+  retain the raw results. The exact budgets need owner approval in the benchmark
+  plan.
+- Electron-specific controls to evaluate include one editor window initially,
+  one authoritative document, bounded history/caches, virtualized layer lists,
+  lazy compiler/agent workers, and explicit resource release on close.
+- If Electron misses the approved evidence-based budgets, compare the same
+  workload against Tauri + React + TypeScript before choosing a replacement.

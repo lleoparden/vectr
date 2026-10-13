@@ -10,7 +10,8 @@ remains the short operational checklist for the active phase.
   launch early, with full support claimed only after platform testing.
 - [ ] Run a bounded renderer and memory benchmark before locking Electron and
   SVG rendering for production. Compare realistic and stress documents;
-  avoid a GPU renderer unless the evidence requires one.
+  measure all application processes rather than JavaScript heap alone; avoid a
+  GPU renderer unless the evidence requires one.
 - [ ] Build parity catalog v1 and define its feature-completion standard.
 - [x] Approve a versioned, renderer-independent document model: stable layer
   IDs, order, geometry, transforms, styles, text, and assets.

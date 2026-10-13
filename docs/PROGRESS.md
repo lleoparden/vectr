@@ -22,6 +22,11 @@
   launch checks, renderer-independent document/command model, and TSX/Tailwind
   compiler contract.
 - Memory efficiency elevated to a product requirement and future release gate.
+- Repository stays private until the main Illustrator/compiler project is
+  complete; no visibility change is authorized before then.
+- Independent architecture review conditionally supports Electron, subject to
+  the still-unplanned renderer/memory benchmark; no benchmark or platform
+  launch has been run.
 
 ## Next
 

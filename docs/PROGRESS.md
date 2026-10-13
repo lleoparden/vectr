@@ -27,6 +27,10 @@
 - Independent architecture review conditionally supports Electron, subject to
   the still-unplanned renderer/memory benchmark; no benchmark or platform
   launch has been run.
+- Benchmark harness started on `chore/renderer-memory-benchmark`: source test
+  and UI production build pass. Packaged Windows execution is blocked because
+  Electron Builder stalled during runtime packaging without producing an
+  executable or result artifacts.
 
 ## Next
 
@@ -40,3 +44,5 @@
 - No application code, dependency list, renderer benchmark, parity catalog, or
   GitHub labels exist yet.
 - Graphify is installed, but no knowledge graph exists until source code is added.
+- The Electron runtime package benchmark cannot run until the packaging/download
+  stall is resolved; no memory result or Electron decision has been claimed.

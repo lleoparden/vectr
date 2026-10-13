@@ -64,6 +64,14 @@ The project will maintain a parity catalog. Every catalog item has:
 next approved work. The catalog is the source of truth for the parity claim;
 no percentage is published until the catalog exists.
 
+### Required tracking routine
+
+For every capability change, the responsible agent must update the parity
+catalog and `docs/PROGRESS.md` before handoff. The catalog entry records its
+scope, status, limitations, compiler behavior, and related plan/issue; the
+progress record captures the milestone, active blocker, and next step. A change
+without those updates is not ready for handoff.
+
 ## Phase 0 — Reference catalog and platform decision
 
 **Goal:** establish what will be built and on which desktop foundation.

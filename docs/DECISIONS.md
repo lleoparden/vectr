@@ -67,3 +67,11 @@
   tool context, but no agent gets a private state-mutation path or bypasses
   account permissions.
 - Agent-proposed edits must be reviewable, attributable, and reversible.
+
+## 2026-10-13 — Mandatory parity and progress tracking
+
+- The parity catalog is required before estimating or claiming feature parity.
+- Every capability change must update both its catalog entry and
+  `docs/PROGRESS.md` before handoff, including limitations and blockers.
+- A capability may not be silently added outside the catalog or left with a
+  stale status after its behavior changes.

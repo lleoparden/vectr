@@ -71,6 +71,13 @@ owner approves a feature plan.
 - Keep `docs/PLAN.md` and `docs/PROGRESS.md` current throughout agent-led work.
 - Mark scope changes, blockers, and completed milestones promptly so the owner
   can take over later with an accurate project record.
+- Maintain the parity catalog as the source of truth for Vectr capability
+  status. Before estimating or claiming parity, create or update its item.
+- Every feature, bug fix, enhancement, import/export change, compiler change,
+  or agent-surface change must update its catalog status, scope, limitations,
+  and linked plan/issue before the work is handed off.
+- Never silently add a capability outside the catalog or leave an existing item
+  stale after its behavior changes.
 
 ## Definition of done
 

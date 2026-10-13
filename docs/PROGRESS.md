@@ -14,6 +14,8 @@
   recorded before implementation begins.
 - IDE work explicitly deferred beyond core parity, compiler, known extras, and
   future owner-selected expansion.
+- Mandatory catalog and progress-update rules recorded for every capability
+  change and handoff.
 
 ## Next
 

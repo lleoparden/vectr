@@ -10,6 +10,8 @@
   commit has been pushed.
 - Master delivery plan revised: core reconstruction first; compiler next; MCP,
   cloud services, and proposal extensions afterward.
+- Core architecture constraints for future MCP and built-in-agent support
+  recorded before implementation begins.
 
 ## Next
 

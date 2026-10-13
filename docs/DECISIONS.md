@@ -57,3 +57,12 @@
   not current scope.
 - The implementation stack is undecided and is no longer bound to the original
   proposal's web/Paper.js/Node architecture.
+
+## 2026-10-13 — Agent-ready core constraints
+
+- MCP and the built-in agent are later features, but the core must use one
+  validated, serializable, undoable command model for UI and agent actions.
+- Future agent context may expose the active document state, selection, and
+  tool context, but no agent gets a private state-mutation path or bypasses
+  account permissions.
+- Agent-proposed edits must be reviewable, attributable, and reversible.

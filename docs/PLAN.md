@@ -8,6 +8,8 @@ remains the short operational checklist for the active phase.
 - [ ] Choose desktop technology and supported operating systems.
 - [ ] Build parity catalog v1 and define its feature-completion standard.
 - [ ] Define the document model for layers, groups, text, shapes, and images.
+- [ ] Define the shared command/change model that future UI, MCP, and built-in
+  agent actions will use.
 - [ ] Define lawful reverse-engineering/reconstruction evidence rules.
 - [ ] Define the React and Tailwind export contract for the post-core compiler.
 

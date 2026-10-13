@@ -27,6 +27,28 @@ it is not the current specification. The current owner direction overrides it:
 - The stack is deliberately undecided and will change from the proposal's
   web/Paper.js/Node direction.
 
+## Agent-ready core architecture
+
+MCP and the built-in agent arrive later as product features, but the core app
+must be built around these constraints from the beginning:
+
+1. **One command model.** UI gestures, keyboard shortcuts, MCP calls, and
+   built-in-agent proposals invoke the same validated document commands; none
+   receives a private mutation path.
+2. **Serializable document operations.** Changes have typed inputs, explicit
+   results/errors, undo/redo behavior, and stable document-version semantics.
+3. **Context without hidden access.** Selection, active tool, artboard, and
+   document context can be exposed to an agent, but permissions and account
+   ownership remain enforced at the command boundary.
+4. **Observable changes.** Commands emit structured change events so people,
+   MCP clients, autosave, compiler previews, and future collaboration can stay
+   synchronized without polling or bypassing the application model.
+5. **Reviewable agent output.** A built-in agent may explain or propose edits;
+   applying a change must be explicit, attributable, and reversible.
+
+These are core design constraints, not a reason to implement MCP, cloud auth,
+or the built-in agent before their planned phases.
+
 ## How progress is measured
 
 The project will maintain a parity catalog. Every catalog item has:
@@ -64,10 +86,12 @@ no percentage is published until the catalog exists.
 
 **Goal:** make a reliable editable design document before advanced tools.
 
-1. Define the versioned document model: artboards, layer tree, groups, text,
-   vector shapes, paths, images, style/transform data, and metadata.
+1. Define the versioned document model and command model: artboards, layer
+   tree, groups, text, vector shapes, paths, images, style/transform data,
+   metadata, validated operations, undo/redo, and change events.
 2. Implement local project creation, autosave, undo/redo, recovery, selection,
-   layers, artboards, zoom/pan, and a desktop command/menu framework.
+   layers, artboards, zoom/pan, and a desktop command/menu framework on that
+   shared command model.
 3. Establish fixtures that cover document save/reopen and layer-tree integrity.
 
 Cloud identity, Supabase persistence, and shared storage are intentionally out

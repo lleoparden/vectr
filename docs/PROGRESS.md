@@ -25,22 +25,26 @@
 - Repository stays private until the main Illustrator/compiler project is
   complete; no visibility change is authorized before then.
 - Independent architecture review conditionally supports Electron, subject to
-  the still-unplanned renderer/memory benchmark; no benchmark or platform
-  launch has been run.
+  the renderer/memory benchmark; no benchmark measurement or platform launch
+  has been completed.
 - Parity catalog v1 created with stable capability IDs, status definitions,
   minimum acceptance behavior, compiler support states, and the first proposed
   implementation slice.
+- Benchmark harness started on `chore/renderer-memory-benchmark`: source test
+  and UI production build pass. Packaged Windows execution is blocked because
+  Electron Builder stalled during runtime packaging without producing an
+  executable or result artifacts.
 
 ## Next
 
-- Approve the recorded renderer/memory benchmark execution plan and its
-  dependency list before adding application code.
 - Resolve the Windows packaging stall, run the benchmark, and approve the
   Electron/SVG decision from evidence.
 - Write and approve the first feature plan from the parity catalog.
 
 ## Known issues
 
-- No application code, dependency list, renderer benchmark, parity catalog, or
-  GitHub labels exist yet.
+- No production editor code, packaged benchmark executable, measured renderer
+  result, or GitHub labels exist yet.
 - Graphify is installed, but no knowledge graph exists until source code is added.
+- The Electron runtime package benchmark cannot run until the packaging/download
+  stall is resolved; no memory result or Electron decision has been claimed.

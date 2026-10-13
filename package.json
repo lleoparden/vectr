@@ -1,0 +1,40 @@
+{
+  "name": "vectr-phase-zero-benchmark",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "package:benchmark": "npm run build && electron-builder --dir",
+    "benchmark": "npm run build && node scripts/run-benchmark.cjs",
+    "test": "node --test tests/package.test.cjs"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  },
+  "build": {
+    "appId": "com.vectr.phase-zero-benchmark",
+    "productName": "Vectr Phase Zero Benchmark",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "dir"
+    }
+  },
+  "allowScripts": {}
+}

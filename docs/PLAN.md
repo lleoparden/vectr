@@ -27,7 +27,7 @@ remains the short operational checklist for the active phase.
   comparisons, desktop interaction, performance/memory budgets, and future
   account-permission coverage.
 
-### Proposed execution plan — awaiting approval
+### Approved execution plan — blocked at packaging
 
 1. **Benchmark specification.** Define three frozen, versioned fixtures
    (empty, representative, stress), the test machine/OS, measured metrics,
@@ -52,9 +52,10 @@ remains the short operational checklist for the active phase.
    not by a misleading parity percentage; publish the catalog's completion
    rules and first prioritized MVP slice.
 
-**Approval needed:** approve this benchmark scope and authorize the specific
-dependencies after they are listed. Until then, Phase 0 stays open and no
-application code or benchmark harness is created.
+**Approved scope:** benchmark harness and its Electron/React/TypeScript,
+Vite, packaging, and React type dependencies. Phase 0 remains open because
+the packaged Windows benchmark stalled before producing an executable or
+measurements; no Electron/SVG decision has been made from evidence.
 
 ## Phase 1 — Core application foundation
 

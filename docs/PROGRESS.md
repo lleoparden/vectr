@@ -30,6 +30,9 @@
 - Parity catalog v1 created with stable capability IDs, status definitions,
   minimum acceptance behavior, compiler support states, and the first proposed
   implementation slice.
+- Phase 0 planning, catalog, and the benchmark harness were consolidated into
+  `main`; Phase 0 itself remains open until the blocked benchmark produces
+  evidence for the Electron/SVG decision.
 - Benchmark harness started on `chore/renderer-memory-benchmark`: source test
   and UI production build pass. Packaged Windows execution is blocked because
   Electron Builder stalled during runtime packaging without producing an

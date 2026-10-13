@@ -6,3 +6,8 @@
 # Local operating-system files
 .DS_Store
 Thumbs.db
+
+# Generated local build and benchmark artifacts
+node_modules/
+dist/
+.ecc/benchmarks/*.log

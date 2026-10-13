@@ -26,6 +26,35 @@ remains the short operational checklist for the active phase.
   comparisons, desktop interaction, performance/memory budgets, and future
   account-permission coverage.
 
+### Proposed execution plan — awaiting approval
+
+1. **Benchmark specification.** Define three frozen, versioned fixtures
+   (empty, representative, stress), the test machine/OS, measured metrics,
+   repeat count, and Electron-versus-Tauri decision rule. The plan will set
+   proposed budgets for owner approval before measurements begin.
+2. **Minimal benchmark harness.** On a fresh `chore/` branch, add only the
+   approved Electron/React/TypeScript dependencies and the smallest desktop
+   harness needed to load those fixtures, perform pan/zoom, selection, edit,
+   undo/redo, save/reopen, and close/reopen cycles. No production editor tools,
+   cloud services, compiler, MCP, or branding work is in scope.
+3. **Evidence run.** Execute the packaged Windows release build with developer
+   tools closed. Capture total memory for every application process, GPU memory
+   where available, p95 interaction time, correctness outcomes, and raw traces
+   across five independent runs; record macOS/Linux build-and-launch evidence
+   when those hosts are available.
+4. **Decision review.** Compare results with the approved budgets. Retain
+   Electron/SVG only if all required checks pass; otherwise run the same harness
+   on Tauri before a replacement decision. Record the outcome and limitations.
+5. **Parity catalog v1.** Create the catalog with stable IDs, reference
+   evidence, status, acceptance behavior, exclusions, compiler support, and
+   platform coverage. Inventory Illustrator and VectorCraft by workflow area,
+   not by a misleading parity percentage; publish the catalog's completion
+   rules and first prioritized MVP slice.
+
+**Approval needed:** approve this benchmark scope and authorize the specific
+dependencies after they are listed. Until then, Phase 0 stays open and no
+application code or benchmark harness is created.
+
 ## Phase 1 — Core application foundation
 
 - [ ] Create, select, reorder, and group layers.

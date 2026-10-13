@@ -30,8 +30,8 @@
 
 ## Next
 
-- Write and approve the renderer/memory benchmark plan before adding a stack,
-  dependency, or application code.
+- Approve the recorded renderer/memory benchmark execution plan and its
+  dependency list before adding application code.
 - Build the parity catalog v1 and its feature-completion standard.
 - Turn the master plan into a parity catalog before estimating delivery.
 

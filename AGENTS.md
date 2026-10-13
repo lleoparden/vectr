@@ -6,6 +6,10 @@ Vectr will be a desktop-first visual design tool. Its distinctive feature is
 exporting a drawing's layer tree as readable React components using Tailwind.
 VectorCraft is workflow inspiration only; do not copy its source or branding.
 
+Until the owner explicitly changes this direction, agents build the product.
+The long-term goal is VectorCraft/Illustrator-level feature parity plus the
+React compiler; afterward, the owner will extend the product directly.
+
 The platform and technical stack are intentionally undecided. Do not select a
 stack, initialize an app, add dependencies, or write product code until the
 owner approves a feature plan.
@@ -43,6 +47,15 @@ owner approves a feature plan.
 - Do not perform broad refactors without an approved plan.
 - Do not claim checks passed unless they were run in the current session.
 
+## Branch policy
+
+- Every feature, bug fix, enhancement, update, or other product change starts
+  on a fresh branch. Never make that work directly on `main`.
+- Use a purpose prefix: `feat/`, `fix/`, `enhance/`, `update/`, `chore/`, or
+  `docs/`, followed by a short lowercase slug.
+- One branch serves one work item. Do not reuse or repurpose completed branches.
+- Do not merge, push, or delete a branch without the owner's explicit approval.
+
 ## GitHub workflow
 
 - Use the issue and pull-request templates in `.github/`.
@@ -52,6 +65,12 @@ owner approves a feature plan.
 - Pull requests need summary, linked issue, user impact, and known risks.
 - Add `agent-ready` only when an issue has an approved plan, clear boundaries,
   acceptance criteria, and no unresolved blocking decision.
+
+## Progress is a primary deliverable
+
+- Keep `docs/PLAN.md` and `docs/PROGRESS.md` current throughout agent-led work.
+- Mark scope changes, blockers, and completed milestones promptly so the owner
+  can take over later with an accurate project record.
 
 ## Definition of done
 

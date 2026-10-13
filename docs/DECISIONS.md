@@ -21,3 +21,14 @@
 - Approved additions: Graphify, architect/worker/reviewer roles, safety and
   context hooks, feature tracing, architecture planning, and agent-ready issue
   criteria. Supabase safeguards and walkthroughs are deferred.
+
+## 2026-10-13 — Delivery and branch policy
+
+- Agents are the primary builders until VectorCraft/Illustrator-level parity
+  and the React/Tailwind compiler are complete; the owner plans to extend the
+  product afterward.
+- Progress tracking is a primary deliverable. `docs/PLAN.md` and
+  `docs/PROGRESS.md` must remain current.
+- Every product work item uses one new, purpose-prefixed branch: `feat/`,
+  `fix/`, `enhance/`, `update/`, `chore/`, or `docs/`. Branches are never
+  reused for another work item, and `main` is not a product-work branch.

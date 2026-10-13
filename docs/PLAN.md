@@ -17,9 +17,16 @@
 
 ## Later phases
 
-- [ ] Expand Illustrator-like tools and editing behavior.
+- [ ] Reach VectorCraft/Illustrator-level feature parity without copying source.
+- [ ] Keep the React/Tailwind compiler working across every supported feature.
 - [ ] Add import/export formats and reusable component options.
 - [ ] Improve compiler output, accessibility, and project collaboration.
+
+## Delivery model
+
+- [ ] Agents deliver the planned product through parity; project records track
+  all milestones, decisions, scope changes, and blockers.
+- [ ] The owner begins direct feature work after that parity milestone.
 
 ## Planning rule
 

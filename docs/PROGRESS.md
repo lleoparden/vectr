@@ -5,6 +5,7 @@
 - Documentation-only repository setup.
 - Agent rules, planning record, decision log, and GitHub templates prepared.
 - Stack-neutral agent roles, hooks, and planning/tracing workflows prepared.
+- Agent-first delivery, branch naming, and progress-tracking policies recorded.
 
 ## Next
 
@@ -15,4 +16,4 @@
 
 - No application code, platform choice, dependency list, remote repository, or
   GitHub labels exist yet.
-- Graphify needs its local developer-tool installation completed.
+- Graphify is installed, but no knowledge graph exists until source code is added.

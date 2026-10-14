@@ -8,8 +8,10 @@
  */
 
 import { findNode, worldBounds } from '../../doc/document.ts'
-import { isGroup, nodeSize } from '../../doc/types.ts'
+import { isGroup, isText, nodeSize } from '../../doc/types.ts'
+import { documentStore } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
+import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -42,7 +44,7 @@ export function PropertiesPanel() {
   return (
     <div className="min-h-0 flex-1 overflow-auto py-1">
       <Row label="Name" value={node.name} />
-      <Row label="Kind" value={isGroup(node) ? `group of ${node.children.length}` : node.type} />
+      <Row label="Kind" value={isText(node) ? 'text' : isGroup(node) ? `group of ${node.children.length}` : node.type} />
       <Row label="Id" value={id} />
       <Row label="X" value={bounds === null ? '—' : round(bounds.x)} />
       <Row label="Y" value={bounds === null ? '—' : round(bounds.y)} />
@@ -50,6 +52,48 @@ export function PropertiesPanel() {
       <Row label="H" value={bounds === null ? '—' : round(bounds.height > 0 ? bounds.height : size.height)} />
       <Row label="Rotation" value={`${round(node.transform.rotation)}°`} />
       <Row label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
+      {isText(node) && (
+        <>
+          <Row label="Font" value={node.fontFamily} />
+          <div className="flex items-center justify-between gap-3 px-2 py-[3px]">
+            <label className="text-ui-xs text-ink-faint" htmlFor="vectr-font-size">
+              Size
+            </label>
+            <input
+              id="vectr-font-size"
+              type="number"
+              min={1}
+              max={1000}
+              step={1}
+              value={round(node.fontSize)}
+              className="w-16 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+              onChange={(event) => {
+                const fontSize = Number(event.currentTarget.value)
+                const lineHeight = node.fontSize > 0 ? (node.lineHeight / node.fontSize) * fontSize : fontSize * 1.2
+                documentStore.dispatch(
+                  {
+                    type: 'setTextStyle',
+                    nodeId: node.id,
+                    fontSize,
+                    fontFamily: node.fontFamily,
+                    align: node.align,
+                    lineHeight,
+                  },
+                  'set font size',
+                )
+              }}
+            />
+          </div>
+          <Row label="Align" value={node.align} />
+          <Row label="Lines" value={String(node.text.split('\n').length)} />
+          <Row label="Characters" value={String(node.text.length)} />
+          {node.fontFamily.toLowerCase() !== DEFAULT_FONT_FAMILY.toLowerCase() && (
+            <p role="status" className="px-2 pt-1 text-ui-xs text-danger">
+              {node.fontFamily} is not installed; {DEFAULT_FONT_FAMILY} is drawn instead.
+            </p>
+          )}
+        </>
+      )}
       <Row label="Flags" value={`${node.hidden ? 'hidden ' : ''}${node.locked ? 'locked' : ''}`.trim() || 'none'} />
       {state.selection.length > 1 && <Row label="Also selected" value={`${state.selection.length - 1} more`} />}
     </div>

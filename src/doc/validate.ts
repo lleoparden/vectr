@@ -7,7 +7,8 @@
  */
 
 import { findNode, findParent, findWithin } from './document.ts'
-import { isGroup, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
+import { MAX_TEXT_LENGTH } from './document.ts'
+import { isGroup, isText, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
 
 export type ValidationCode =
   | 'duplicate-id'
@@ -58,6 +59,25 @@ export function validateDocument(document: Document): ValidationResult {
       }
       if (node.width <= 0 || node.height <= 0) {
         return fail('non-positive-size', `Node ${node.id} has a non-positive size.`, node.id)
+      }
+      // Text carries its own metrics (issue #16); a corrupt font size or leading would break
+      // measurement, so document boundaries check them too.
+      if (isText(node)) {
+        if (!Number.isFinite(node.fontSize) || node.fontSize <= 0 || node.fontSize > 1000) {
+          return fail('non-finite', `Text node ${node.id} has an out-of-range font size.`, node.id)
+        }
+        if (!Number.isFinite(node.lineHeight) || node.lineHeight <= 0) {
+          return fail('non-finite', `Text node ${node.id} has an out-of-range line height.`, node.id)
+        }
+        if (node.align !== 'left' && node.align !== 'center' && node.align !== 'right') {
+          return fail('invalid-index', `Text node ${node.id} has an unsupported alignment.`, node.id)
+        }
+        if (node.fontFamily.trim().length === 0) {
+          return fail('invalid-index', `Text node ${node.id} has no font family.`, node.id)
+        }
+        if (node.text.length > MAX_TEXT_LENGTH) {
+          return fail('invalid-index', `Text node ${node.id} is longer than ${MAX_TEXT_LENGTH} characters.`, node.id)
+        }
       }
       return ok
     }

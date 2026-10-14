@@ -6,11 +6,20 @@
  * "paint order equals layer order" acceptance criterion testable without a GPU.
  */
 
-import { isGroup, type Document, type LayerNode, type NodeId } from '../doc/types.ts'
+import { isGroup, isText, type Document, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
+
+/** Everything the renderer needs to draw one text node (issue #16). */
+export type SceneText = {
+  content: string
+  fontSize: number
+  fontFamily: string
+  align: TextAlign
+  lineHeight: number
+}
 
 export type SceneShape = {
   id: NodeId
-  kind: 'rect' | 'ellipse'
+  kind: 'rect' | 'ellipse' | 'text'
   /** Top-level ancestor, which is the invalidation unit of the renderer. */
   root: NodeId
   x: number
@@ -23,6 +32,8 @@ export type SceneShape = {
   fill: string
   stroke: { color: string; width: number } | null
   opacity: number
+  /** Present exactly when `kind` is `text`. */
+  text: SceneText | null
 }
 
 export type Scene = {
@@ -68,6 +79,15 @@ function walkShapes(
     fill: node.style.fill,
     stroke: node.style.stroke,
     opacity: opacity * node.style.opacity,
+    text: isText(node)
+      ? {
+          content: node.text,
+          fontSize: node.fontSize,
+          fontFamily: node.fontFamily,
+          align: node.align,
+          lineHeight: node.lineHeight,
+        }
+      : null,
   })
 }
 

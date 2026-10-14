@@ -163,10 +163,23 @@
   deferred `locked` validation code now exists and is inherited from ancestors, so a locked
   layer refuses transform, style, move, delete, and drops into it; `isLocked` replaces the
   `invalid-parent` wart recorded in #18.
-- Slice 3 evidence: `electron . --smoke=stress` passes 13/13 steps including `group is one
-  entry` (4 → 5 history depth, two top-level layers become one), `group selected and nested`,
-  and `undo ungroups in one step`, with 1,002 shapes in 16 buckets at render p95 1.20 ms over
-  60 frames; 88 unit tests pass (12 new for this slice) with clean typecheck and build.
+- Phase 1 slice 4, plain text (issue #16, branch `feat/plain-text`, PR #38): `TextNode` is a
+  fourth node kind with content, a stored measured box, font family, size, alignment, and
+  leading (`src/doc/types.ts`, `document.ts`), reached through two new commands (`setText`,
+  `setTextStyle`) with exact inverses and validation, plus `estimateTextSize` as the pure
+  fallback measurement. The renderer loads the bundled Inter face once
+  (`Typeface.MakeTypefaceFromData`), caches one Skia font per family/size, measures lines from
+  glyph advances, draws multiline text with alignment, and reports any unavailable family as a
+  substitution instead of failing silently (`[vectr-font]` on the console,
+  `RenderStats.substitutedFonts` in the canvas notice, a warning row in Properties, and a
+  packaged smoke step). The Type tool (T) places and edits text in place through a real labelled
+  textarea; double-clicking a text object edits it; the Type menu (align L/C/R, size up/down),
+  the Properties font-size field, and clickable Color swatches that apply a fill to shapes and
+  text all ship with it.
+- Slice 4 evidence: `electron . --smoke=stress` passes **21/21** steps including `text created`,
+  `text edit is one entry`, `text undo restores content`, `invalid text style rejected`,
+  `missing font is recorded, not refused`, and `font substitution reported`, with 1,003 shapes at
+  render p95 1.20 ms; 97 unit tests pass (9 new) with clean typecheck and build.
 
 ## Next
 

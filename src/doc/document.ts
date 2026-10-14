@@ -16,6 +16,8 @@ import {
   type GroupNode,
   type LayerNode,
   type NodeId,
+  type TextAlign,
+  type TextNode,
 } from './types.ts'
 
 const defaultArtboard: Artboard = { id: 'artboard-0', name: 'Artboard 1', width: 1200, height: 800 }
@@ -43,7 +45,7 @@ export function createDocument(name = 'Untitled'): Document {
 let idCounter = 0
 
 /** Stable, collision-checked ids. Slice #19 persists them verbatim. */
-export function newId(prefix: 'rect' | 'ellipse' | 'group'): NodeId {
+export function newId(prefix: 'rect' | 'ellipse' | 'group' | 'text'): NodeId {
   idCounter += 1
   return `${prefix}-${idCounter.toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -74,6 +76,61 @@ export function createEllipse(name: string, x: number, y: number, width = 140, h
     style: createStyle('#f0a24b'),
     locked: false,
     hidden: false,
+  }
+}
+
+/** Bundled face; slice 1 recorded that CanvasKit has no system font manager. */
+export const DEFAULT_FONT_FAMILY = 'Inter'
+export const DEFAULT_FONT_SIZE = 16
+/** Illustrator's default leading is auto; Vectr uses 1.2× the size. */
+export const DEFAULT_LINE_HEIGHT_RATIO = 1.2
+/** Upper bound on one text node's content, so a paste cannot grow the document unbounded. */
+export const MAX_TEXT_LENGTH = 100_000
+
+export type TextOptions = {
+  fontSize?: number
+  fontFamily?: string
+  align?: TextAlign
+  lineHeight?: number
+  fill?: string
+  width?: number
+  height?: number
+}
+
+/**
+ * Estimated box for a text node: the fallback used when no renderer is available to measure,
+ * and the value the tests assert against. The renderer replaces it with exact metrics.
+ */
+export function estimateTextSize(text: string, fontSize: number, lineHeight: number): { width: number; height: number } {
+  const lines = text.split('\n')
+  const longest = Math.max(1, ...lines.map((line) => line.length))
+  return { width: longest * fontSize * 0.55, height: Math.max(1, lines.length) * lineHeight }
+}
+
+/**
+ * Plain text node (issue #16). The box is estimated here and replaced with measured metrics
+ * by the caller when it has a renderer, so bounds, hit testing, and marquee selection work
+ * before the first frame is drawn.
+ */
+export function createText(name: string, x: number, y: number, text: string, options: TextOptions = {}): TextNode {
+  const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE
+  const lineHeight = options.lineHeight ?? fontSize * DEFAULT_LINE_HEIGHT_RATIO
+  const box = estimateTextSize(text, fontSize, lineHeight)
+  return {
+    id: newId('text'),
+    type: 'text',
+    name,
+    transform: createTransform(x, y),
+    locked: false,
+    hidden: false,
+    text,
+    width: options.width ?? box.width,
+    height: options.height ?? box.height,
+    fontSize,
+    fontFamily: options.fontFamily ?? DEFAULT_FONT_FAMILY,
+    align: options.align ?? 'left',
+    lineHeight,
+    style: createStyle(options.fill ?? '#1e1e23'),
   }
 }
 

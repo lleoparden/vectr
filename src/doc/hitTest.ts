@@ -74,7 +74,8 @@ export function placedLeaves(document: Document): Placed[] {
 /** Point-in-shape test in the node's own local space. */
 export function containsLocalPoint(node: LayerNode, local: Point): boolean {
   if (isGroup(node)) return false
-  if (node.type === 'rect') {
+  // Rectangles and text both occupy their box; ellipses are tested against the ellipse.
+  if (node.type === 'rect' || node.type === 'text') {
     return local.x >= 0 && local.x <= node.width && local.y >= 0 && local.y <= node.height
   }
   const radiusX = node.width / 2

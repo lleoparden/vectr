@@ -7,13 +7,14 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { createEllipse, createRect, findNode } from '../doc/document.ts'
+import { createEllipse, createRect, createText, estimateTextSize, findNode, worldTransform } from '../doc/document.ts'
 import { hitTest, marqueeHitTest, type Point } from '../doc/hitTest.ts'
-import type { Transform } from '../doc/types.ts'
+import { isText, type NodeId, type Transform } from '../doc/types.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from './contextMenus.ts'
+import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { EditorRenderer, type RenderStats } from '../render/EditorRenderer.ts'
-import { setActiveRenderer } from '../render/activeRenderer.ts'
+import { getActiveRenderer, setActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene, type SceneShape } from '../render/scene.ts'
 import { documentStore, type Viewport } from '../state/documentStore.ts'
 import { useEditorState } from '../state/useEditorState.ts'
@@ -47,6 +48,7 @@ export function CanvasView() {
   const [overlay, setOverlay] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
+  const [editing, setEditing] = useState<{ nodeId: NodeId; text: string } | null>(null)
   const renderedOnce = useRef(false)
   const fittedOnce = useRef(false)
 
@@ -130,6 +132,59 @@ export function CanvasView() {
     height: rect.height * state.viewport.zoom,
   })
 
+  /** Measured box when the renderer has the font, otherwise the shared estimate. */
+  function textBoxFor(fontFamily: string, fontSize: number, lineHeight: number, text: string) {
+    const measured = getActiveRenderer()?.measureTextBox(fontFamily, fontSize, lineHeight, text) ?? null
+    return measured ?? estimateTextSize(text, fontSize, lineHeight)
+  }
+
+  function startEditingText(nodeId: NodeId) {
+    const current = documentStore.getState().document
+    const node = findNode(current, nodeId)
+    if (node === null || !isText(node)) return
+    documentStore.setSelection([nodeId])
+    setEditing({ nodeId, text: node.text })
+  }
+
+  /**
+   * Commits the inline editor: the text and its measured box go through one `setText` command,
+   * so a text edit is one undo step. Text left empty is discarded rather than left behind as
+   * an invisible object.
+   */
+  function commitText(nodeId: NodeId, text: string) {
+    setEditing(null)
+    const current = documentStore.getState().document
+    const node = findNode(current, nodeId)
+    if (node === null || !isText(node)) return
+    if (text.trim().length === 0) {
+      if (node.text.trim().length === 0) {
+        documentStore.dispatch({ type: 'removeNodes', nodeIds: [nodeId] }, 'discard empty text')
+        documentStore.clearSelection()
+      }
+      return
+    }
+    if (text === node.text) return
+    const box = textBoxFor(node.fontFamily, node.fontSize, node.lineHeight, text)
+    documentStore.dispatch({ type: 'setText', nodeId, text, width: box.width, height: box.height }, 'edit text')
+  }
+
+  /** Screen box the editor is positioned over, in the text object's own type metrics. */
+  function editorBox(nodeId: NodeId): TextEditorBox | null {
+    const current = documentStore.getState().document
+    const node = findNode(current, nodeId)
+    const world = worldTransform(current, nodeId)
+    if (node === null || world === null || !isText(node)) return null
+    const { zoom, panX, panY } = state.viewport
+    return {
+      left: world.x * zoom + panX,
+      top: world.y * zoom + panY,
+      width: Math.max(32, node.width * world.scaleX * zoom),
+      height: Math.max(node.lineHeight * world.scaleY * zoom, node.height * world.scaleY * zoom),
+      fontSize: Math.max(8, node.fontSize * world.scaleY * zoom),
+      lineHeight: Math.max(10, node.lineHeight * world.scaleY * zoom),
+    }
+  }
+
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     canvasRef.current?.setPointerCapture(event.pointerId)
     const start = toScene(event)
@@ -145,6 +200,27 @@ export function CanvasView() {
 
     if (state.tool === 'rect' || state.tool === 'ellipse') {
       gestureRef.current = { kind: 'create', tool: state.tool, start, current: start }
+      return
+    }
+
+    // The Type tool places a text object where the click landed and starts editing it, which
+    // is what Illustrator's Type tool does.
+    if (state.tool === 'text') {
+      const existing = state.document.root.children.filter((node) => node.type === 'text').length
+      const node = createText(`Text ${existing + 1}`, start.x, start.y, '')
+      const result = documentStore.dispatch(
+        {
+          type: 'insertNodes',
+          parentId: state.document.root.id,
+          index: state.document.root.children.length,
+          nodes: [node],
+        },
+        'add text',
+      )
+      if (result.ok) {
+        documentStore.setSelection([node.id])
+        setEditing({ nodeId: node.id, text: '' })
+      }
       return
     }
 
@@ -277,6 +353,12 @@ export function CanvasView() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onDoubleClick={(event) => {
+          // Double-clicking a text object with the Selection tool edits it, as in Illustrator.
+          const hit = hitTest(documentStore.getState().document, toScene(event), { deep: true })
+          const node = hit === null ? null : findNode(documentStore.getState().document, hit)
+          if (node !== null && isText(node)) startEditingText(node.id)
+        }}
         onContextMenu={(event) => {
           event.preventDefault()
           const point = toScene(event)
@@ -298,6 +380,14 @@ export function CanvasView() {
           ? 'renderer starting…'
           : `${stats.shapes} shapes · ${stats.buckets} buckets · ${Math.round(state.viewport.zoom * 100)}% · last ${stats.lastRenderMs.toFixed(1)} ms · p95 ${stats.p95RenderMs.toFixed(1)} ms`}
       </div>
+      {stats !== null && stats.substitutedFonts.length > 0 && (
+        <div
+          role="status"
+          className="pointer-events-none absolute bottom-8 left-2 rounded bg-amber-900/80 px-2 py-1 text-[10px] text-amber-100"
+        >
+          Font not available, drawn with Inter: {stats.substitutedFonts.join(', ')}
+        </div>
+      )}
       {error !== null && (
         <p role="alert" className="absolute left-2 right-2 top-2 rounded bg-red-900/80 px-2 py-1 text-xs text-red-100">
           {error}
@@ -311,6 +401,22 @@ export function CanvasView() {
           Rejected {state.lastError.code}: {state.lastError.message}
         </p>
       )}
+      {editing !== null &&
+        (() => {
+          const box = editorBox(editing.nodeId)
+          const node = findNode(state.document, editing.nodeId)
+          if (box === null || node === null || !isText(node)) return null
+          return (
+            <TextEditor
+              initialText={editing.text}
+              box={box}
+              color={node.style.fill}
+              align={node.align}
+              onCommit={(text) => commitText(editing.nodeId, text)}
+              onCancel={() => setEditing(null)}
+            />
+          )
+        })()}
       <ContextMenu menu={menu} onClose={() => setMenu(null)} />
     </div>
   )

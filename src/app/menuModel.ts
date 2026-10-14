@@ -61,6 +61,18 @@ export const MENU_BAR: MenuSpec[] = [
     ],
   },
   {
+    id: 'type',
+    label: 'Type',
+    items: [
+      { kind: 'command', id: 'type.alignLeft', label: 'Horizontal Align Left' },
+      { kind: 'command', id: 'type.alignCenter', label: 'Horizontal Align Center' },
+      { kind: 'command', id: 'type.alignRight', label: 'Horizontal Align Right' },
+      { kind: 'separator' },
+      { kind: 'command', id: 'type.sizeUp', label: 'Increase Size' },
+      { kind: 'command', id: 'type.sizeDown', label: 'Decrease Size' },
+    ],
+  },
+  {
     id: 'select',
     label: 'Select',
     items: [
@@ -104,10 +116,6 @@ export const OMITTED_MENUS: OmittedMenu[] = [
     label: 'File',
     reason:
       'New, Open, and Save are issue #19; Export React belongs to the compiler phase. The UI direction says an empty menu or a disabled placeholder is worse than an honest omission.',
-  },
-  {
-    label: 'Type',
-    reason: 'Text does not exist yet (issue #16).',
   },
   {
     label: 'Effect',

@@ -28,6 +28,13 @@ export type Command =
   | { type: 'setFlags'; nodeId: NodeId; locked: boolean; hidden: boolean }
   | { type: 'renameNode'; nodeId: NodeId; name: string }
   | { type: 'moveNode'; nodeId: NodeId; parentId: NodeId; index: number }
+  /**
+   * Several commands that undo and redo as one step (issue #34). Its inverse is a batch
+   * of the step inverses in reverse order, which is what makes an undo of a composed edit
+   * correct. Batches never nest: `batchCommand` flattens, so the inverse is always a flat
+   * list and ordering stays obvious.
+   */
+  | { type: 'batch'; commands: Command[] }
 
 export type CommandResult =
   | { ok: true; document: Document; inverse: Command }
@@ -69,6 +76,19 @@ function adjustIndexAfterDetach(
 ): number {
   if (previousParent.id !== nextParentId) return index
   return index > previousIndex ? index - 1 : index
+}
+
+/**
+ * Groups several commands into one that undoes and redoes as a single step.
+ *
+ * A single command is returned unchanged and nested batches are flattened, so a batch is
+ * always a flat list of leaf commands and its inverse ordering stays obvious. An empty
+ * list is a programming error rather than a user-facing rejection, so it throws.
+ */
+export function batchCommand(commands: Command[]): Command {
+  const flat = commands.flatMap((command) => (command.type === 'batch' ? command.commands : [command]))
+  if (flat.length === 0) throw new Error('A batch command needs at least one command.')
+  return flat.length === 1 ? flat[0] : { type: 'batch', commands: flat }
 }
 
 /**
@@ -182,6 +202,39 @@ export function applyCommand(document: Document, command: Command): CommandResul
         ok: true,
         document: withRevision(insertNodes(detached, command.parentId, target, [clone(node)])),
         inverse: { type: 'moveNode', nodeId: command.nodeId, parentId: previousParent, index: previousIndex },
+      }
+    }
+
+    case 'batch': {
+      if (command.commands.length === 0) {
+        return rejected('invalid-index', 'A batch command needs at least one command.')
+      }
+      let current = document
+      const inverses: Command[] = []
+      for (const [offset, step] of command.commands.entries()) {
+        if (step.type === 'batch') {
+          return rejected('invalid-index', 'Nested batch commands are not supported; flatten them first.')
+        }
+        const result = applyCommand(current, step)
+        if (!result.ok) {
+          // Atomic by construction: `document` is never mutated and `current` stays local,
+          // so a rejected step leaves the caller's document exactly as it was. The failing
+          // step's own code and message survive; the position and type add context.
+          return rejected(
+            result.code,
+            `Batch step ${offset + 1} of ${command.commands.length} (${step.type}) was rejected: ${result.message}`,
+          )
+        }
+        current = result.document
+        inverses.push(result.inverse)
+      }
+      // Reverse order: a later step can depend on an earlier one, so undo unwinds from the
+      // last applied change back to the first.
+      const reversed = [...inverses].reverse()
+      return {
+        ok: true,
+        document: current,
+        inverse: reversed.length === 1 ? reversed[0] : { type: 'batch', commands: reversed },
       }
     }
 

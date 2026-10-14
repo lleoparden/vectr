@@ -356,7 +356,9 @@ them. Implementation: `src/doc/{types,document,validate,commands,history}.ts`.
   large documents.
 - A drag, transform, or text edit is **one transaction**: the transaction keeps the
   first inverse (which restores the pre-gesture state) and the last command (which
-  is what redo re-applies), so a 200-step drag costs one history entry.
+  is what redo re-applies), so a 200-step drag costs one history entry. (Superseded for
+  multi-node transactions by the aggregate-inverse entry below, which still keeps this
+  compact form for a repeated single-node gesture.)
 - The stack is bounded at 200 entries and drops the oldest first. A committed
   command clears redo. If an inverse fails to apply, the entry is pushed back and
   the document is left untouched rather than partially mutated.
@@ -438,12 +440,11 @@ including the layer list.
     No drag reorder, group/ungroup, rename, duplicate, target/locate column, or
     thumbnails; the thumbnail slot is reserved and empty. Issue #20 owns the
     interactive tree.
-11. **Hide/Lock/Show All/Unlock All record one history entry per node**, not one per
-    command. Illustrator aggregates them into a single undo step. Aggregating needs an
-    aggregate inverse in the command model, because a transaction keeps only the first
-    inverse of a gesture (correct for a one-node drag, wrong across several nodes).
-    That is a command/undo-model change, so it is deliberately **not** in this UI slice
-    and stays on the list as a follow-up.
+11. **RESOLVED in issue #34** — Hide/Lock/Show All/Unlock All used to record one history
+    entry per node, where Illustrator aggregates them into a single undo step, because a
+    transaction kept only the first inverse of a gesture. The aggregate inverse described
+    later in this file lets a multi-object Hide be one transaction and one undo step, and
+    `src/app/actions.ts` uses it again.
 12. **Properties, Appearance, and Color are read-only.** Editing values needs style and
     transform commands that do not exist; the panels say so instead of showing
     controls that silently do nothing.
@@ -509,4 +510,80 @@ the section above (*UI shell alignment*, issue #28).
   `.agents/workflows/issue-ready.md` makes the mapping part of `agent-ready` and the
   UI direction a review criterion, so an interface change that invents its own layout,
   terminology, or shortcut does not merge.
+
+## 2026-10-14 — Aggregate inverse: one transaction, many commands, one undo step (issue #34)
+
+Recorded before implementation. Supersedes the transaction rule written for slice 2
+("the transaction keeps the first inverse and the last command"), and resolves divergence
+11 in the shell-alignment section above.
+
+### The problem
+
+A transaction kept `{ command: last, inverse: first }`. That is exactly right for a drag —
+hundreds of `setTransform` steps on one node collapse to two commands, and the first
+inverse restores the pre-gesture value. It is wrong when a transaction's steps touch
+**different** nodes: undo applied the first step's inverse only, so the other steps stayed
+applied. #28 hit this with a multi-object Hide and worked around it by recording one entry
+per node, which diverged from Illustrator (one undo step) and would have forced #20 to
+either do the same or add bespoke commands.
+
+### The design
+
+**A batch command.** `{ type: 'batch'; commands: Command[] }` is a new variant on the
+`Command` union. Applying it folds its steps into a local document and returns
+`inverse = batch(inverses reversed)`.
+
+- **Ordering.** Undo applies the inverses in **reverse** order of application. This is not
+  cosmetic: a step can depend on an earlier one, and unwinding must run from the last
+  change back to the first. The canonical case, used as a test, is a batch of
+  `[insertNodes X, setTransform X]`: the inverse reverses to `[setTransform X, removeNodes
+  X]`, which restores the tree. Applying the inverses in their recorded order would try to
+  transform the node after removing it and be rejected. Redo replays the original commands
+  in their **original** order, re-creating the same node ids, because the inverse batches
+  store the removed subtrees and ids are stable and never reused.
+- **Atomicity.** The batch folds into a local variable and returns the caller's document
+  untouched on any rejection, so a rejected step cannot leave a partial mutation. The
+  failing step's own `ValidationCode` and message survive; the message adds the step index
+  and command type (`Batch step 2 of 3 (setTransform) was rejected: …`) so the UI and the
+  future MCP surface keep useful context. An empty batch and a nested batch are refused
+  (`invalid-index`); `batchCommand()` flattens nesting, so an inverse is always a flat list
+  and the ordering stays obvious.
+- **Revision.** Each step still bumps `document.revision`, so a two-step batch advances it
+  by two. Nothing may branch on the exact value, as recorded for slice 2.
+- **Failure on undo.** Unchanged in spirit from slice 2, now covering aggregates:
+  `History.undo` applies the entry's inverse; if it is refused the entry is pushed back
+  onto the undo stack, nothing moves to the redo stack, and the document is unchanged. A
+  batch that cannot fully apply is refused as a whole rather than half-applied.
+
+**Which form a transaction commits.** `transactionEntry()` picks it from the steps:
+
+| Steps | Entry | Why |
+| --- | --- | --- |
+| one | plain `{ command, inverse }` | identical to the previous behavior; no needless wrapper |
+| several, all the same type on the same node, and that type is `setTransform`, `setStyle`, `setFlags`, or `renameNode` | compact `{ command: last, inverse: first }` | each of those commands sets a value, so re-applying the last one supersedes the earlier ones and the first inverse restores the original. This is the drag case, and it keeps a 200-step drag at **two** retained commands instead of two hundred — memory is a product requirement |
+| anything else (different nodes, or different kinds of change) | aggregate `{ command: batch(commands), inverse: batch(inverses reversed) }` | correctness: the compact form cannot restore several different nodes |
+
+**Memory.** An aggregate retains every command of its transaction until the entry leaves
+the stack, bounded by the transaction's own size and by the 200-entry history cap. The
+compact path exists so the one unbounded case — a drag emitting a command per pointer move
+— never grows.
+
+**Consequences for #20 and later slices.** Group/ungroup, multi-selection transforms, and
+style edits can now compose existing commands inside one transaction and still be one undo
+step, so they do not need bespoke commands. #20 does **not** depend on this for correctness
+— without it, every composed entry would still undo correctly, just one step per command —
+but it depends on it for the one-step behavior, and it avoids adding new command types for
+things an aggregate already expresses.
+
+### Evidence
+
+- `tests/history.test.ts` covers batch ordering (including the dependent-step case and the
+  refused wrong order), atomic rejection with the step index, empty and nested batches,
+  flattening, a two-node transaction undone and redone in one step with the command order
+  asserted, a stale inverse refusing the whole undo without touching the document, the
+  compact 200-step drag, single-step entries, and abort recording nothing.
+- `tests/ui.test.ts` now asserts that a two-object Hide is one undo step and that one undo
+  restores both layers.
+- `electron . --smoke=stress`: 9/9 command-path steps, drag still one entry, 1,001 shapes in
+  16 buckets at render p95 1.00 ms over 60 frames (scene build 3.5 ms).
 

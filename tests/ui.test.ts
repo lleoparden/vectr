@@ -16,9 +16,19 @@ import { chordFromEvent, chordLabel, chordKeys, matchShortcut, SHORTCUTS, shortc
 import { actualSize, clampZoom, fitArtboard, nextZoomStep, zoomAtPoint, zoomByStep } from '../src/app/canvas/viewportOps.ts'
 import { expandedGroupIds, layerRows, rowDescription } from '../src/app/panels/layerRows.ts'
 import { DOCK_WIDTH, LAYER_INDENT, PALETTE_WIDTH, ZOOM_MAX, ZOOM_MIN, ZOOM_STEPS } from '../src/app/ui/theme.ts'
-import { PANEL_IDS, WorkspaceStore, workspaceStore } from '../src/state/workspaceStore.ts'
-import { createDocument, createEllipse, createGroup, createRect } from '../src/doc/document.ts'
+import { INITIAL_CREATION_DEFAULTS, PANEL_IDS, WorkspaceStore, workspaceStore } from '../src/state/workspaceStore.ts'
+import { createDocument, createEllipse, createGroup, createRect, createText } from '../src/doc/document.ts'
 import { documentStore } from '../src/state/documentStore.ts'
+import {
+  TOOL_GROUPS,
+  TOOL_SWATCHES,
+  displayToolFor,
+  groupFor,
+  hasSelectedText,
+  memberFor,
+  toolOptionsModel,
+  type ToolOptionControl,
+} from '../src/app/ui/toolOptions.ts'
 import type { LayerNode } from '../src/doc/types.ts'
 
 const ACTION_SET = new Set<string>(ACTION_IDS)
@@ -397,6 +407,107 @@ test('layer rows follow the tree, respect collapse, and inherit flags', () => {
   assert.equal(leafRow?.inheritedHidden, true, 'but it reports the hidden ancestor')
   assert.equal(leafRow?.inheritedLocked, true, 'and the locked ancestor')
   assert.equal(rowDescription(leafRow!), 'rect, hidden by parent layer, locked by parent layer')
+})
+
+test('the palette groups the shape tools the way Illustrator does', () => {
+  assert.equal(TOOL_GROUPS.length, 3, 'three palette slots: selection, shapes, type')
+  const shape = groupFor('rect')
+  assert.equal(shape.id, 'shape')
+  assert.equal(groupFor('ellipse').id, 'shape', 'both shapes live in one group')
+  assert.deepEqual(
+    shape.members.map((member) => member.tool),
+    ['rect', 'ellipse'],
+  )
+  assert.equal(memberFor('ellipse').action, 'tool.ellipse')
+  assert.throws(() => groupFor('lasso' as 'rect'), /No tool group holds lasso/)
+
+  const remembersEllipse = { ...INITIAL_CREATION_DEFAULTS, shapeTool: 'ellipse' as const }
+  assert.equal(
+    displayToolFor(shape, 'select', remembersEllipse),
+    'ellipse',
+    'an inactive group shows the member last picked',
+  )
+  assert.equal(displayToolFor(shape, 'rect', remembersEllipse), 'rect', 'an active group shows the tool in use')
+  assert.equal(displayToolFor(groupFor('select'), 'text', remembersEllipse), 'select', 'single-tool groups are stable')
+})
+
+test('picking a shape member anywhere remembers it for the palette', () => {
+  resetEditor()
+  workspaceStore.setCreationDefaults({ shapeTool: 'ellipse' })
+  // The tool action is the path the palette, the flyout, and M / L all take.
+  runEditorAction('tool.rect')
+  assert.equal(documentStore.getState().tool, 'rect')
+  assert.equal(workspaceStore.getState().creationDefaults.shapeTool, 'rect', 'the slot remembers what was picked')
+  runEditorAction('tool.ellipse')
+  assert.equal(workspaceStore.getState().creationDefaults.shapeTool, 'ellipse')
+  assert.equal(documentStore.getState().tool, 'ellipse')
+  assert.equal(
+    displayToolFor(groupFor('rect'), 'select', workspaceStore.getState().creationDefaults),
+    'ellipse',
+    'and the slot still shows it after switching to another tool',
+  )
+  workspaceStore.setCreationDefaults({ shapeTool: INITIAL_CREATION_DEFAULTS.shapeTool })
+})
+
+test('the tool options bar shows the controls of the active tool', () => {
+  resetEditor()
+  const defaults = { ...INITIAL_CREATION_DEFAULTS }
+  const model = (input: Partial<Parameters<typeof toolOptionsModel>[0]>) =>
+    toolOptionsModel({
+      tool: 'select',
+      selection: [],
+      document: documentStore.getState().document,
+      defaults,
+      canRun: () => true,
+      ...input,
+    })
+  const of = <K extends ToolOptionControl['kind']>(controls: ToolOptionControl[], kind: K) =>
+    controls.filter((control): control is Extract<ToolOptionControl, { kind: K }> => control.kind === kind)
+
+  // Selection tool, nothing selected: an empty state, and no commands offered.
+  const empty = model({ tool: 'select' })
+  assert.equal(of(empty, 'hint').length, 1)
+  assert.equal(of(empty, 'action').length, 0)
+
+  // Shape tool: the member switch, the fill for the next shape, and an honest stroke readout.
+  const shapeRow = model({ tool: 'ellipse' })
+  const members = of(shapeRow, 'segmented')[0]
+  assert.equal(members.id, 'shape.tool')
+  assert.deepEqual(
+    members.options.map((option) => option.value),
+    ['rect', 'ellipse'],
+  )
+  assert.equal(members.options.find((option) => option.value === 'ellipse')?.active, true)
+  assert.equal(of(shapeRow, 'swatches')[0].active, defaults.shapeFill)
+  assert.equal(of(shapeRow, 'readout')[0].value, 'none')
+
+  // Type tool: size, alignment, colour — and the hint says where they apply.
+  const typeRow = model({ tool: 'text', defaults: { ...defaults, textFontSize: 18, textAlign: 'center' } })
+  assert.equal(of(typeRow, 'number')[0].value, 18)
+  assert.equal(of(typeRow, 'segmented')[0].options.find((option) => option.value === 'center')?.active, true)
+  assert.equal(of(typeRow, 'swatches')[0].colors.length, TOOL_SWATCHES.length)
+  assert.match(of(typeRow, 'hint')[0].text, /next text object/)
+
+  // Selection with one shape: its numbers, and commands gated by what can actually run.
+  const [rect] = insert([createRect('Rect', 10, 20, 30, 40)])
+  const selected = model({
+    tool: 'select',
+    selection: [rect.id],
+    canRun: (id) => id !== 'object.ungroup',
+  })
+  assert.deepEqual(
+    of(selected, 'readout').map((control) => `${control.label}:${control.value}`),
+    ['X:10', 'Y:20', 'W:30', 'H:40'],
+  )
+  const actions = of(selected, 'action')
+  assert.equal(actions.find((control) => control.id === 'object.ungroup')?.enabled, false)
+  assert.equal(actions.find((control) => control.id === 'object.duplicate')?.enabled, true)
+  assert.equal(hasSelectedText(documentStore.getState().document, [rect.id]), false)
+
+  // The same row with text selected points the controls at the selection instead.
+  const [text] = insert([createText('Note', 0, 0, 'hi')])
+  assert.equal(hasSelectedText(documentStore.getState().document, [text.id]), true)
+  assert.match(of(model({ tool: 'text', selection: [text.id] }), 'hint')[0].text, /selected text/)
 })
 
 test('geometry and zoom tokens stay coherent', () => {

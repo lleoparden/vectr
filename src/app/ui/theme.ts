@@ -36,3 +36,5 @@ export const FIT_PADDING = 32
 /** Document-window chrome heights, so the canvas can fill what is left. */
 export const MENU_BAR_HEIGHT = 26
 export const STATUS_BAR_HEIGHT = 22
+/** The tool options bar under the menu bar, Illustrator's Control panel. */
+export const TOOL_OPTIONS_HEIGHT = 30

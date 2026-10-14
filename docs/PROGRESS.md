@@ -1,5 +1,46 @@
 # Progress
 
+## Phase 1 — exit audit (2026-10-14, after the owner asked whether it is really done)
+
+The owner asked for the epic's exit criteria to be checked one by one rather than taken on trust.
+Each criterion below was verified against evidence produced on `main`, and the two shortfalls found
+were closed in the same session (`fix/phase-1-exit-evidence`).
+
+| Epic exit criterion | Verdict | Evidence |
+| --- | --- | --- |
+| A user can create, edit, save, reopen, and recover a layered document with rectangles, ellipses, groups, text, and **images** | **Met** | `[vectr-file]` 11/11 saves and reopens a document containing a nested group, text and a placed image, then resaves it byte-identically; images shipped as issue #17 (`IMAGE-01`) and are drawn from their asset in `[vectr-stress]` |
+| Every visible edit is one bounded transaction, and no failed command leaves a partial mutation | **Met** | `[vectr-smoke]` asserts one-entry drag, group, text edit; `runPlan` rolls back a refused plan; the command path returns a code without mutating |
+| Save/reopen preserves stable IDs, layer order, nesting, and asset bytes | **Met** | Round-trip fidelity test over every node kind; asset bytes verified by content hash on open; `[vectr-file]` resave is byte-identical |
+| Canvas paint order equals layer-tree order at every moment | **Met** | `buildScene` walks the tree once; tests assert scene order equals tree order after grouping and arranging |
+| The spike records total-process, JS, WASM, and GPU memory plus redraw, resize, **zoom**, replacement, and repeated load/unload, with an explicit verdict | **Met (verdict: amended, not met)** | `.ecc/benchmarks/phase-one/summary.json`: working set 817 MiB, private 995 MiB, **GPU 280 MiB**, `wasmBytes` 7.3 MB, `maxHeapBytes` per entry, scenarios `fixture`/`resize`/`replace`/`unload`, leak verdict "retained scene objects returned to zero". **Zoom was missing** and is now recorded in `[vectr-memory]`: 0.25× 7.6 ms · 1× 1.0 ms · 2× 0.6 ms · 4× 0.1 ms |
+| Memory behavior on representative **and stress** documents is recorded | **Met, budget undefined** | Representative: 453.5 MiB (`[vectr-file]`). Stress: **792.6 MiB working set** with 1,000 shapes + 48 distinct images (157 KiB of PNG bytes, ~27 MiB decoded), 795.6 MiB after save, 799.8 MiB after reopen, 799.3 MiB after close with **0 decoded images held**. No owner-approved budget exists to test against (see below) |
+| Catalog entries and `docs/PROGRESS.md` are updated in the same pull request as each behavior change | **Met** | Every slice PR carried its catalog and progress update |
+
+**The two shortfalls, now closed:**
+
+1. **Zoom had no recorded evidence** in any run, although the criterion names it. `[vectr-memory]`
+   now draws the stress scene at four zoom levels and records each time.
+2. **The decoded-asset cache was unbounded per asset id.** The epic's own architecture constraint
+   says renderer caches must be "derived, bounded, and explicitly disposed", and a session that
+   opened several documents would have accumulated their pixels. `EditorRenderer.retainAssets()`
+   now releases every decoded image the current document does not need, the canvas calls it whenever
+   the asset set changes, and `RenderStats.decodedAssets` makes the bound observable — the packaged
+   run asserts it returns to 0 when the document is closed.
+
+**One owner decision is still open, and it is not something I should invent: there is no approved
+memory budget.** `docs/DECISIONS.md` records that "the exact budgets need owner approval in the
+benchmark", and no approval is on file. The numbers above are therefore recorded against an
+undefined target. Measured behavior worth deciding against:
+
+- An empty editor with a small document sits at ~**453 MiB** whole-app working set.
+- The stress document (1,000 shapes + 48 images) adds ~**340 MiB**, reaching ~**793 MiB**.
+- Closing the document releases the decoded cache (48 → 0 images, registry empty) but the process
+  working set does **not** fall back to the baseline within the measured window (~799 MiB): CanvasKit's
+  WASM and GPU allocations are not returned to the operating system promptly. A fresh window starts
+  clean, which is why this is recorded as a behavior to budget around rather than a leak — the
+  leak check in the spike verdict passes, and retained scene objects return to zero.
+
+
 ## Phase 1 — complete
 
 **Product statement, demonstrated on the packaged Windows build: a user can create, edit, save,
@@ -39,7 +80,7 @@ Exit criteria from the epic, with where each is proven:
 | New/open/save/save-as, manifest plus asset directory, validation, dirty state, failure-safe writes | `DOC-04`; the `[vectr-file]` report and the file tests |
 | Crash recovery offered explicitly, discarding the only lossy path | `DOC-04`; one rolling snapshot, tested |
 | No JSON-embedded base64 assets and no whole-document undo snapshots | Asserted by test; history stores inverses |
-| Memory recorded for a stress document after save, reopen, and close | `[vectr-file]` record above; renderer caches bounded and disposed |
+| Memory recorded for a stress document after save, reopen, and close | `[vectr-memory]` 6/6: 792.6 MiB stress working set, 799.8 MiB after reopen, 799.3 MiB after close with 0 decoded images held — see the exit audit above |
 
 Recorded gaps and limitations, so Phase 2 starts from an honest baseline:
 

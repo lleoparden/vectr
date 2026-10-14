@@ -25,6 +25,7 @@ import {
   writeRecoverySnapshot,
 } from '../app/files/fileActions.ts'
 import { serializeDocument } from '../file/serialize.ts'
+import { assetRegistry } from '../state/assetRegistry.ts'
 import { documentStore } from '../state/documentStore.ts'
 import type { DocumentStore } from '../state/documentStore.ts'
 
@@ -292,17 +293,128 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
 }
 
 /**
+ * Memory and zoom evidence (Phase 1 exit criteria 5 and 6), run on the packaged app.
+ *
+ * Criterion 6 asks for memory on a representative *and* a stress document, recorded after save,
+ * reopen, and close. Issue #19 adds "with many assets". Criterion 5 asks for zoom evidence, which
+ * no earlier recorded run contained. Everything here is measured, not asserted from theory, and
+ * logged as `[vectr-memory]`.
+ *
+ * There is **no owner-approved memory budget** yet (`docs/DECISIONS.md`: the exact budgets need
+ * owner approval), so this records the numbers and marks the budget question as open rather than
+ * inventing a threshold to pass.
+ */
+export async function runMemoryReport(): Promise<SmokeReport> {
+  const steps: SmokeStep[] = []
+  const record = (name: string, ok: boolean, detail: string) => steps.push({ name, ok, detail })
+  const mib = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MiB`
+  const settle = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+  const renderer = getActiveRenderer()
+  if (renderer === null) {
+    record('renderer available', false, 'no active renderer')
+    return { passed: false, steps }
+  }
+  const api = window.vectrFiles
+  if (api === undefined) {
+    record('file bridge', false, 'the preload bridge is missing')
+    return { passed: false, steps }
+  }
+
+  // A stress document: 1,000 shapes plus 48 distinct images, so the asset path is under load and
+  // every image needs its own decoded entry rather than a shared one.
+  newDocument()
+  assetRegistry.clear()
+  const root = documentStore.getState().document.root
+  const shapes = Array.from({ length: 1_000 }, (_, index) =>
+    createRect(`Stress ${index}`, (index * 17) % 1200, (index * 29) % 800, 40, 30),
+  )
+  documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 0, nodes: shapes })
+
+  let placed = 0
+  for (let index = 0; index < 48; index += 1) {
+    // 384×384 decoded to ~0.55 MiB of pixels each, so 48 images hold ~27 MiB inside the renderer
+    // and releasing them is measurable rather than theoretical.
+    const bytes = await makeSmokePng(index, 384)
+    if (bytes === null) break
+    if ((await placeImage(`stress-${index}.png`, 'image/png', bytes)) !== null) placed += 1
+  }
+  const assetBytes = documentStore
+    .getState()
+    .document.assets.reduce((total, asset) => total + asset.byteLength, 0)
+  const assetSize = assetBytes < 1024 * 1024 ? `${Math.round(assetBytes / 1024)} KiB` : mib(assetBytes)
+  record(
+    'stress document built',
+    placed === 48 && documentStore.getState().document.assets.length === 48,
+    `1,000 shapes + ${placed} images, ${assetSize} of PNG bytes (~${(48 * 384 * 384 * 4 / (1024 * 1024)).toFixed(0)} MiB decoded)`,
+  )
+
+  await settle(900)
+  const placedMemory = await window.vectrBenchmark.getMemory()
+  const decodedAfterPlace = renderer.stats().decodedAssets
+  record(
+    'memory after building the stress document',
+    decodedAfterPlace >= 1,
+    `${mib(placedMemory.workingSetBytes)} working set (${mib(placedMemory.privateBytes)} private), ${decodedAfterPlace} decoded images, budget: not owner-approved`,
+  )
+
+  // Zoom evidence (criterion 5): the same scene drawn at four zoom levels.
+  const zooms = [0.25, 1, 2, 4]
+  const zoomTimes = zooms.map((zoom) => renderer.render({ zoom, panX: 0, panY: 0 }, []))
+  const worstZoom = Math.max(...zoomTimes)
+  record(
+    'zoom frames render and are recorded',
+    zoomTimes[1] <= 33,
+    `${zooms.map((zoom, index) => `${zoom}× ${zoomTimes[index].toFixed(1)} ms`).join(' · ')} (worst ${worstZoom.toFixed(1)} ms)`,
+  )
+
+  const directory = `${await api.scratchDirectory()}/memory-${Date.now()}.vectr`
+  const saved = await saveDocument({ directory })
+  await settle(300)
+  const savedMemory = await window.vectrBenchmark.getMemory()
+  record('memory after save', saved, `${mib(savedMemory.workingSetBytes)} working set`)
+
+  const opened = await openDocument({ directory })
+  await settle(900)
+  const openedMemory = await window.vectrBenchmark.getMemory()
+  const assetsAfterOpen = documentStore.getState().document.assets.length
+  record(
+    'memory after reopen',
+    opened && assetsAfterOpen === 48,
+    `${mib(openedMemory.workingSetBytes)} working set, ${assetsAfterOpen} assets, ${renderer.stats().decodedAssets} decoded images`,
+  )
+
+  // Closing the document must release the decoded pixels, not just the records (the epic's
+  // "caches are derived, bounded, and explicitly disposed" constraint).
+  newDocument()
+  assetRegistry.clear()
+  await settle(600)
+  const closedMemory = await window.vectrBenchmark.getMemory()
+  const decodedAfterClose = renderer.stats().decodedAssets
+  record(
+    'closing the document releases its decoded assets',
+    decodedAfterClose === 0,
+    `${decodedAfterClose} decoded images held after close, registry empty: ${assetRegistry.size() === 0}, ${mib(closedMemory.workingSetBytes)} working set`,
+  )
+
+  return { passed: steps.every((step) => step.ok), steps }
+}
+
+/**
  * Generates a small PNG in the page, so the smoke run exercises the real import path —
  * decode, content key, placement, and drawing — without shipping a fixture file (issue #17).
  */
-async function makeSmokePng(): Promise<Uint8Array | null> {
+async function makeSmokePng(index = 0, size = 8): Promise<Uint8Array | null> {
   const canvas = document.createElement('canvas')
-  canvas.width = 8
-  canvas.height = 8
+  canvas.width = size
+  canvas.height = size
   const context = canvas.getContext('2d')
   if (context === null) return null
-  context.fillStyle = '#4f7cff'
-  context.fillRect(0, 0, 8, 8)
+  // A different colour per index, so importing many images produces many distinct content keys
+  // rather than one asset referenced repeatedly. The PNG of a flat colour stays small while the
+  // decoded pixels are size², which is what makes the asset cache measurable.
+  context.fillStyle = `hsl(${(index * 37) % 360} 70% 55%)`
+  context.fillRect(0, 0, size, size)
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((value) => resolve(value), 'image/png'))
   return blob === null ? null : new Uint8Array(await blob.arrayBuffer())
 }

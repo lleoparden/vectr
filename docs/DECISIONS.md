@@ -1009,6 +1009,51 @@ the new one. Evidence that it changed nothing but paths: typecheck clean, **119/
 identical production bundle hash before and after (`index-5DFkgqNk.js`, 480.32 kB), and the packaged
 smoke run passing all three reports (18 + 11 + 8 = 37 steps).
 
+## 2026-10-14 — Bounded decoded-asset cache, and the Phase 1 exit audit
+
+### The cache is now bounded
+
+The epic's architecture constraint says renderer and decoded-asset caches must be "derived, bounded,
+and explicitly disposed". The decoded-image map was keyed by asset id and only ever released in
+`dispose()`, so a session that opened several documents kept every document's pixels alive until the
+window closed. `EditorRenderer.retainAssets(assetIds)` now releases every decoded image the current
+document does not reference, the canvas calls it whenever `document.assets` changes (including when a
+document is closed or replaced), and `RenderStats.decodedAssets` exposes the current size so the
+bound is observable rather than assumed. `dispose()` still releases whatever remains.
+
+This is a real fix, not a tidy-up: the packaged run now asserts the count returns to **0** after
+closing a document that held 48 decoded images.
+
+### What the audit of the epic's exit criteria changed
+
+The owner asked for the Phase 1 epic's exit criteria to be verified rather than assumed. Five of the
+seven were already met with evidence on `main`. Two were not:
+
+1. **Zoom evidence was missing.** The criterion names zoom, but no recorded run had a zoom scenario —
+   the spike covered `fixture`, `resize`, `replace`, and `unload`. The packaged run now renders the
+   stress scene at 0.25×, 1×, 2×, and 4× and records each time (7.6 ms, 1.0 ms, 0.6 ms, 0.1 ms).
+2. **Memory on a stress document with many assets was never measured**, although issue #19 asked for
+   it. `[vectr-memory]` now builds 1,000 shapes plus 48 distinct images and records the working set
+   at each stage: **792.6 MiB** after building, 795.6 after save, 799.8 after reopen, 799.3 after
+   close.
+
+### Recorded observation: freeing is not the same as returning
+
+Closing the document releases the decoded cache (48 → 0 images, registry empty), but the process
+working set does **not** return to the empty-document baseline (~453 MiB) inside the measured window.
+That is CanvasKit's WASM and GPU allocations not being handed back to the operating system promptly,
+not a leak: the spike's leak check passes and retained scene objects return to zero. It is recorded
+because it is the honest shape of the memory behavior, and because a session that opens and closes
+many large documents will sit at the high-water mark until the window restarts.
+
+### Open owner decision: there is no approved memory budget
+
+`DECISIONS.md` (Phase 0 direction) says "the exact budgets need owner approval in the benchmark", and
+no approval was ever recorded. The measurements above therefore have no target to pass or fail
+against. Rather than invent a threshold and declare success, the numbers are recorded in
+`docs/PROGRESS.md` with the budget question left explicitly open for the owner. That is the only
+Phase 1 exit criterion that cannot be closed by work — it needs a decision.
+
 ## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
 
 The owner went offline and gave standing permission to merge whatever an agent judges

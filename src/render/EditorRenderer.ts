@@ -56,6 +56,8 @@ export type RenderStats = {
   substitutedFonts: string[]
   /** Asset ids a scene asked for that the renderer never received (issue #17). */
   missingAssets: string[]
+  /** Decoded images currently held, so the bound on the asset cache is observable. */
+  decodedAssets: number
 }
 
 type Bucket = {
@@ -255,6 +257,25 @@ export class EditorRenderer {
     }
   }
 
+  /**
+   * Keeps only the decoded images the given asset ids need, releasing the rest (issue #19's
+   * "caches are derived, bounded, and explicitly disposed" constraint). A session that opens
+   * several documents must not accumulate their pixels, so the canvas calls this whenever the
+   * asset set changes, and `dispose` releases whatever is left.
+   *
+   * Returns how many decoded images were released.
+   */
+  retainAssets(assetIds: Set<string>): number {
+    let released = 0
+    for (const [assetId, image] of [...this.images]) {
+      if (assetIds.has(assetId)) continue
+      image.delete()
+      this.images.delete(assetId)
+      released += 1
+    }
+    return released
+  }
+
   /** Measured box for a text node (issue #16). The editor uses this so selection bounds match
    * the glyphs that are actually drawn; it returns null when no font is loaded, and callers
    * fall back to the shared estimate.
@@ -331,6 +352,7 @@ export class EditorRenderer {
       lastBuildMs: this.lastBuildMs,
       substitutedFonts: [...this.substituted],
       missingAssets: [...this.missingAssets],
+      decodedAssets: this.images.size,
     }
   }
 

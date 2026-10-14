@@ -88,27 +88,33 @@
 
 ## Next
 
-- **Owner decision required on the renderer gate (refined after slice 1b).** The
-  recorded-picture path halved the worst stress interaction, and the remaining
-  misses are 10,000 loose primitives (82.2 ms) and, marginally, 10,000 text nodes
-  (35.0 ms). Options:
-  1. Accept the recorded-picture path and set an evidence-based stress limit: for
-     example "documents with up to 1,000 fully visible live layers hold 33 ms;
-     10,000-leaf *nested-group* documents hold 33 ms (21.4 ms measured); 10,000
-     loose primitives are a recorded limit at ~82 ms". This changes a Phase 0
-     decision and needs to be logged as such.
-  2. Fund a second optimization iteration: rasterize the static scene into a
-     cached image for pan (one texture blit) and re-rasterize on zoom, and/or
-     non-order-preserving paint batching behind an explicit fidelity flag. The
-     trade-offs are zoom-time latency, blur during zoom, or changed paint order.
-  3. Compare another renderer candidate (batched WebGL/WebGPU path playback) on the
-     same fixtures before choosing.
-  4. Proceed with slices 2–6 on the recorded-picture path as an accepted risk, and
-     revisit with Phase 4 profiling using real documents rather than the synthetic
-     always-visible stress fixture.
-- After that decision, execute Phase 1 slices 2–6 in order: #18 document,
-  commands, shapes, selection; #20 layers and groups; #16 plain text; #17 images;
-  #19 durable local documents.
+- **Renderer gate amended by measurement (issue #25).** A candidate comparison ran
+  end to end with criteria frozen before measurement, five packaged runs per
+  candidate, on the same fixtures and protocol:
+  - CanvasKit recorded-picture: 1,000 live layers 5.7 ms (pass), 10,000-leaf nested
+    groups 19.2 ms (pass), 10,000 loose primitives 89.8 ms (**fail**); peak working
+    set 861 MiB with a 271 MiB GPU process.
+  - `vello_cpu` 0.3.0 built for wasm32 with SIMD128 (VectorCraft's rasterizer):
+    1,000 live layers 8.3 ms (pass), 10,000-leaf groups 39.3 ms (fail), 10,000 loose
+    primitives 125.6 ms (**fail**); peak working set 727 MiB; leak-clean.
+  - VectorCraft's own native bench on this machine: 37.2 ms for 20,000 simpler
+    shapes at 2880×1800 with worker threads (their README claims ~27 ms).
+  - Not measured, not claimed: resvg-wasm/tiny-skia and CanvasKit WebGPU.
+  - Outcome: no measured candidate meets 33 ms on 10,000 loose always-visible
+    primitives, so the gate is **amended, not met**; CanvasKit recorded-picture is
+    accepted with published limits and `PERF-01` stays open with revisit triggers.
+    Evidence: `.ecc/benchmarks/renderer-comparison/`.
+
+## Next
+
+- Owner action: review and merge PRs #21 (workflow docs), #22 (slice 1 spike), #24
+  (slice 1b optimization) and #26 (this comparison). Editor slices 2–6 stay stopped
+  until then, per the owner's instruction.
+- After merging, Phase 1 resumes with #18 (document, commands, shapes, selection),
+  then #20, #16, #17, #19 on the accepted CanvasKit recorded-picture path.
+- `PERF-01` revisit triggers: wasm threads with COOP/COEP isolation, Phase 4
+  profiling with culling and retained regions on realistic documents, or an
+  owner-approved revision of the 10,000-loose-primitive limit.
 
 ## Known issues
 

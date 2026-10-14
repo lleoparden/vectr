@@ -191,6 +191,33 @@ function createGroupRoots(leaves: number): FixtureNode[] {
   return [createGroup(0, '0')]
 }
 
+/**
+ * Local-space vertices for a primitive, in the exact order the renderers emit
+ * them: the first vertex, then one vertex per segment. Both the CanvasKit
+ * baseline and the comparison candidates build from this list, so geometry parity
+ * is structural rather than a claim (issue #25).
+ */
+export function primitiveLocalPoints(node: PrimitiveNode): number[] {
+  if (node.kind === 'ellipse') {
+    const steps = Math.max(3, node.segments * 4)
+    const radiusX = node.width / 2
+    const radiusY = node.height / 2
+    // The first vertex repeats the loop's opening angle, matching the baseline.
+    const points = [radiusX, 0]
+    for (let step = 1; step <= steps; step += 1) {
+      const angle = (step / steps) * Math.PI * 2 - Math.PI / 2
+      points.push(radiusX + Math.cos(angle) * radiusX, radiusY + Math.sin(angle) * radiusY)
+    }
+    return points
+  }
+  const steps = Math.max(3, node.segments)
+  const points = [0, 0]
+  for (let step = 1; step <= steps; step += 1) {
+    points.push((node.width * step) / steps, step % 2 === 0 ? 0 : node.height)
+  }
+  return points
+}
+
 export type FixtureSummary = {
   nodes: number
   leaves: number

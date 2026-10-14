@@ -13,6 +13,7 @@
     "test": "node --test tests/bench.test.ts tests/package.test.cjs"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "canvaskit-wasm": "^0.42.0",
     "react": "^19.0.0",

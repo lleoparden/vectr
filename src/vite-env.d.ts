@@ -10,3 +10,9 @@ declare module '*.ttf?url' {
   export default fontUrl
 }
 
+declare module '*.wasm?url' {
+  const wasmUrl: string
+  export default wasmUrl
+}
+
+

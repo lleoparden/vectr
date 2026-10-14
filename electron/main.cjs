@@ -4,6 +4,8 @@ const path = require('node:path')
 
 const isBenchmark = process.argv.includes('--benchmark')
 const outputArgument = process.argv.find((argument) => argument.startsWith('--output='))
+/** Optional renderer-candidate switch, for example `--candidate=vello`. */
+const candidateArgument = process.argv.find((argument) => argument.startsWith('--candidate='))
 /** Optional fixture filter (for example `--contents=primitives`) for quick checks. */
 const contentsArgument = process.argv.find((argument) => argument.startsWith('--contents='))
 /** The benchmark must never hang a run: quit with a failure after five minutes. */
@@ -39,6 +41,7 @@ function createWindow() {
       ? {
           benchmark: '1',
           ...(contentsArgument ? { contents: contentsArgument.slice('--contents='.length) } : {}),
+          ...(candidateArgument ? { candidate: candidateArgument.slice('--candidate='.length) } : {}),
         }
       : {},
   })

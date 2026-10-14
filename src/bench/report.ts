@@ -6,7 +6,6 @@
  */
 
 import { FIXTURE_VERSION } from './fixtures.ts'
-import type { RenderMode } from './renderer.ts'
 
 export const REPORT_SCHEMA_VERSION = 1
 
@@ -16,11 +15,13 @@ export const INTERACTION_TARGET_MS = 33
 export type RendererBackend = 'webgl' | 'cpu-fallback' | 'unsupported'
 
 export type ScenarioMetrics = {
+  /** Renderer target under measurement, for example `canvaskit` or `vello-wasm`. */
+  candidate?: string
   scenario: string
   /** Fixture content or interaction label this measurement belongs to. */
   detail: string
   /** Draw path under test: the slice 1 control path or recorded-picture replay. */
-  renderMode: RenderMode
+  renderMode: string
   /** One-time parse/build cost for the scene, excluded from interaction timing. */
   buildMs: number
   /** Draw submission time for the measured action, excluding build and React. */
@@ -42,6 +43,8 @@ export type ScenarioMetrics = {
   liveImages: number
   liveParagraphs: number
   livePictures: number
+  /** Wasm-side scene shapes, used by the vello candidate's leak check. */
+  liveShapes?: number
   /** Transient JS heap reading, when the runtime exposes it. */
   heapBytes: number | null
 }
@@ -119,17 +122,20 @@ export function summarizeRuns(runs: RunRecord[], target = INTERACTION_TARGET_MS)
   const byDetail = new Map<string, ScenarioMetrics[]>()
   for (const run of runs) {
     for (const scenario of run.scenarios) {
-      const key = `${scenario.renderMode}:${scenario.scenario}:${scenario.detail}`
+      const candidate = scenario.candidate ?? 'canvaskit'
+      const key = `${candidate}|${scenario.renderMode}:${scenario.scenario}:${scenario.detail}`
       const list = byDetail.get(key) ?? []
       list.push(scenario)
       byDetail.set(key, list)
     }
   }
   const entries = [...byDetail.entries()].map(([key, list]) => {
-    const [renderMode, scenario, detail] = key.split(':')
+    const [candidate, rest] = [key.slice(0, key.indexOf('|')), key.slice(key.indexOf('|') + 1)]
+    const [renderMode, scenario, detail] = rest.split(':')
     const interactions = list.map((item) => item.interactionMs)
     const draws = list.map((item) => item.drawMs)
     return {
+      candidate,
       renderMode,
       scenario,
       detail,
@@ -148,24 +154,45 @@ export function summarizeRuns(runs: RunRecord[], target = INTERACTION_TARGET_MS)
     }
   })
 
-  const scenariosOf = (mode: RenderMode) =>
-    runs.flatMap((run) => run.scenarios.filter((scenario) => scenario.renderMode === mode))
-  const verdicts = {
-    // The control path is measured, reported, and not used to decide the gate.
-    direct: computeVerdict(scenariosOf('direct'), target),
-    // The production candidate: recorded-picture replay.
-    picture: computeVerdict(scenariosOf('picture'), target),
-  }
-  const deciding = verdicts.picture.worstInteractionMs > 0 ? verdicts.picture : verdicts.direct
+  const scenariosOf = (candidate: string, mode: string) =>
+    runs.flatMap((run) =>
+      run.scenarios.filter(
+        (scenario) => (scenario.candidate ?? 'canvaskit') === candidate && scenario.renderMode === mode,
+      ),
+    )
+  const pairs = [
+    ...new Set(
+      runs.flatMap((run) =>
+        run.scenarios.map((scenario) => `${scenario.candidate ?? 'canvaskit'}|${scenario.renderMode}`),
+      ),
+    ),
+  ]
+    .map((pair) => {
+      const separator = pair.indexOf('|')
+      return { candidate: pair.slice(0, separator), mode: pair.slice(separator + 1) }
+    })
+    .sort((left, right) => (left.candidate === right.candidate ? left.mode.localeCompare(right.mode) : left.candidate.localeCompare(right.candidate)))
+
+  const verdicts = pairs.map((pair) => ({
+    candidate: pair.candidate,
+    mode: pair.mode,
+    verdict: computeVerdict(scenariosOf(pair.candidate, pair.mode), target),
+  }))
+
+  // The CanvasKit recorded-picture path decides a CanvasKit run; a candidate run
+  // decides on its own single mode.
+  const deciding =
+    verdicts.find((entry) => entry.candidate === 'canvaskit' && entry.mode === 'picture') ?? verdicts[0]
 
   return {
     schemaVersion: REPORT_SCHEMA_VERSION,
     fixtureVersion: FIXTURE_VERSION,
     runCount: runs.length,
     interactionTargetMs: target,
-    worstInteractionMsP95: deciding.worstInteractionMs,
-    decidingMode: deciding === verdicts.picture ? 'picture' : 'direct',
-    pass: deciding.pass,
+    worstInteractionMsP95: deciding?.verdict.worstInteractionMs ?? 0,
+    decidingCandidate: deciding?.candidate ?? 'none',
+    decidingMode: deciding?.mode ?? 'none',
+    pass: deciding?.verdict.pass ?? false,
     backend: runs[0]?.renderer.backend ?? 'unsupported',
     fontLoaded: runs[0]?.renderer.fontLoaded ?? false,
     wasmBytes: runs[0]?.renderer.wasmBytes ?? 0,

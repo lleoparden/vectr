@@ -241,8 +241,48 @@
   paragraphs, and pictures return to zero after 10 build/draw/release cycles.
   Peak whole-app working set is 861 MiB across four processes, slightly above
   slice 1 because picture mode holds recordings and retained objects together.
-- Because the gate is still not met, editor slices 2–6 remain paused for the
+- Because the gate was still not met, editor slices 2–6 stayed paused for the
   owner's renderer decision, with the options recorded in `docs/PROGRESS.md`.
+
+## 2026-10-14 — Amendment to the Phase 0 renderer gate (candidate comparison)
+
+The evidence sections this amendment references follow below, appended by earlier
+merge commits (slice 1 evidence, slice 1b optimization, and the workflow record).
+
+- The Phase 0 gate is amended on measured evidence from issue #25. Every candidate
+  ran the frozen fixtures with the slice 1b definition and protocol, five packaged
+  runs each, on this machine (AMD Ryzen 5 9600X · 15.16 GiB · Windows 11 Pro ·
+  Electron 35.7.5). Criteria and candidates were committed before measurement
+  (`docs/RENDERER_COMPARISON.md`).
+- Measured interaction p95: **CanvasKit recorded-picture** passes 1,000 live layers
+  (5.7 ms) and 10,000-leaf nested groups (19.2 ms) and misses 10,000 loose
+  primitives (89.8 ms). **`vello_cpu` 0.3.0** (wasm32-unknown-unknown, SIMD128,
+  single thread — the rasterizer VectorCraft uses) passes 1,000 layers (8.3 ms) and
+  misses both stress cases (10,000-leaf groups 39.3 ms; 10,000 loose primitives
+  125.6 ms). Both are leak-clean. Peak working set: CanvasKit 861 MiB with a
+  271 MiB GPU process; vello 727 MiB with no GPU process.
+- **VectorCraft's own bench ran on this machine**: `20000 objects, fit 2880x1800:
+  37.2 ms/frame (drawn 19923, culled 1078)`, `zoom 400%: 13.1 ms`, `thumb 400x300:
+  22.2 ms`. Their README claims "about 27 ms"; this machine measures 37.2 ms for a
+  lighter fixture (4–10 points per shape) with native worker threads.
+- **Decision:** no measured candidate meets 33 ms on 10,000 loose always-visible
+  primitives at 1200×800, so the gate is **amended, not met**. Accepted renderer:
+  the CanvasKit recorded-picture path, with published limits — up to 1,000 fully
+  visible live layers hold 33 ms; 10,000-leaf nested-group documents hold 33 ms;
+  10,000 loose primitives are a limitation at 82–90 ms p95.
+- The measured reason the CPU path does not close the gap here is **threading, not
+  the rasterizer**: VectorCraft's bench uses `vello_cpu` worker threads
+  (`Renderer.threads` → `RenderSettings { num_threads }`), while our wasm build runs
+  one thread because wasm threads require `SharedArrayBuffer` plus COOP/COEP
+  isolation, which the harness does not enable.
+- Not measured and therefore not claimed: `@resvg/resvg-wasm` (tiny-skia) and the
+  CanvasKit WebGPU path; reasons are recorded in `docs/RENDERER_COMPARISON.md`.
+- `PERF-01` stays **open** with revisit triggers: a wasm-threads + COOP/COEP
+  `vello_cpu` harness with 4–8 workers; Phase 4 profiling with culling and retained
+  regions on realistic documents; or an owner-approved revision of the
+  10,000-loose-primitive limit.
+- Editor slices 2–6 remain stopped: the owner ordered them paused until the pull
+  requests are reviewed and merged.
 
 ## 2026-10-14 — Issue, epic, and pull-request workflow
 

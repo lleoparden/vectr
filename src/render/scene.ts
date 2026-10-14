@@ -19,7 +19,7 @@ export type SceneText = {
 
 export type SceneShape = {
   id: NodeId
-  kind: 'rect' | 'ellipse' | 'text' | 'image'
+  kind: 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'arc' | 'text' | 'image'
   /** Top-level ancestor, which is the invalidation unit of the renderer. */
   root: NodeId
   x: number
@@ -29,6 +29,16 @@ export type SceneShape = {
   width: number
   height: number
   cornerRadius: number
+  /** Line: which corner the segment starts at. */
+  lineFrom: 'top-left' | 'top-right'
+  /** Polygon sides, or star tips, as the node stores them. */
+  sides: number
+  /** Star: valley radius as a fraction of the box radius. */
+  innerRadius: number
+  /** Arc: degrees, counterclockwise from +x, plus whether it closes through the centre. */
+  startAngle: number
+  sweepAngle: number
+  pie: boolean
   fill: string
   stroke: { color: string; width: number } | null
   opacity: number
@@ -78,6 +88,12 @@ function walkShapes(
     width: node.width,
     height: node.height,
     cornerRadius: node.type === 'rect' ? node.cornerRadius : 0,
+    lineFrom: node.type === 'line' ? node.from : 'top-left',
+    sides: node.type === 'polygon' ? node.sides : node.type === 'star' ? node.points : 0,
+    innerRadius: node.type === 'star' ? node.innerRadius : 0,
+    startAngle: node.type === 'arc' ? node.startAngle : 0,
+    sweepAngle: node.type === 'arc' ? node.sweepAngle : 0,
+    pie: node.type === 'arc' ? node.pie : false,
     fill: node.style.fill,
     stroke: node.style.stroke,
     opacity: opacity * node.style.opacity,

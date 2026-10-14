@@ -13,6 +13,7 @@ import {
   runEditorAction,
   setToolShapeFill,
   setToolShapeMember,
+  setToolShapeParam,
   setToolTextAlign,
   setToolTextFill,
   setToolTextSize,
@@ -20,7 +21,8 @@ import {
 import { ACTION_LABELS } from '../actions.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
-import { toolOptionsModel, type ToolOptionControl } from '../ui/toolOptions.ts'
+import { toolOptionsModel, groupFor, type ToolOptionControl } from '../ui/toolOptions.ts'
+import type { ShapeKind } from '../../doc/document.ts'
 import { TOOL_OPTIONS_HEIGHT } from '../ui/theme.ts'
 
 const SEGMENT_CLASS =
@@ -29,13 +31,53 @@ const ACTION_CLASS =
   'rounded-ui border border-hairline bg-chrome px-2 py-[1px] text-ui-xs text-ink hover:bg-chrome-active disabled:opacity-40 disabled:hover:bg-chrome'
 
 function onSegmented(id: string, value: string) {
-  if (id === 'shape.tool') setToolShapeMember(value === 'ellipse' ? 'ellipse' : 'rect')
+  if (id === 'shape.tool') {
+    // Every shape member activates through the same path, so the palette slot, the flyout, and
+    // the keyboard shortcuts all agree about which shape is in use.
+    const member = groupFor('rect').members.find((candidate) => candidate.tool === value)
+    if (member === undefined) return
+    setToolShapeMember(member.tool as ShapeKind)
+  }
   if (id === 'text.align') setToolTextAlign(value === 'center' ? 'center' : value === 'right' ? 'right' : 'left')
 }
 
 function onSwatches(id: string, color: string) {
   if (id === 'shape.fill') setToolShapeFill(color)
   if (id === 'text.fill') setToolTextFill(color)
+}
+
+/** The shape row's numeric fields and switches, all of them setting what the next shape draws. */
+function onShapeNumber(id: string, value: number) {
+  switch (id) {
+    case 'shape.cornerRadius':
+      setToolShapeParam({ cornerRadius: value })
+      return
+    case 'shape.sides':
+      setToolShapeParam({ sides: value })
+      return
+    case 'shape.points':
+      setToolShapeParam({ points: value })
+      return
+    case 'shape.innerRadius':
+      // The field shows a percentage; the model stores the fraction.
+      setToolShapeParam({ innerRadius: value / 100 })
+      return
+    case 'shape.strokeWidth':
+      setToolShapeParam({ strokeWidth: value })
+      return
+    case 'shape.startAngle':
+      setToolShapeParam({ startAngle: value })
+      return
+    case 'shape.sweepAngle':
+      setToolShapeParam({ sweepAngle: value })
+      return
+    default:
+      setToolTextSize(value)
+  }
+}
+
+function onToggle(id: string, active: boolean) {
+  if (id === 'shape.pie') setToolShapeParam({ pie: !active })
 }
 
 function Control({ control }: { control: ToolOptionControl }) {
@@ -84,9 +126,24 @@ function Control({ control }: { control: ToolOptionControl }) {
             step={control.step}
             value={control.value}
             className="w-14 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-            onChange={(event) => setToolTextSize(Number(event.currentTarget.value))}
+            onChange={(event) => onShapeNumber(control.id, Number(event.currentTarget.value))}
           />
         </label>
+      )
+    case 'toggle':
+      return (
+        <button
+          type="button"
+          aria-pressed={control.active}
+          className={`${SEGMENT_CLASS} ${
+            control.active
+              ? 'border-accent bg-accent text-accent-ink'
+              : 'border-hairline bg-chrome text-ink-muted hover:bg-chrome-active'
+          }`}
+          onClick={() => onToggle(control.id, control.active)}
+        >
+          {control.label}
+        </button>
       )
     case 'swatches':
       return (

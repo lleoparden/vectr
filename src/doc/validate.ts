@@ -9,6 +9,7 @@
 import { findNode, findParent, findWithin } from './document.ts'
 import { MAX_TEXT_LENGTH } from './document.ts'
 import { isGroup, isImage, isText, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
+import { clampCornerRadius } from './shapeGeometry.ts'
 
 export type ValidationCode =
   | 'duplicate-id'
@@ -41,12 +42,54 @@ export function validTransform(node: LayerNode): boolean {
   return [x, y, rotation, scaleX, scaleY].every((value) => Number.isFinite(value))
 }
 
+/**
+ * Shape parameters that live in the file. Returns `null` when the node is fine, so the tree walk
+ * stays readable. Only the kinds that carry parameters beyond a box are checked.
+ */
+export function validateShapeGeometry(node: LayerNode): ValidationResult | null {
+  if (node.type === 'rect' && node.cornerRadius !== 0) {
+    if (!Number.isFinite(node.cornerRadius) || node.cornerRadius < 0) {
+      return fail('non-finite', `Rect ${node.id} has an out-of-range corner radius.`, node.id)
+    }
+    if (node.cornerRadius > clampCornerRadius(node.width, node.height, node.cornerRadius)) {
+      return fail(
+        'invalid-index',
+        `Rect ${node.id} has a corner radius larger than half its shorter side.`,
+        node.id,
+      )
+    }
+  }
+  if (node.type === 'line' && node.from !== 'top-left' && node.from !== 'top-right') {
+    return fail('invalid-index', `Line ${node.id} has an unsupported start corner.`, node.id)
+  }
+  if (node.type === 'polygon' && (!Number.isInteger(node.sides) || node.sides < 3 || node.sides > 60)) {
+    return fail('invalid-index', `Polygon ${node.id} has ${String(node.sides)} sides; expected 3 to 60.`, node.id)
+  }
+  if (node.type === 'star') {
+    if (!Number.isInteger(node.points) || node.points < 3 || node.points > 60) {
+      return fail('invalid-index', `Star ${node.id} has ${String(node.points)} points; expected 3 to 60.`, node.id)
+    }
+    if (!Number.isFinite(node.innerRadius) || node.innerRadius < 0.05 || node.innerRadius > 0.95) {
+      return fail('non-finite', `Star ${node.id} has an out-of-range inner radius.`, node.id)
+    }
+  }
+  if (node.type === 'arc') {
+    if (!Number.isFinite(node.startAngle) || !Number.isFinite(node.sweepAngle)) {
+      return fail('non-finite', `Arc ${node.id} has a non-finite angle.`, node.id)
+    }
+    if (node.sweepAngle === 0 || Math.abs(node.sweepAngle) > 360) {
+      return fail('invalid-index', `Arc ${node.id} has an out-of-range sweep; expected -360 to 360.`, node.id)
+    }
+  }
+  return null
+}
+
 /** Full-tree validation: ids, parents, cycles, geometry, and version. */
 export function validateDocument(document: Document): ValidationResult {
-  if (document.formatVersion !== 1) {
+  if (document.formatVersion !== 1 && document.formatVersion !== 2) {
     return fail(
       'unsupported-version',
-      `Unsupported document format version ${document.formatVersion}; expected 1.`,
+      `Unsupported document format version ${document.formatVersion}; expected 1 or 2.`,
     )
   }
   const seen = new Set<NodeId>()
@@ -91,6 +134,10 @@ export function validateDocument(document: Document): ValidationResult {
           return fail('invalid-asset', `Image ${node.id} references missing asset ${node.assetId}.`, node.id)
         }
       }
+      // Shape parameters are part of the file: a polygon without valid sides, or an arc with a
+      // non-finite sweep, would corrupt geometry at draw time, so they are checked here.
+      const geometry = validateShapeGeometry(node)
+      if (geometry !== null) return geometry
       return ok
     }
     const next = new Set(ancestry)

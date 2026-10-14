@@ -1,5 +1,98 @@
 # Progress
 
+
+## Shape tools complete, honest drag previews, and autosave/recovery answered (2026-10-14, owner request)
+
+The owner reported that an ellipse drag previewed a rectangle, that Shift did nothing, and that
+"line, polygon, star, arc, rounded corners they are all missing" from the phase table's PATH-01 row.
+All three are closed, and the rest of the owner's list is answered below with its real status.
+
+**What changed (issue #52, `feat/path-shapes`)**
+
+- **The preview is now the shape.** `src/doc/shapeGeometry.ts` is the single source for every
+  outline; the renderer builds its Skia path from it and the canvas builds the drag preview from the
+  same points, so a preview can no longer disagree with what gets drawn. The old overlay was a
+  bordered `<div>`, which is exactly why an ellipse looked like a rectangle.
+- **Shift constrains** (`src/app/canvas/shapeDrag.ts`): square for rectangle/rounded rectangle/
+  polygon/star, circle for ellipse/arc, 45° snap for a line, read on every move.
+- **The missing shapes exist**: `line`, `polygon` (3–60 sides), `star` (3–60 tips + inner radius),
+  `arc` (start, sweep, pie), and `rect.cornerRadius` is now **drawn** rather than only modelled. Each
+  has its own tool in the shape slot, which now holds seven members behind one flyout (Rectangle `M`,
+  Rounded Rectangle, Ellipse `L`, Polygon, Star, Line Segment `\`, Arc).
+- **The options bar follows the member**: Corner radius, Sides, Points + Inner radius, Stroke weight,
+  Start angle + Sweep + Pie — each setting what the next shape draws.
+- **Format version 2** with `[1, 2]` supported: old files still open, no migration needed, and the
+  validation boundary checks the new parameters (sides, tips, inner radius, sweep, corner radius,
+  line corner) so a hand-edited file is refused with a reason.
+
+**Evidence**
+
+- **137/137 unit tests**, including a new `tests/shapes.test.ts` (geometry exactness, arc angle
+  conventions, corner clamping, drag constraints and normalisation, creator parameters, boundary
+  validation of all six shape kinds, scene parameters, marquee selection, a byte-identical v2 round
+  trip, and one-entry undo of a created shape) plus a v1-manifest test proving old files still open.
+- **New packaged report `[vectr-path]`, 9 steps**, driving the real palette, the real options bar, and
+  real pointer drags: the flyout lists seven members; an ellipse drag previews an `<ellipse>` element
+  and creates an ellipse; Shift draws a 137×137 circle; Polygon 8 sides; Star 7 points at 30% inner
+  radius; Rounded Rectangle radius 24 reaching the scene; a Shift line segment snapping to a 45° step
+  with the stroke weight set; a 180° pie arc.
+- Packaged totals are now **74 steps across seven reports** (smoke 21, file 15, text 7, ui 7,
+  path 9, memory 7, stress 8).
+- The report caught a real defect on its first run: the shape switch in the options bar still
+  hardcoded `rect`/`ellipse`, so picking Polygon/Star/Line/Arc activated Rectangle. Fixed, and now
+  proven per member.
+
+**The owner's question: "auto save and crash recovery — how are they?"**
+
+They are implemented and evidenced. This is exactly what exists (`DOC-04`, issue #19):
+
+| Behavior | Status |
+| --- | --- |
+| Rolling recovery snapshot while the document is dirty | **Yes** — every 30 s (`RECOVERY_INTERVAL_MS`), written only when `isDirty()` |
+| Snapshot before the window unloads | **Yes** — `beforeunload` handler |
+| Snapshot before unsaved work is discarded (close → discard, New, Open) | **Yes** — taken before the old document is dropped |
+| Recovery data kept outside the project, so a failed save cannot corrupt it | **Yes** — `userData/recovery` |
+| Checked at launch and offered in the File menu | **Yes** — `File > Recover Unsaved Work`, enabled only when a snapshot exists |
+| Consumed once used | **Yes** — cleared after a successful recover or save |
+| Proven end to end | **Yes** — `[vectr-file]` writes a snapshot, refreshes availability, recovers the unsaved rename, and asserts it clears |
+
+Not yet built, stated plainly: an autosave that writes **into the open project** (Illustrator does not
+do this either — its "Automatically Save Recovery Data" writes recovery data and Save stays manual),
+a Preferences UI for the interval (30 s is a constant), and a visible "recovery available" badge
+beyond the File menu item. If the owner wants an in-place autosave or a preferences control, that is a
+small slice — it needs a decision on the interval and on whether writing into the user's file without
+an explicit Save is acceptable.
+
+**The rest of the owner's list, with its real status** (the phase table's own wording is quoted):
+
+| ID | Expected at phase exit | Real status |
+| --- | --- | --- |
+| PERF-01 | verified, or blocked with recorded evidence | **Open, gate amended, not met.** CanvasKit recorded-picture measured; no candidate meets 33 ms on 10,000 loose primitives. The budget still needs an owner decision. |
+| DOC-01 | verified | **building.** Model, ids, ordered tree, artboards, revision, and now format v2 are implemented and tested; `verified` needs the save/reopen + platform recording that `DOC-04`'s evidence partly supplies. |
+| DOC-02 | verified | **building.** Tree, nesting, lock/hide with inheritance, drag reorder, group/ungroup, Arrange, duplicate, thumbnails. Missing: isolate mode, the target/locate column, nested thumbnails, layer-into-layer drag. |
+| DOC-03 | verified | **building.** One validated command path, transactions, undo/redo with exact inverses, refusal codes. Nothing known is missing; it lacks the acceptance fixture that `verified` requires. |
+| DOC-04 | verified, or partial with recorded limits | **building, close to partial.** Save/open/recover/save-as, asset portability, autosave snapshots, and crash recovery all work and are evidenced; missing an explicit limits statement and the in-place autosave question above. |
+| PATH-01 | building (rectangle and ellipse) | **building, now the full list** — rectangle, ellipse, line, polygon, star, arc, and drawn rounded corners. Missing: spiral, grid, flare, and live corner reshaping. |
+| SEL-01 | building (pointer and keyboard object selection) | **building.** Click, shift-click, marquee, select-all, Escape, inherited locks. Missing: direct selection, lasso, anchor-level selection. |
+| SEL-03 | building (reorder, group, ungroup) | **building.** Reorder, group, ungroup, arrange, duplicate, new layer, locked-aware delete. Missing: **distribute, copy/paste, and global edit**. |
+| TYPE-01 | building (plain point text) | **building.** Point text with exact-inverse commands, a measured box, alignment, size, colour. Missing: **area text, text on a path, threaded text**, and typography UI beyond the options bar. |
+| IMAGE-01 | building (place and embed) | **building.** Place by dialog and by drop, embed with content-addressed bytes, verification, a placeholder for a missing asset. Missing: **link/relink, crop, image masks**. |
+
+The honest summary: the phase table is accurate about what was expected, and PATH-01 was the only row
+on the owner's list whose content was actually absent; the others are missing *parts* of rows already
+marked `building`. The largest genuinely unbuilt items are area/threaded text, link/relink and masks,
+distribute and copy/paste, isolate mode, and the PERF-01 budget decision — each needs an approved
+slice, and none of them is a one-file change.
+
+**Next, in the order I would take them** (each still wants the owner's approval before it starts):
+
+1. `SEL-03`: copy/paste (Ctrl+C/X/V, with Illustrator's paste offset) and distribute.
+2. `TYPE-01`: area text (a box that wraps), then threaded text between boxes.
+3. `IMAGE-01`: link/relink (a link is already content-addressed, so relink is a swap) and a crop
+   rectangle that clips an image.
+4. `DOC-02`: isolate mode and the target/locate column, which the Layers panel still lacks.
+5. `PERF-01`: the memory budget decision, which is the only Phase 1 item that cannot be closed by work.
+
 ## Tool options bar and the grouped shape tool (2026-10-14, owner request)
 
 The owner asked for a small horizontal bar that changes with every tool, "like the one in

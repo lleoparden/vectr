@@ -1294,3 +1294,76 @@ conventions, so both are followed rather than reinvented.
 `toolOptionsModel` is a pure function and the shipped tests cover it; the component only renders what
 the model returns, which is the same split the Layers panel uses.
 
+
+## 2026-10-14 — Shape tools, honest previews, and one geometry source
+
+The owner reported three things in one message: dragging an ellipse previewed a **rectangle**, Shift
+did nothing while dragging, and **line, polygon, star, arc, and rounded corners were all missing**
+from PATH-01. The first two were bugs in the slice-6 canvas; the third was a capability the phase
+table lists as "rectangle and ellipse" only.
+
+**One geometry source, so a preview cannot lie.** `src/doc/shapeGeometry.ts` computes every outline
+in the node's own box coordinates. The renderer turns those points into a Skia path, and the drag
+preview (`src/app/canvas/ShapePreview.tsx`) turns the *same* points into an SVG outline. The old
+overlay was a `<div>` with a border, which is why an ellipse drag showed a rectangle. The same
+functions now feed `polygonPoints`, `starPoints`, `arcPoints`, `lineEndpoints`, and
+`clampCornerRadius`, and a test asserts the preview's outline equals the drawn one. This is the layer
+thumbnail rule applied to the canvas: one source for the picture, never a second drawing path.
+
+**Shift constrains a drag** (`src/app/canvas/shapeDrag.ts`, pure and tested): a square for
+rectangle/rounded rectangle/polygon/star, a circle for ellipse/arc, and a 45° snap for a line —
+using the larger of the two distances from the drag origin, keeping the direction, which is what
+Illustrator does. Shift is read on every pointer move, so holding or releasing it mid-drag updates
+the shape live.
+
+**The new node kinds** are `line`, `polygon`, `star`, and `arc`, joining `rect` (which now *draws*
+`cornerRadius` instead of only modelling it), `ellipse`, `text`, `image`, and `group`. Each has its
+own tool in the shape group, so the palette slot has seven members behind one flyout: Rectangle (M),
+Rounded Rectangle, Ellipse (L), Polygon, Star, Line Segment (\\), Arc.
+
+**Format version 2.** Adding node kinds changes what a file can contain, so `FORMAT_VERSION` is 2 and
+`SUPPORTED_FORMAT_VERSIONS` is `[1, 2]`: files written before this slice still open (they simply
+contain none of the new kinds, so no migration function is needed), and new files are v2. The
+validation boundary gained the shape parameters — sides 3–60, tips 3–60, inner radius 0.05–0.95,
+sweep −360…360 and non-zero, corner radius at most half the shorter side, a known line corner — so a
+corrupt or hand-edited file is refused with a reason instead of drawing nonsense.
+
+**Matching Illustrator:**
+
+- The seven tools, their grouping behind one palette slot, the corner-triangle flyout, and `M` / `L`
+  / `\` as the three keys Illustrator defines. Polygon, Star, and Arc have **no** Illustrator
+  shortcut, so Vectr invents none.
+- The options bar changes with the member, and its controls set what the *next* shape draws:
+  Corner radius (Rounded Rectangle), Sides (Polygon), Points + Inner radius (Star), Stroke weight
+  (Line), Start angle + Sweep + Pie (Arc). That is Illustrator's Control-panel habit.
+- A polygon starts with a vertex at the top and a star starts with a tip at the top, both inscribed
+  in the drag box; the arc's angles are degrees counterclockwise from +x, so its default 0°–90° sweep
+  draws the top-right quarter, exactly as Illustrator's Arc tool does.
+- A line's appearance is its **stroke**, which is how the Line Segment tool's weight control reaches
+  the renderer; the fill colour chooser supplies that stroke's colour.
+
+**Deliberate divergences, recorded here rather than drifting quietly:**
+
+- **Polygon and star are inscribed in the dragged box, not sized by a radius from the centre.** In
+  Illustrator the drag sets the radius, so a hexagon's box is narrower than the drag rectangle. Vectr
+  models every leaf as a box (that is what makes bounds, marquee selection, transforms, and
+  thumbnails uniform), so the shape fills the box it was dragged. A test asserts the hexagon's real
+  extent (93% of its box width) so nobody mistakes it for a bug later.
+- **No Spiral, Rectangular Grid, Polar Grid, or Flare tools.** They are not in the catalog's
+  PATH-01 list; them arriving is a later slice with its own fixtures.
+- **No live corner reshaping.** Illustrator lets you drag a corner radius widget on an existing
+  rectangle; Vectr sets the radius on creation only. Editing an existing shape's geometry has no
+  command yet (`PATH-01` records this).
+- **The arc has a Pie switch rather than Illustrator's open/closed/pie cycling** on the same tool,
+  because a switch is reachable by keyboard and screen readers.
+- **`\` for Line Segment is Illustrator's own key**, so it is marked `illustratorDefault: true`; the
+  Rounded Rectangle tool has no Illustrator key and Vectr adds `J`, marked as a divergence in
+  `src/app/menus/shortcuts.ts`.
+
+**A bug the packaged report caught before the owner could.** The new `[vectr-path]` report failed on
+its first run with "created rect" for every member: the options bar's shape switch still hardcoded
+`rect`/`ellipse` from the previous slice, so choosing Polygon, Star, Line, or Arc silently activated
+Rectangle. The switch now resolves the clicked value through the group table, and the report proves
+each member draws what it says. This is the same lesson as the Type tool bug recorded earlier: a
+control that *looks* wired is not evidence until something drives it.
+

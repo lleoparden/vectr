@@ -36,7 +36,11 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   // Tools (Illustrator: V = Selection, M = Rectangle, L = Ellipse, T = Type).
   { id: 'tool.select', chord: { key: 'v' }, illustratorDefault: true },
   { id: 'tool.rect', chord: { key: 'm' }, illustratorDefault: true },
+  { id: 'tool.roundedRect', chord: { key: 'j' }, illustratorDefault: false, note: 'Illustrator has no key for the rounded rectangle tool, which Vectr does' },
   { id: 'tool.ellipse', chord: { key: 'l' }, illustratorDefault: true },
+  // Illustrator's Line Segment tool. Polygon, Star, and Arc have no Illustrator defaults, so
+  // Vectr deliberately does not invent keys that would collide with a real Illustrator habit.
+  { id: 'tool.line', chord: { key: '\\' }, illustratorDefault: true },
   { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
 
   // File (Illustrator's document chords, then Place).

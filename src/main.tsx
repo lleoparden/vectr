@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App.tsx'
 import { BenchmarkApp } from './bench/BenchmarkApp.tsx'
-import { runEditorSmoke, runEditorStress, runFileRoundTrip, runMemoryReport, runTextEntryReport, runToolOptionsReport } from './dev/smoke.ts'
+import { runEditorSmoke, runEditorStress, runFileRoundTrip, runMemoryReport, runShapeToolsReport, runTextEntryReport, runToolOptionsReport } from './dev/smoke.ts'
 import { documentStore } from './state/documentStore.ts'
 import './styles.css'
 
@@ -27,6 +27,8 @@ if (search.has('smoke')) {
         console.log(`[vectr-text] ${JSON.stringify(text)}`)
         const toolOptions = await runToolOptionsReport()
         console.log(`[vectr-ui] ${JSON.stringify(toolOptions)}`)
+        const shapes = await runShapeToolsReport()
+        console.log(`[vectr-path] ${JSON.stringify(shapes)}`)
         const memory = await runMemoryReport()
         console.log(`[vectr-memory] ${JSON.stringify(memory)}`)
         const stress = await runEditorStress(documentStore)

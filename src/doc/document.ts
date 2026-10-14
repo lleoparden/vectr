@@ -46,7 +46,7 @@ export function createDocument(name = 'Untitled'): Document {
 let idCounter = 0
 
 /** Stable, collision-checked ids. Slice #19 persists them verbatim. */
-export function newId(prefix: 'rect' | 'ellipse' | 'group' | 'text' | 'image'): NodeId {
+export function newId(prefix: LayerNode['type'] | 'document' | 'asset'): NodeId {
   idCounter += 1
   return `${prefix}-${idCounter.toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -59,6 +59,7 @@ export function createRect(
   height = 120,
   /** The tool options bar's fill for the next shape; the palette default otherwise. */
   fill = '#4f7cff',
+  cornerRadius = 0,
 ): LayerNode {
   return {
     id: newId('rect'),
@@ -67,7 +68,7 @@ export function createRect(
     transform: createTransform(x, y),
     width,
     height,
-    cornerRadius: 0,
+    cornerRadius,
     style: createStyle(fill),
     locked: false,
     hidden: false,
@@ -95,6 +96,181 @@ export function createEllipse(
   }
 }
 
+/** Straight segment. Its appearance is the stroke, so the tool passes the colour as one. */
+export function createLine(
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  stroke: { color: string; width: number },
+  from: 'top-left' | 'top-right' = 'top-left',
+): LayerNode {
+  const style = createStyle()
+  return {
+    id: newId('line'),
+    name,
+    type: 'line',
+    transform: createTransform(x, y),
+    width: Math.max(width, 1),
+    height: Math.max(height, 1),
+    from,
+    style: { ...style, stroke },
+    locked: false,
+    hidden: false,
+  }
+}
+
+export function createPolygon(
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  sides: number,
+  fill = '#4f7cff',
+): LayerNode {
+  return {
+    id: newId('polygon'),
+    name,
+    type: 'polygon',
+    transform: createTransform(x, y),
+    width,
+    height,
+    sides: Math.max(3, Math.min(60, Math.round(sides))),
+    style: createStyle(fill),
+    locked: false,
+    hidden: false,
+  }
+}
+
+export function createStar(
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  points: number,
+  innerRadius: number,
+  fill = '#4f7cff',
+): LayerNode {
+  return {
+    id: newId('star'),
+    name,
+    type: 'star',
+    transform: createTransform(x, y),
+    width,
+    height,
+    points: Math.max(3, Math.min(60, Math.round(points))),
+    innerRadius: Math.max(0.05, Math.min(0.95, innerRadius)),
+    style: createStyle(fill),
+    locked: false,
+    hidden: false,
+  }
+}
+
+export function createArc(
+  name: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  startAngle: number,
+  sweepAngle: number,
+  pie: boolean,
+  fill = '#4f7cff',
+): LayerNode {
+  return {
+    id: newId('arc'),
+    name,
+    type: 'arc',
+    transform: createTransform(x, y),
+    width,
+    height,
+    startAngle,
+    sweepAngle,
+    pie,
+    style: createStyle(fill),
+    locked: false,
+    hidden: false,
+  }
+}
+
+/** The members of the shape group, in palette order. `roundedRect` is a rect with a radius. */
+export type ShapeKind = 'rect' | 'roundedRect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'arc'
+
+/** What the shape tool needs to know when it draws, all of it from the options bar. */
+export type ShapeParams = {
+  fill: string
+  cornerRadius: number
+  sides: number
+  points: number
+  innerRadius: number
+  startAngle: number
+  sweepAngle: number
+  pie: boolean
+  strokeWidth: number
+}
+
+export const DEFAULT_SHAPE_PARAMS: ShapeParams = {
+  fill: '#4f7cff',
+  cornerRadius: 12,
+  sides: 6,
+  points: 5,
+  innerRadius: 0.5,
+  startAngle: 0,
+  sweepAngle: 90,
+  pie: false,
+  strokeWidth: 2,
+}
+
+/** Illustrator's layer names for new shapes, which the Layers panel shows. */
+export function shapeLabel(kind: ShapeKind): string {
+  switch (kind) {
+    case 'rect':
+      return 'Rectangle'
+    case 'roundedRect':
+      return 'Rounded Rectangle'
+    case 'ellipse':
+      return 'Ellipse'
+    case 'line':
+      return 'Line'
+    case 'polygon':
+      return 'Polygon'
+    case 'star':
+      return 'Star'
+    case 'arc':
+      return 'Arc'
+  }
+}
+
+/** One entry point for every shape the tools create, so the gestures stay thin. */
+export function createShape(
+  kind: ShapeKind,
+  name: string,
+  box: { x: number; y: number; width: number; height: number },
+  params: ShapeParams,
+  /** A line's direction; ignored by every other kind. */
+  lineFrom: 'top-left' | 'top-right' = 'top-left',
+): LayerNode {
+  const { x, y, width, height } = box
+  switch (kind) {
+    case 'rect':
+      return createRect(name, x, y, width, height, params.fill, 0)
+    case 'roundedRect':
+      return createRect(name, x, y, width, height, params.fill, params.cornerRadius)
+    case 'ellipse':
+      return createEllipse(name, x, y, width, height, params.fill)
+    case 'line':
+      return createLine(name, x, y, width, height, { color: params.fill, width: params.strokeWidth }, lineFrom)
+    case 'polygon':
+      return createPolygon(name, x, y, width, height, params.sides, params.fill)
+    case 'star':
+      return createStar(name, x, y, width, height, params.points, params.innerRadius, params.fill)
+    case 'arc':
+      return createArc(name, x, y, width, height, params.startAngle, params.sweepAngle, params.pie, params.fill)
+  }
+}
 /** Bundled face; slice 1 recorded that CanvasKit has no system font manager. */
 export const DEFAULT_FONT_FAMILY = 'Inter'
 export const DEFAULT_FONT_SIZE = 16

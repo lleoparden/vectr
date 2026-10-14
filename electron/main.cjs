@@ -43,7 +43,9 @@ function createWindow() {
           ...(contentsArgument ? { contents: contentsArgument.slice('--contents='.length) } : {}),
           ...(candidateArgument ? { candidate: candidateArgument.slice('--candidate='.length) } : {}),
         }
-      : {},
+      : smokeValue !== null
+        ? { smoke: smokeValue }
+        : {},
   })
 
   // Forward renderer diagnostics so a failed or hung benchmark is visible on stdout.
@@ -57,6 +59,10 @@ function createWindow() {
     console.error('Renderer became unresponsive during the benchmark.')
   })
 }
+
+/** Optional editor smoke switch: `--smoke` or `--smoke=stress`. */
+const smokeArgument = process.argv.find((argument) => argument === '--smoke' || argument.startsWith('--smoke='))
+const smokeValue = smokeArgument === undefined ? null : smokeArgument.includes('=') ? smokeArgument.split('=')[1] : '1'
 
 app.whenReady().then(() => {
   ipcMain.handle('benchmark:memory', getMemory)

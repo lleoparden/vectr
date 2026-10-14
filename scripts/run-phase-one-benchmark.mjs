@@ -20,7 +20,7 @@ const evidenceDirectory = directoryArgument ? directoryArgument.slice('--directo
 const candidateArgument = process.argv.find((argument) => argument.startsWith('--candidate='))
 const candidateFlag = candidateArgument ? [candidateArgument] : []
 const outputDirectory = path.join(root, '.ecc', 'benchmarks', evidenceDirectory)
-const executable = path.join(root, 'release', 'win-unpacked', 'Vectr Phase Zero Benchmark.exe')
+const executable = path.join(root, 'release', 'win-unpacked', 'Vectr.exe')
 const runCount = 5
 
 if (!fs.existsSync(executable)) {
@@ -123,3 +123,4 @@ ${
     : `FAIL: worst interaction p95 ${summary.worstInteractionMsP95} ms (target ${summary.interactionTargetMs} ms)`
 }
 peak working set ${memoryPeak.maxWorkingSetMiB} MiB, peak private ${memoryPeak.maxPrivateMiB} MiB, max processes ${memoryPeak.maxProcessCount}`)
+

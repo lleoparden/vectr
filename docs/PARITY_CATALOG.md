@@ -46,16 +46,16 @@ Platform coverage begins `Windows planned / macOS planned / Linux planned`.
 
 | ID | Capability | Status | Compiler | Minimum acceptance behavior |
 | --- | --- | --- | --- | --- |
-| DOC-01 | Native document, artboards, metadata, and versioning | planned | future | A multi-artboard document saves, reopens, and retains stable IDs and order. |
+| DOC-01 | Native document, artboards, metadata, and versioning | building | future | Versioned document model, stable ids, ordered tree, artboard metadata, and revision counter are implemented and unit-tested (Phase 1 slice 2); save/reopen evidence arrives with `DOC-04`. |
 | DOC-02 | Layer tree, nested groups, lock, hide, isolate, and stacking | planned | future | Nested layer changes survive save/reopen and undo/redo. |
-| DOC-03 | Validated commands, transactions, undo/redo, and recovery | planned | not applicable | Every edit is attributable, reversible, and leaves no partial document mutation. |
+| DOC-03 | Validated commands, transactions, undo/redo, and recovery | building | not applicable | One validated command path with inverse commands, bounded history, single-entry drag transactions, and stable rejection codes are implemented and tested (Phase 1 slice 2); crash recovery arrives with `DOC-04`. |
 | DOC-04 | Local files, autosave, crash recovery, and portable assets | planned | not applicable | Interrupted work can be recovered without silently discarding user data. |
 | CAN-01 | Canvas, artboards, zoom, pan, rulers, grids, and guides | planned | not applicable | View navigation preserves document geometry and guide placement. |
 | CAN-02 | Snapping, Smart Guides, measurement, and precision input | planned | not applicable | Configured snapping is predictable and keyboard-accessible. |
-| SEL-01 | Selection, direct selection, marquee, lasso, and hierarchy selection | planned | future | Object and anchor selection obeys stacking and isolation boundaries. |
+| SEL-01 | Selection, direct selection, marquee, lasso, and hierarchy selection | building | future | Pointer click, shift-click toggle, marquee, select-all, and Escape-clear are implemented against a pure hit-test module (Phase 1 slice 2), with locked subtrees unselectable; direct selection, lasso, and anchor selection remain planned. |
 | SEL-02 | Transform, free transform, scale, rotate, reflect, shear, and align | planned | future | Numeric and pointer transforms preserve expected anchors and undo correctly. |
 | SEL-03 | Distribute, arrange, group, duplicate, copy/paste, and global edit | planned | future | Reordering and duplicate operations retain layer identity and appearance. |
-| PATH-01 | Rectangle, ellipse, line, polygon, star, arc, and rounded corners | planned | SVG adjunct | Shapes remain editable primitives until explicitly expanded. |
+| PATH-01 | Rectangle, ellipse, line, polygon, star, arc, and rounded corners | building | SVG adjunct | Rectangles and ellipses are editable primitives created and moved through commands (Phase 1 slice 2); corner radius is modelled but not drawn yet, and line/polygon/star/arc remain planned. |
 | PATH-02 | Pen, add/delete anchor, convert anchor, direct path editing, and curves | planned | SVG adjunct | Bézier anchors and handles round-trip without geometry loss. |
 | PATH-03 | Pencil, smooth, eraser, shaper, blob brush, and join/average | planned | SVG adjunct | Freehand edits create predictable editable vector paths. |
 | PATH-04 | Compound paths, offset/simplify, outline/expand, and path cleanup | planned | partial | Resulting paths remain valid, editable, and undoable. |
@@ -186,6 +186,24 @@ recorded-picture, with the limits published here and in `docs/DECISIONS.md`.
 Phase 4 profiling with culling and retained regions, or an owner-approved limit
 revision). Editor slices 2–6 remain stopped until the owner merges the pull
 requests.
+
+## Editor foundation evidence (Phase 1 slice 2)
+
+Recorded with `electron . --smoke=stress` against the production bundle on the
+Phase 0/1 machine (AMD Ryzen 5 9600X, Windows 11 Pro). The smoke run drives the
+editor's real store and command path, then measures the renderer:
+
+- Command path: create two shapes, select, one-entry drag transaction, undo, redo,
+  marquee selection, rejection of an invalid command (`absent-node`), and delete
+  with selection pruning — all nine steps pass.
+- Renderer: WebGL backend, first frame 2.3 ms.
+- Stress: 1,001 shapes in 16 recorded buckets, **render p95 1.10 ms** over 60
+  frames, scene build 4.4 ms — inside the 33 ms interaction budget on the accepted
+  recorded-picture path.
+
+Unit coverage at the same commit: 48 tests across fixtures/report, document model,
+command/undo semantics, hit testing, scene order, and the store; `npm run
+typecheck` and `npm run build` clean.
 
 ## Prioritization and updates
 

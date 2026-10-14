@@ -48,7 +48,7 @@ export function AboutDialog() {
           them. The icons, type, colors, and copy are Vectr&apos;s own.
         </p>
         <p className="pt-2 text-ui-xs text-ink-faint">
-          Document format v1 · nothing is saved to disk yet (issue #19).
+          Document format v1 · projects save as <code>&lt;name&gt;.vectr</code> folders.
         </p>
         <div className="flex justify-end pt-3">
           <button

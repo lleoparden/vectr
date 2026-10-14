@@ -20,11 +20,23 @@ export type PanelGroup = {
 
 export type CanvasSize = { width: number; height: number }
 
+/** Why the unsaved-changes dialog is open; the copy adapts, the guard does not. */
+export type UnsavedKind = 'close' | 'new' | 'open'
+
+export type PendingPrompt = {
+  kind: UnsavedKind
+  documentName: string
+  /** True while an async choice (Save) is in flight, so the dialog can disable its buttons. */
+  busy: boolean
+}
+
 export type WorkspaceState = {
   groups: PanelGroup[]
   visible: Record<PanelId, boolean>
   canvas: CanvasSize
   aboutOpen: boolean
+  /** Set when work would be lost; the dialog resolves it and the action continues or stops. */
+  pendingPrompt: PendingPrompt | null
 }
 
 export const PANEL_LABELS: Record<PanelId, string> = {
@@ -45,13 +57,18 @@ export const PANEL_GROUPS: PanelGroup[] = [
 function initialVisible(): Record<PanelId, boolean> {
   return { layers: true, properties: true, appearance: true, color: true }
 }
-
 export class WorkspaceStore {
   private state: WorkspaceState
   private readonly listeners = new Set<() => void>()
 
   constructor(groups: PanelGroup[] = PANEL_GROUPS.map((group) => ({ ...group, tabs: [...group.tabs] }))) {
-    this.state = { groups, visible: initialVisible(), canvas: { width: 0, height: 0 }, aboutOpen: false }
+    this.state = {
+      groups,
+      visible: initialVisible(),
+      canvas: { width: 0, height: 0 },
+      aboutOpen: false,
+      pendingPrompt: null,
+    }
   }
 
   getState = (): WorkspaceState => this.state
@@ -122,6 +139,22 @@ export class WorkspaceStore {
   setAboutOpen(aboutOpen: boolean) {
     if (this.state.aboutOpen === aboutOpen) return
     this.update({ aboutOpen })
+  }
+
+  /** Opens the unsaved-changes dialog. Only the actions that can lose work call this. */
+  promptFor(kind: UnsavedKind, documentName: string) {
+    this.update({ pendingPrompt: { kind, documentName, busy: false } })
+  }
+
+  setPromptBusy(busy: boolean) {
+    const pending = this.state.pendingPrompt
+    if (pending === null || pending.busy === busy) return
+    this.update({ pendingPrompt: { ...pending, busy } })
+  }
+
+  clearPrompt() {
+    if (this.state.pendingPrompt === null) return
+    this.update({ pendingPrompt: null })
   }
 }
 

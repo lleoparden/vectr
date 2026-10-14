@@ -247,20 +247,6 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('dialog:confirm-close', async (_event, payload) => {
-    const name = payload && payload.name ? String(payload.name) : 'this document'
-    const result = await dialog.showMessageBox(mainWindow, {
-      type: 'warning',
-      title: 'Vectr',
-      message: `Save changes to ${name} before closing?`,
-      detail: 'Continuing without saving keeps a recovery snapshot, which Vectr offers on the next launch.',
-      buttons: ['Save', "Don't Save", 'Cancel'],
-      defaultId: 0,
-      cancelId: 2,
-    })
-    return result.response === 0 ? 'save' : result.response === 1 ? 'discard' : 'cancel'
-  })
-
   ipcMain.handle('app:allow-close', () => {
     allowClose = true
     mainWindow?.close()

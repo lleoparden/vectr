@@ -11,6 +11,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { ACTION_IDS, canRunAction, panelActionId, runEditorAction } from '../src/app/actions.ts'
 import { MENU_BAR, OMITTED_MENUS, menuCommands, menuForMnemonic, menuMnemonic, separatorsAreSane } from '../src/app/menus/menuModel.ts'
+import { needsUnsavedPrompt, promptChoiceFor, unsavedCopy } from '../src/app/files/unsavedPrompt.ts'
 import { chordFromEvent, chordLabel, chordKeys, matchShortcut, SHORTCUTS, shortcutLabel } from '../src/app/menus/shortcuts.ts'
 import { actualSize, clampZoom, fitArtboard, nextZoomStep, zoomAtPoint, zoomByStep } from '../src/app/canvas/viewportOps.ts'
 import { expandedGroupIds, layerRows, rowDescription } from '../src/app/panels/layerRows.ts'
@@ -90,6 +91,35 @@ test('chords print the way a menu shows them', () => {
 test('Escape cancels instead of deselecting, as it does in Illustrator', () => {
   assert.equal(matchShortcut(chordFromEvent({ key: 'escape' })), null, 'Escape is not bound to an action')
   assert.equal(shortcutLabel('select.deselect'), 'Ctrl+Shift+A', 'Deselect keeps Illustrator’s chord')
+})
+
+test('the unsaved-changes dialog says the right thing for each way work can be lost', () => {
+  const closing = unsavedCopy('close', 'Poster')
+  assert.match(closing.title, /closing/i)
+  assert.match(closing.message, /Poster/)
+  assert.match(closing.detail, /recovery/i, 'closing explains that a snapshot is kept')
+  assert.equal(closing.confirmLabel, 'Save')
+  assert.match(closing.discardLabel, /^Don.t Save$/)
+
+  const starting = unsavedCopy('new', 'Poster')
+  assert.match(starting.title, /new document/i)
+  assert.match(starting.detail, /discard/i, 'starting a new document warns that it discards')
+
+  const opening = unsavedCopy('open', 'Poster')
+  assert.match(opening.title, /opening another document/i)
+
+  // An unnamed document still reads correctly rather than showing an empty name.
+  assert.match(unsavedCopy('close', '   ').message, /Untitled/)
+  // The three kinds are distinct copy, not one string reused.
+  assert.equal(new Set([closing.title, starting.title, opening.title]).size, 3)
+})
+
+test('the unsaved-changes guard only fires when there is something to lose', () => {
+  assert.equal(needsUnsavedPrompt(false), false, 'a saved document closes or reopens without asking')
+  assert.equal(needsUnsavedPrompt(true), true, 'unsaved work always asks')
+  assert.equal(promptChoiceFor('confirm'), 'save')
+  assert.equal(promptChoiceFor('discard'), 'discard')
+  assert.equal(promptChoiceFor('cancel'), 'cancel')
 })
 
 test('menu mnemonics are distinct, so Alt+letter is unambiguous', () => {

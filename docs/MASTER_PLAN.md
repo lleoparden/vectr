@@ -289,15 +289,22 @@ an accurate map of the product; stewardship continues as Vectr grows.
 
 ## Operating cadence
 
-For each catalog capability:
+Every phase in this plan owns one epic issue, and all phase epics exist from the
+start of the program so the whole delivery path stays visible. For each phase:
 
-1. Create a focused GitHub issue with the approved template.
-2. Write and obtain approval for its implementation plan.
-3. Create one fresh purpose-prefixed branch.
+1. Read its epic issue: goal, deliverables, catalog impact, exit criteria,
+   explicit non-goals, risks, and the pull-request strategy chosen for the phase.
+2. When the phase starts, write one sub-issue per approved slice before touching
+   code, describing the exact plan and everything the slice creates or changes.
+3. Create one fresh purpose-prefixed branch per slice. Every branch, commit, and
+   pull request references the issue it belongs to.
 4. Trace the relevant document, editor, persistence, compiler, and file-format
    boundaries before changing code.
-5. Update the parity catalog and `docs/PROGRESS.md` when the capability changes
-   status.
+5. Open a pull request per slice. The owner reviews, tests, and decides every
+   merge; agents never merge or push to `main` without explicit approval.
+6. Update the parity catalog and `docs/PROGRESS.md` in the same pull request when
+   a capability changes status, and close the phase only when its exit criteria
+   are recorded.
 
 ## Known decisions still needed
 

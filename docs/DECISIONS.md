@@ -241,10 +241,13 @@
   paragraphs, and pictures return to zero after 10 build/draw/release cycles.
   Peak whole-app working set is 861 MiB across four processes, slightly above
   slice 1 because picture mode holds recordings and retained objects together.
-- Because the gate is still not met, editor slices 2–6 remain paused for the
+- Because the gate was still not met, editor slices 2–6 stayed paused for the
   owner's renderer decision, with the options recorded in `docs/PROGRESS.md`.
 
 ## 2026-10-14 — Amendment to the Phase 0 renderer gate (candidate comparison)
+
+The evidence sections this amendment references follow below, appended by earlier
+merge commits (slice 1 evidence, slice 1b optimization, and the workflow record).
 
 - The Phase 0 gate is amended on measured evidence from issue #25. Every candidate
   ran the frozen fixtures with the slice 1b definition and protocol, five packaged
@@ -280,3 +283,42 @@
   10,000-loose-primitive limit.
 - Editor slices 2–6 remain stopped: the owner ordered them paused until the pull
   requests are reviewed and merged.
+
+## 2026-10-14 — Issue, epic, and pull-request workflow
+
+- Every phase in `docs/MASTER_PLAN.md` owns one epic issue, and all phase epics
+  are created up front so the whole delivery path is visible. Phase 0 is recorded
+  as a completed epic with its evidence.
+- Sub-issues are generated only when a phase starts: one per approved slice, each
+  carrying the full plan plus every file, module, type, command, asset, and
+  boundary the slice creates or changes.
+- Agents choose the pull-request strategy for each phase and record it in that
+  phase's epic. The owner reviews and tests pull requests and makes every merge
+  decision; agents never merge or push to `main`.
+- Phase 1 pull-request strategy: one stacked branch and pull request per slice,
+  each based on the previous slice, merged by the owner in order.
+- Labels `type: epic`, `type: task`, `area: renderer`, and `area: documents` were
+  added to `.github/labels.yml` and created on the remote repository, together
+  with the previously declared label set.
+
+## 2026-10-14 — Phase 1 approvals and agent choices
+
+- Tailwind is approved for installation now (`tailwindcss` and
+  `@tailwindcss/vite`), matching the approved desktop baseline.
+- The Phase 0 benchmark harness is repurposed into the Vectr application
+  identity: `package.json` name/product name, Electron `appId`, and window
+  metadata move from the Phase Zero benchmark naming to `vectr`. The frozen
+  fixtures and measurement code are kept as the regression harness.
+- Text rendering requires a bundled font: `canvaskit-wasm@0.42` exposes only
+  `FontMgr.FromData(...buffers)` and no system font manager, verified in
+  `node_modules/canvaskit-wasm/types/index.d.ts`, so a portable editor cannot
+  rely on operating-system fonts. Decision: bundle Inter (SIL OFL 1.1) via
+  `@fontsource/inter`, ship its license text, and use it as the default editor
+  and spike typeface. CanvasKit cannot parse WOFF2, so the TTF/OTF face is loaded
+  through `FontMgr.FromData` while the WOFF2 face may style the UI. Missing-font
+  behavior later inherits this rule: fall back to the bundled face and report the
+  substitution instead of failing silently.
+- The informal CanvasKit smoke evidence at `.ecc/tmp/canvaskit-smoke.json` is
+  retained as an open item. It is not acceptance evidence; the recorded five-run
+  spike evidence replaces it.
+

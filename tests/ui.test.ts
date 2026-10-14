@@ -131,7 +131,7 @@ test('Clear deletes the selection and cannot leave it selected', () => {
   assert.equal(documentStore.getState().document.root.children.length, 1)
 })
 
-test('Hide, Show All, Lock, and Unlock All change flags and undo correctly', () => {
+test('Hide, Show All, Lock, and Unlock All change flags and undo in one step', () => {
   resetEditor()
   const [rect, ellipse, group] = insert([
     createRect('Rect', 0, 0, 40, 40),
@@ -146,14 +146,24 @@ test('Hide, Show All, Lock, and Unlock All change flags and undo correctly', () 
   assert.equal(documentStore.getState().document.root.children.filter((node) => node.hidden).length, 2)
   assert.equal(
     documentStore.getState().undoDepth,
-    before + 2,
-    'one history entry per node: a transaction would only restore the first node on undo',
+    before + 1,
+    'a multi-object hide is one transaction, so it is one undo step (issue #34 aggregate inverse)',
   )
-  // Undo must restore both, which is the whole point of not sharing one inverse.
+  // The aggregate inverse restores every node in that one step.
   documentStore.undo()
-  documentStore.undo()
-  assert.equal(documentStore.getState().document.root.children.filter((node) => node.hidden).length, 0)
+  assert.equal(
+    documentStore.getState().document.root.children.filter((node) => node.hidden).length,
+    0,
+    'one undo restores both layers',
+  )
   assert.equal(documentStore.getState().undoDepth, before)
+  documentStore.redo()
+  assert.equal(
+    documentStore.getState().document.root.children.filter((node) => node.hidden).length,
+    2,
+    'redo hides both again in one step',
+  )
+  documentStore.undo()
 
   documentStore.setSelection([rect.id])
   runEditorAction('object.hideSelection')

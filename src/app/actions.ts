@@ -101,28 +101,38 @@ function nodeOf(id: NodeId): LayerNode | null {
 }
 
 /**
- * Applies flag changes one node at a time, as separate history entries.
+ * Applies flag changes through one transaction, so a multi-object Hide or Lock is a
+ * single undo step, the way it is in Illustrator.
  *
- * Deliberately *not* wrapped in one transaction. A transaction keeps only the first
- * inverse of a gesture, which is exactly right for a drag that moves one node many
- * times, but wrong for a change that touches several different nodes: undoing it
- * would restore the first node and leave the others changed. Recording one entry per
- * node keeps undo honest, and the cost — hiding three layers takes three undo steps
- * instead of Illustrator's one — is recorded as a known divergence, with the fix
- * (an aggregate inverse in the command model) logged in `docs/DECISIONS.md`.
+ * This needs the aggregate inverse from issue #34: a transaction used to keep only the
+ * first inverse, which restored the first node and left the others changed, so #28 had to
+ * record one entry per node. Now the transaction commits a batch of every command with a
+ * batch of the inverses in reverse order as its inverse, and one undo step restores all of
+ * them. A change that would do nothing records no history at all.
  */
 function applyFlags(
   ids: NodeId[],
   next: (node: LayerNode) => { locked: boolean; hidden: boolean } | null,
   label: string,
 ) {
+  if (ids.length === 0) return
+  documentStore.beginTransaction(label)
+  let changed = false
   for (const id of ids) {
     const node = nodeOf(id)
     if (node === null) continue
     const flags = next(node)
     if (flags === null) continue
-    documentStore.dispatch({ type: 'setFlags', nodeId: id, locked: flags.locked, hidden: flags.hidden }, label)
+    const result = documentStore.dispatch({
+      type: 'setFlags',
+      nodeId: id,
+      locked: flags.locked,
+      hidden: flags.hidden,
+    })
+    if (result.ok) changed = true
   }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
 }
 
 function selectedIds(): NodeId[] {

@@ -132,6 +132,17 @@
   undo restored one layer and left the others hidden. Flag changes now record one
   entry per node, and the aggregate-inverse fix is logged as a follow-up instead of
   changing the command model inside a UI slice.
+- Phase 1 slice 2c, the aggregate inverse (issue #34, branch `feat/aggregate-inverse`):
+  a transaction may contain many commands and undo/redo as one history entry. New
+  `batch` command variant with an atomic fold and an inverse of the step inverses in
+  reverse order (`src/doc/commands.ts`), `transactionEntry()` choosing plain, compact,
+  or aggregate entries with `peekUndo()`/`peekRedo()` for the Edit menu and tests
+  (`src/doc/history.ts`), and multi-object Hide/Lock back to one transaction
+  (`src/app/actions.ts`) so they are one undo step as they are in Illustrator.
+- Slice 2c evidence: `electron . --smoke=stress` passes 9/9 command-path steps with the
+  drag still one entry and 1,001 shapes in 16 buckets at render p95 1.00 ms over 60
+  frames (scene build 3.5 ms); 74 unit tests pass (10 new aggregate-inverse tests);
+  clean typecheck and build.
 
 ## Next
 
@@ -154,22 +165,21 @@
 
 ## Next
 
-- **Owner action: review and merge PR #30** (Phase 1 slice 2, issue #18 — versioned
-  document, validated command path, bounded undo/redo, editor store, renderer, and
-  the original editor shell). It is classified big: it sets the command/undo model,
-  the app identity, and the interfaces slices 3–6 build on. Merged already: #21, #22,
-  #24, #26, #27, #29, #31, #32.
-- **Then review and merge the UI shell alignment** (issue #28, PR stacked on #30):
-  it is the shell Phase 2 builds on, so it lands before any new tool. `UI-01` stays
-  `building` while the read-only panels, the unbuilt workspace layer, and the
-  per-node undo aggregation remain.
-- After that, Phase 1 continues in order: #20 (layers and groups: interactive tree,
-  reorder, group/ungroup, rename, the aggregate-inverse question), #16 (plain text),
-  #17 (images), #19 (durable local documents, which also retires the missing File
-  menu).
-- Known follow-up worth an owner decision before #20: whether the command model grows
-  an aggregate inverse so a multi-object Hide or Lock is one undo step, as it is in
-  Illustrator.
+- **Owner action: review and merge the aggregate-inverse pull request** (issue #34):
+  a transaction may now contain many commands and undo/redo as one entry, and
+  multi-object Hide/Lock are one undo step again. Classified big: it changes the
+  command/undo model. Merged already: #21, #22, #24, #26, #27, #29, #31, #32, #30
+  (slice 2), #33 (UI shell alignment).
+- The UI shell alignment is merged (issue #28, PR #33), so the menu bar, tool palette,
+  panel dock, theme tokens, and Illustrator-default shortcut map are the shell Phase 2
+  builds into. `UI-01` stays `building` until save/reopen and platform coverage exist
+  (#19) and the eighteen live divergences shrink.
+- After #34: Phase 1 continues in order: #20 (layers and groups: interactive tree,
+  reorder, group/ungroup, rename — composed edits are now one undo step), #16 (plain
+  text), #17 (images), #19 (durable local documents, which also retires the missing
+  File menu).
+- If #34 is declined, the fallback is the #28 behavior: one history entry per node for
+  multi-object flag changes, which is correct but diverges from Illustrator.
 - **UI direction recorded and enforced (PRs #29 and #31).** Vectr's interface is a
   modern Illustrator (`AGENTS.md`, Product identity; `docs/DECISIONS.md`, 2026-10-14;
   catalog `UI-01`). Interface work must state its Illustrator mapping in its issue and
@@ -208,12 +218,11 @@
   it is non-blocking and the temporary harness sits outside the repo.
 - `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
   remain untracked working files.
-- The shell now follows the UI direction, but with nineteen recorded divergences from
-  Illustrator (`docs/DECISIONS.md`, UI shell alignment). The load-bearing ones:
-  Properties, Appearance, and Color are read-only because style and transform commands
-  do not exist yet; the Layers panel is read-only beyond selection, hide, lock, and
-  disclosure (issue #20 owns the interactive tree, renaming, and thumbnails); the File
-  menu is absent until #19 adds documents; Hide/Lock/Show All/Unlock All record one
-  history entry per node instead of one per command, because aggregating needs an
-  aggregate inverse in the command model; and there are no context menus, rulers,
-  guides, or saved workspaces.
+- The shell now follows the UI direction, with eighteen live divergences from Illustrator
+  (`docs/DECISIONS.md`, UI shell alignment). The load-bearing ones: Properties, Appearance,
+  and Color are read-only because style and transform commands do not exist yet; the Layers
+  panel is read-only beyond selection, hide, lock, and disclosure (issue #20 owns the
+  interactive tree, renaming, and thumbnails); the File menu is absent until #19 adds
+  documents; and there are no context menus, rulers, guides, or saved workspaces. A
+  nineteenth divergence — multi-object Hide and Lock taking one undo step per node — was
+  resolved in #34 and stays listed there with its resolution.

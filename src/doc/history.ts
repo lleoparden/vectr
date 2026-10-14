@@ -1,18 +1,57 @@
 /**
- * Bounded undo/redo history (issue #18).
+ * Bounded undo/redo history (issue #18, aggregate inverses added in issue #34).
  *
- * History stores inverse commands, never document snapshots. A drag or a text edit
- * is one transaction: the transaction keeps the first inverse (which restores the
- * pre-gesture state) and the latest command (which is what redo re-applies), so a
- * 200-move drag still costs one entry.
+ * History stores inverse commands, never document snapshots.
+ *
+ * A transaction is one history entry. When its steps all touch the same node with the
+ * same command type — a drag, a live transform, a repeated flag change — the entry keeps
+ * two commands only (the first inverse and the last command): re-applying the last
+ * command supersedes the earlier ones and the first inverse restores the pre-gesture
+ * value, so a 200-step drag does not retain 200 commands. When a transaction touches
+ * different nodes or different kinds of change, the entry is an aggregate: a batch of
+ * every command, with a batch of the inverses in reverse order as its inverse. That is
+ * what lets a multi-node Hide be one undo step, which Illustrator does and the first
+ * transaction design could not.
  */
 
-import { applyCommand, type Command } from './commands.ts'
+import { applyCommand, batchCommand, type Command } from './commands.ts'
 import type { Document } from './types.ts'
 
 export type HistoryEntry = { label: string; command: Command; inverse: Command }
 
 export const DEFAULT_HISTORY_LIMIT = 200
+
+/**
+ * Command types that can repeat on one node inside a transaction without needing an
+ * aggregate: each one sets a value rather than moving structure, so the last command
+ * plus the first inverse describe the whole gesture.
+ */
+const REPEATABLE_ON_ONE_NODE = new Set(['setTransform', 'setStyle', 'setFlags', 'renameNode'])
+
+function collapsesToCompact(commands: Command[]): boolean {
+  const first = commands[0]
+  if (!REPEATABLE_ON_ONE_NODE.has(first.type)) return false
+  if (!('nodeId' in first)) return false
+  return commands.every(
+    (command) => command.type === first.type && 'nodeId' in command && command.nodeId === first.nodeId,
+  )
+}
+
+/**
+ * Builds the entry a finished transaction records: plain for one step, compact for a
+ * repeated single-node gesture, and an aggregate batch otherwise.
+ */
+export function transactionEntry(label: string, commands: Command[], inverses: Command[]): HistoryEntry {
+  if (commands.length === 1) return { label, command: commands[0], inverse: inverses[0] }
+  if (collapsesToCompact(commands)) {
+    return { label, command: commands[commands.length - 1], inverse: inverses[0] }
+  }
+  return {
+    label,
+    command: batchCommand(commands),
+    inverse: batchCommand([...inverses].reverse()),
+  }
+}
 
 export type Transaction = {
   /** Records one step of an in-progress gesture. */
@@ -34,8 +73,7 @@ export class History {
 
   private undoStack: HistoryEntry[] = []
   private redoStack: HistoryEntry[] = []
-  private transaction: { first: [Command, Command] | null; last: [Command, Command] | null; steps: number } | null =
-    null
+  private transaction: { commands: Command[]; inverses: Command[] } | null = null
 
   canUndo(): boolean {
     return this.undoStack.length > 0
@@ -58,27 +96,36 @@ export class History {
     return this.undoStack.map((entry) => entry.label)
   }
 
+  /** The entry undo would revert; the Edit menu labels its command with this. */
+  peekUndo(): HistoryEntry | null {
+    return this.undoStack.length === 0 ? null : this.undoStack[this.undoStack.length - 1]
+  }
+
+  /** The entry redo would re-apply. */
+  peekRedo(): HistoryEntry | null {
+    return this.redoStack.length === 0 ? null : this.redoStack[this.redoStack.length - 1]
+  }
+
   /** Starts a transaction. A fresh command commits into it and clears redo on commit. */
   begin(): Transaction {
-    const state = { first: null as [Command, Command] | null, last: null as [Command, Command] | null, steps: 0 }
+    const state = { commands: [] as Command[], inverses: [] as Command[] }
     this.transaction = state
     return {
       push: (command, inverse) => {
-        if (state.first === null) state.first = [command, inverse]
-        state.last = [command, inverse]
-        state.steps += 1
+        state.commands.push(command)
+        state.inverses.push(inverse)
       },
       commit: (label: string) => {
         this.transaction = null
-        if (state.first === null || state.last === null) return null
-        const entry: HistoryEntry = { label, command: state.last[0], inverse: state.first[1] }
+        if (state.commands.length === 0) return null
+        const entry = transactionEntry(label, state.commands, state.inverses)
         this.record(entry)
         return entry
       },
       abort: () => {
         this.transaction = null
       },
-      steps: () => state.steps,
+      steps: () => state.commands.length,
     }
   }
 

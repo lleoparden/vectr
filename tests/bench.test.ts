@@ -70,9 +70,10 @@ test('hslToHex converts hue, saturation, and lightness predictably', () => {
   assert.equal(hslToHex(360, 1, 0.5), hslToHex(0, 1, 0.5))
 })
 
-const metric = (detail, interactionMs, presentedMs = 0, uiInteractionMs = 0) => ({
+const metric = (detail, interactionMs, presentedMs = 0, uiInteractionMs = 0, renderMode = 'picture') => ({
   scenario: 'fixture',
   detail,
+  renderMode,
   buildMs: 1,
   drawMs: interactionMs,
   interactionMs,
@@ -81,6 +82,7 @@ const metric = (detail, interactionMs, presentedMs = 0, uiInteractionMs = 0) => 
   livePaths: 0,
   liveImages: 0,
   liveParagraphs: 0,
+  livePictures: 0,
   heapBytes: null,
 })
 
@@ -121,8 +123,34 @@ test('summarizeRuns aggregates repeated runs and keeps the gate metric', () => {
   assert.equal(summary.pass, true)
   assert.equal(summary.backend, 'webgl')
   assert.equal(summary.fontLoaded, true)
+  assert.equal(summary.decidingMode, 'picture')
   const entry = summary.entries[0]
   assert.equal(entry.detail, 'primitives/stress')
+  assert.equal(entry.renderMode, 'picture')
   assert.equal(entry.worstInteractionMs, 20)
   assert.equal(entry.uiInteractionMsP95, 40)
+})
+
+test('the picture path decides the gate while the direct path is only reported', () => {
+  const record = (detail, directMs, pictureMs) => ({
+    schemaVersion: 1,
+    fixtureVersion: FIXTURE_VERSION,
+    reportKind: 'phase-one-renderer-spike',
+    capturedAt: '2026-10-14T00:00:00.000Z',
+    renderer: { backend: 'webgl', wasmBytes: 1, webglAvailable: true, fontLoaded: true },
+    environment: { platform: 'win32', arch: 'x64', electron: '35', chrome: '134', devicePixelRatio: 1 },
+    scenarios: [
+      metric(detail, directMs, 0, 0, 'direct'),
+      metric(detail, pictureMs, 0, 0, 'picture'),
+    ],
+    notes: [],
+  })
+  const summary = summarizeRuns([record('primitives/stress', 99.9, 12.5)])
+  assert.equal(summary.decidingMode, 'picture')
+  assert.equal(summary.pass, true)
+  assert.equal(summary.worstInteractionMsP95, 12.5)
+  assert.equal(summary.verdicts.direct.pass, false)
+  assert.equal(summary.verdicts.direct.worstInteractionMs, 99.9)
+  assert.equal(summary.verdicts.picture.pass, true)
+  assert.equal(summary.entries.length, 2)
 })

@@ -120,15 +120,56 @@ zero after 10 build/draw/release cycles.
 817 MiB, private bytes 995 MiB, GPU process 280 MiB, 4 processes. CanvasKit does
 not lower the empty footprint relative to the Phase 0 packaged SVG baseline.
 
-**Diagnosis.** Every fixture node is drawn on every frame with no viewport
-culling and no retained layer cache, and each item costs roughly ten JS-to-WASM
-calls (state changes plus one or two draws). The miss is per-item call and state
-overhead rather than GPU fill rate, which is why 1,000 layers stay well inside the
-target while 10,000 layers do not.
+**Diagnosis (slice 1).** Every fixture node was drawn on every frame with no
+viewport culling and no retained layer cache, at roughly ten JS-to-WASM calls per
+item, so the miss was per-item call and state overhead rather than GPU fill rate.
 
-**Pending decision.** The approved Phase 1 plan states that a failed spike pauses
-editor work for a documented renderer decision; the options are recorded in
-`docs/PROGRESS.md`.
+### Phase 1 slice 1b — recorded-picture replay optimization
+
+Issue #23 added a second draw path and measured it on the same fixtures and
+definition. Five packaged runs are recorded in
+`.ecc/benchmarks/phase-one-optimization/`.
+
+- `picture`: the scene is recorded once into at most 16 Skia pictures (buckets of
+  consecutive top-level roots) and replayed with one `drawPicture` call per
+  bucket; an edit re-records only the bucket containing the changed root.
+- `direct`: the slice 1 per-item path, retained as the control.
+- Paints are cached per style/color/width with batch eviction at 512 entries.
+
+| Scenario (p95, five runs) | slice 1 direct | slice 1b direct (control) | **slice 1b picture** |
+| --- | --- | --- | --- |
+| primitives / 1,000 layers | 7.5 ms | 11.3 ms | **7.3 ms** |
+| primitives / 10,000 layers, 100,000 segments | 99.9 ms | 125.3 ms | **82.2 ms** |
+| text / 1,000 nodes | 32.2 ms | 37.4 ms | **12.4 ms** |
+| text / 10,000 nodes | 60.7 ms | 63.0 ms | **35.0 ms** |
+| images / 1,000 images | 3.6 ms | 4.1 ms | **2.5 ms** |
+| nested groups / 1,000 leaves | 4.6 ms | 6.7 ms | **3.1 ms** |
+| nested groups / 10,000 leaves | 34.8 ms | 63.0 ms | **21.4 ms** |
+
+- Worst picture interaction p95: **82.2 ms**, still above the 33 ms target, so the
+  gate is **not met**. Nested groups at 10,000 leaves now pass (21.4 ms), text at
+  10,000 nodes is marginal (35.0 ms), and loose 10,000-primitive documents remain
+  the failing case.
+- The remaining cost is GPU-side per-draw overhead: replay removed the JS-to-WASM
+  per-item work, and the fixture still issues about 20,000 anti-aliased path draws
+  per frame. Order-preserving batching cannot reduce that without changing paint
+  order, and viewport culling has no effect because every fixture node is visible.
+- Edit cost (re-record one bucket, then draw): 1–7 ms at 1,000 nodes, 22 ms for
+  10,000 text nodes, 54–61 ms for 10,000 loose primitives. An edit is a one-frame
+  re-record; interactions after it are cached.
+- Paint caching made the **direct** control path slower (map lookup per item per
+  frame) while helping only because recording is one-time. That overhead is
+  reported rather than hidden.
+- Leak check: pass for both modes — retained paths, images, paragraphs, and
+  pictures returned to zero after 10 build/draw/release cycles.
+- Memory peak across runs (all application processes): working set 861 MiB,
+  private bytes 1038 MiB, GPU process 274 MiB, 4 processes. Picture mode holds
+  both retained objects and recordings, so it is slightly above slice 1.
+
+**Pending decision.** The approved Phase 1 plan pauses editor work after a failed
+spike. Slice 1b reduced the worst stress interaction by roughly 35% but did not
+close it, so the remaining options are recorded in `docs/PROGRESS.md` and need the
+owner's choice.
 
 ## Prioritization and updates
 

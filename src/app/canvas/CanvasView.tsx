@@ -7,31 +7,58 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { createEllipse, createRect, createText, estimateTextSize, findNode, worldTransform } from '../../doc/document.ts'
+import { createShape, createText, estimateTextSize, findNode, shapeLabel, worldTransform } from '../../doc/document.ts'
+import type { ShapeKind } from '../../doc/document.ts'
 import { hitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
+import { clampCornerRadius, outlinePoints } from '../../doc/shapeGeometry.ts'
+import { boxFor, constrainEnd, dragIsBigEnough, lineFrom } from './shapeDrag.ts'
 import { isText, type NodeId, type Transform } from '../../doc/types.ts'
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
 import { placeImage } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
+import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
 import { getActiveRenderer, setActiveRenderer } from '../../render/activeRenderer.ts'
 import { assetRegistry } from '../../state/assetRegistry.ts'
 import { buildScene, type SceneShape } from '../../render/scene.ts'
-import { documentStore, type Viewport } from '../../state/documentStore.ts'
+import { documentStore, type Tool, type Viewport } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { workspaceStore } from '../../state/workspaceStore.ts'
 import { fitArtboard, zoomAtPoint } from './viewportOps.ts'
 
 type Gesture =
   | { kind: 'none' }
-  | { kind: 'create'; tool: 'rect' | 'ellipse'; start: Point; current: Point }
+  | { kind: 'create'; tool: ShapeKind; start: Point; current: Point; shift: boolean }
   | { kind: 'move'; start: Point; current: Point; originals: Map<string, Transform> }
   | { kind: 'marquee'; start: Point; current: Point }
   | { kind: 'pan'; startClient: Point; panStart: Point }
 
 const MIN_DRAG = 4
+
+/** The shape a tool draws, or `null` for the tools that are not shapes. */
+export function shapeKindForTool(tool: Tool): ShapeKind | null {
+  switch (tool) {
+    case 'rect':
+    case 'roundedRect':
+    case 'ellipse':
+    case 'line':
+    case 'polygon':
+    case 'star':
+    case 'arc':
+      return tool
+    default:
+      return null
+  }
+}
+
+/**
+ * What the drag preview draws and, on release, what the node becomes: the same box, produced by
+ * the same constraint, so the preview cannot disagree with the shape (the owner's report was an
+ * ellipse preview drawn as a rectangle).
+ */
+type DragPreview = ShapePreviewState
 
 function scaledViewport(viewport: Viewport, ratio: number): Viewport {
   return { zoom: viewport.zoom * ratio, panX: viewport.panX * ratio, panY: viewport.panY * ratio }
@@ -48,7 +75,7 @@ export function CanvasView() {
   const gestureRef = useRef<Gesture>({ kind: 'none' })
   const [ready, setReady] = useState(false)
   const [stats, setStats] = useState<RenderStats | null>(null)
-  const [overlay, setOverlay] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
+  const [overlay, setOverlay] = useState<DragPreview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
   const [editing, setEditing] = useState<{ nodeId: NodeId; text: string } | null>(null)
@@ -201,8 +228,10 @@ export function CanvasView() {
     }
     if (event.button !== 0) return
 
-    if (state.tool === 'rect' || state.tool === 'ellipse') {
-      gestureRef.current = { kind: 'create', tool: state.tool, start, current: start }
+    const shapeKind = shapeKindForTool(state.tool)
+    if (shapeKind !== null) {
+      gestureRef.current = { kind: 'create', tool: shapeKind, start, current: start, shift: event.shiftKey }
+      setOverlay({ kind: shapeKind, start, current: start, shift: event.shiftKey })
       return
     }
 
@@ -282,15 +311,20 @@ export function CanvasView() {
       }
       return
     }
+    if (gesture.kind === 'create') {
+      // Shift is read every move so holding or releasing it mid-drag updates the shape live.
+      const next = { ...gesture, current, shift: event.shiftKey }
+      gestureRef.current = next
+      setOverlay({ kind: next.tool, start: next.start, current: next.current, shift: next.shift })
+      return
+    }
     gestureRef.current = { ...gesture, current }
-    setOverlay(
-      toScreen({
-        x: Math.min(gesture.start.x, current.x),
-        y: Math.min(gesture.start.y, current.y),
-        width: Math.abs(current.x - gesture.start.x),
-        height: Math.abs(current.y - gesture.start.y),
-      }),
-    )
+    setOverlay({
+      kind: 'rect',
+      start: gesture.start,
+      current,
+      shift: false,
+    })
   }
 
   function onPointerUp(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -315,19 +349,19 @@ export function CanvasView() {
       return
     }
     if (gesture.kind !== 'create') return
-    const width = Math.abs(gesture.current.x - gesture.start.x)
-    const height = Math.abs(gesture.current.y - gesture.start.y)
-    if (width < MIN_DRAG || height < MIN_DRAG) return
-    const x = Math.min(gesture.start.x, gesture.current.x)
-    const y = Math.min(gesture.start.y, gesture.current.y)
-    const kind = gesture.tool
+    const end = constrainEnd(gesture.start, gesture.current, gesture.tool, gesture.shift)
+    if (!dragIsBigEnough(gesture.start, end, gesture.tool, MIN_DRAG)) return
+    const box = boxFor(gesture.start, end, gesture.tool)
     const defaults = workspaceStore.getState().creationDefaults
-    const existing = state.document.root.children.filter((node) => node.type === kind).length
-    const label = kind === 'rect' ? 'Rectangle' : 'Ellipse'
-    const node =
-      kind === 'rect'
-        ? createRect(`${label} ${existing + 1}`, x, y, width, height, defaults.shapeFill)
-        : createEllipse(`${label} ${existing + 1}`, x, y, width, height, defaults.shapeFill)
+    const label = shapeLabel(gesture.tool)
+    const existing = state.document.root.children.filter((node) => node.type === gesture.tool).length
+    const node = createShape(
+      gesture.tool,
+      `${label} ${existing + 1}`,
+      box,
+      defaults.shape,
+      lineFrom(gesture.start, end),
+    )
     const result = documentStore.dispatch(
       {
         type: 'insertNodes',
@@ -418,9 +452,12 @@ export function CanvasView() {
         }}
       />
       {overlay !== null && (
-        <div
-          className="pointer-events-none absolute border border-violet-400/80 bg-violet-400/10"
-          style={{ left: overlay.x, top: overlay.y, width: overlay.width, height: overlay.height }}
+        <ShapePreview
+          preview={overlay}
+          params={workspaceStore.getState().creationDefaults.shape}
+          zoom={state.viewport.zoom}
+          panX={state.viewport.panX}
+          panY={state.viewport.panY}
         />
       )}
       <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] text-neutral-300">

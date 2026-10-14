@@ -66,6 +66,51 @@ export function IconType(props: IconProps) {
   )
 }
 
+/** Rounded rectangle tool: the rectangle with generous corners (owner request, PATH-01). */
+export function IconRoundedRect(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="2.6" y="3.6" width="10.8" height="8.8" rx="3.4" />
+    </Icon>
+  )
+}
+
+/** Polygon tool: a hexagon, which is the six sides the tool starts with. */
+export function IconPolygon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 2.2 L13.2 5.2 V10.8 L8 13.8 L2.8 10.8 V5.2 Z" />
+    </Icon>
+  )
+}
+
+/** Star tool: a five-pointed star, the star the tool starts with. */
+export function IconStar(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 2.2 L9.7 6.1 L13.9 6.5 L10.7 9.2 L11.7 13.3 L8 11.1 L4.3 13.3 L5.3 9.2 L2.1 6.5 L6.3 6.1 Z" />
+    </Icon>
+  )
+}
+
+/** Line Segment tool: the diagonal Illustrator's tool draws first. */
+export function IconLine(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.6}>
+      <path d="M3 13 L13 3" />
+    </Icon>
+  )
+}
+
+/** Arc tool: a quarter arc, the default 0°–90° sweep. */
+export function IconArc(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.6}>
+      <path d="M13 12.5 A9 9 0 0 1 3.5 3" />
+    </Icon>
+  )
+}
+
 export function IconEye(props: IconProps) {
   return (
     <Icon {...props}>

@@ -8,7 +8,9 @@
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 1
+export const FORMAT_VERSION = 2
+/** Versions this build still opens. v2 added line, polygon, star, and arc nodes. */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2]
 
 export type NodeId = string
 
@@ -55,6 +57,52 @@ export type EllipseNode = BaseNode & {
   style: Style
 }
 
+/**
+ * Straight segment across its box (owner request: the Line Segment tool). `from` picks which
+ * corner the segment starts at, so both diagonals are reachable. A line has no fill: its
+ * appearance is `style.stroke`, which the tool sets when it creates one.
+ */
+export type LineNode = BaseNode & {
+  type: 'line'
+  width: number
+  height: number
+  from: 'top-left' | 'top-right'
+  style: Style
+}
+
+/** Regular polygon with 3–60 sides, inscribed in its box (Illustrator's Polygon tool). */
+export type PolygonNode = BaseNode & {
+  type: 'polygon'
+  width: number
+  height: number
+  sides: number
+  style: Style
+}
+
+/** Star with 3–60 tips; `innerRadius` is the valley radius as a fraction of the box radius. */
+export type StarNode = BaseNode & {
+  type: 'star'
+  width: number
+  height: number
+  points: number
+  innerRadius: number
+  style: Style
+}
+
+/**
+ * Elliptical arc. Angles are degrees, counterclockwise from +x, as Illustrator's Arc tool labels
+ * them; `pie` closes the arc through the centre, which is Illustrator's pie mode.
+ */
+export type ArcNode = BaseNode & {
+  type: 'arc'
+  width: number
+  height: number
+  startAngle: number
+  sweepAngle: number
+  pie: boolean
+  style: Style
+}
+
 export type TextAlign = 'left' | 'center' | 'right'
 
 /** Plain text (issue #16). Advanced typography stays in Phase 3, as the plan states. */
@@ -88,10 +136,19 @@ export type GroupNode = BaseNode & {
   children: LayerNode[]
 }
 
-export type LayerNode = RectNode | EllipseNode | TextNode | ImageNode | GroupNode
-export type ShapeNode = RectNode | EllipseNode
+export type LayerNode =
+  | RectNode
+  | EllipseNode
+  | LineNode
+  | PolygonNode
+  | StarNode
+  | ArcNode
+  | TextNode
+  | ImageNode
+  | GroupNode
+export type ShapeNode = RectNode | EllipseNode | LineNode | PolygonNode | StarNode | ArcNode
 /** Anything that occupies a rectangular box in the tree and can be transformed by itself. */
-export type LeafNode = RectNode | EllipseNode | TextNode | ImageNode
+export type LeafNode = ShapeNode | TextNode | ImageNode
 
 export type Artboard = { id: string; name: string; width: number; height: number }
 
@@ -134,7 +191,14 @@ export function isLeaf(node: LayerNode): node is LeafNode {
 }
 
 export function isShape(node: LayerNode): node is ShapeNode {
-  return node.type === 'rect' || node.type === 'ellipse'
+  return (
+    node.type === 'rect' ||
+    node.type === 'ellipse' ||
+    node.type === 'line' ||
+    node.type === 'polygon' ||
+    node.type === 'star' ||
+    node.type === 'arc'
+  )
 }
 
 export function isText(node: LayerNode): node is TextNode {
@@ -145,9 +209,12 @@ export function isImage(node: LayerNode): node is ImageNode {
   return node.type === 'image'
 }
 
-/** Nodes that carry a fill: shapes and text. An image's pixels are its appearance. */
-export function supportsFill(node: LayerNode): node is ShapeNode | TextNode {
-  return node.type === 'rect' || node.type === 'ellipse' || node.type === 'text'
+/**
+ * Nodes that carry a fill: shapes and text. An image's pixels are its appearance, and a line has
+ * no interior — its appearance is its stroke — so neither is offered a fill control.
+ */
+export function supportsFill(node: LayerNode): node is Exclude<ShapeNode, LineNode> | TextNode {
+  return isShape(node) && node.type !== 'line' ? true : node.type === 'text'
 }
 
 /** Local bounds of a node, ignoring its children and transform. */

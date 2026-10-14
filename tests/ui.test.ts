@@ -413,12 +413,14 @@ test('the palette groups the shape tools the way Illustrator does', () => {
   assert.equal(TOOL_GROUPS.length, 3, 'three palette slots: selection, shapes, type')
   const shape = groupFor('rect')
   assert.equal(shape.id, 'shape')
-  assert.equal(groupFor('ellipse').id, 'shape', 'both shapes live in one group')
+  assert.equal(groupFor('ellipse').id, 'shape', 'every shape lives in one group')
   assert.deepEqual(
     shape.members.map((member) => member.tool),
-    ['rect', 'ellipse'],
+    ['rect', 'roundedRect', 'ellipse', 'polygon', 'star', 'line', 'arc'],
+    'the seven shape tools Illustrator ships that Vectr draws',
   )
   assert.equal(memberFor('ellipse').action, 'tool.ellipse')
+  assert.equal(memberFor('line').action, 'tool.line')
   assert.throws(() => groupFor('lasso' as 'rect'), /No tool group holds lasso/)
 
   const remembersEllipse = { ...INITIAL_CREATION_DEFAULTS, shapeTool: 'ellipse' as const }
@@ -469,17 +471,42 @@ test('the tool options bar shows the controls of the active tool', () => {
   assert.equal(of(empty, 'hint').length, 1)
   assert.equal(of(empty, 'action').length, 0)
 
-  // Shape tool: the member switch, the fill for the next shape, and an honest stroke readout.
+  // Shape tool: the member switch, the controls the member actually uses, and the fill.
   const shapeRow = model({ tool: 'ellipse' })
   const members = of(shapeRow, 'segmented')[0]
   assert.equal(members.id, 'shape.tool')
   assert.deepEqual(
     members.options.map((option) => option.value),
-    ['rect', 'ellipse'],
+    ['rect', 'roundedRect', 'ellipse', 'polygon', 'star', 'line', 'arc'],
   )
   assert.equal(members.options.find((option) => option.value === 'ellipse')?.active, true)
-  assert.equal(of(shapeRow, 'swatches')[0].active, defaults.shapeFill)
-  assert.equal(of(shapeRow, 'readout')[0].value, 'none')
+  assert.equal(of(shapeRow, 'swatches')[0].active, defaults.shape.fill)
+  assert.deepEqual(of(shapeRow, 'number'), [], 'an ellipse has no parameters beyond its box')
+
+  // Each member brings its own options, and they read the creation defaults.
+  const withShape = (patch: Partial<typeof defaults.shape>) => ({
+    ...defaults,
+    shape: { ...defaults.shape, ...patch },
+  })
+  const polygonRow = model({ tool: 'polygon', defaults: withShape({ sides: 8 }) })
+  assert.equal(of(polygonRow, 'number')[0].id, 'shape.sides')
+  assert.equal(of(polygonRow, 'number')[0].value, 8)
+
+  const starRow = model({ tool: 'star', defaults: withShape({ points: 7, innerRadius: 0.35 }) })
+  assert.deepEqual(of(starRow, 'number').map((control) => [control.id, control.value]), [
+    ['shape.points', 7],
+    ['shape.innerRadius', 35],
+  ])
+
+  const roundedRow = model({ tool: 'roundedRect', defaults: withShape({ cornerRadius: 18 }) })
+  assert.deepEqual(of(roundedRow, 'number').map((control) => [control.id, control.value]), [['shape.cornerRadius', 18]])
+
+  const lineRow = model({ tool: 'line', defaults: withShape({ strokeWidth: 3 }) })
+  assert.deepEqual(of(lineRow, 'number').map((control) => control.id), ['shape.strokeWidth'])
+
+  const arcRow = model({ tool: 'arc', defaults: withShape({ startAngle: 45, sweepAngle: -90, pie: true }) })
+  assert.deepEqual(of(arcRow, 'number').map((control) => control.id), ['shape.startAngle', 'shape.sweepAngle'])
+  assert.deepEqual(of(arcRow, 'toggle').map((control) => [control.id, control.active]), [['shape.pie', true]])
 
   // Type tool: size, alignment, colour — and the hint says where they apply.
   const typeRow = model({ tool: 'text', defaults: { ...defaults, textFontSize: 18, textAlign: 'center' } })

@@ -12,11 +12,11 @@
  */
 
 import type { EditorActionId } from '../actions.ts'
-import { worldBounds } from '../../doc/document.ts'
+import { worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = 'select' | 'rect' | 'ellipse' | 'text'
+export type ToolId = ShapeKind | 'select' | 'text'
 export type ToolGroupId = 'select' | 'shape' | 'text'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
@@ -29,9 +29,10 @@ export type ToolGroup = {
 }
 
 /**
- * The palette, grouped. Rectangle and Ellipse share one slot the way Illustrator's shape tools do:
- * the button shows one member and its flyout offers the rest, and the options bar carries the same
- * switch as a segmented control.
+ * The palette, grouped the way Illustrator's is. Rectangle, Rounded Rectangle, Ellipse, Line
+ * Segment, Polygon, Star, and Arc share one slot: the button shows the member in use and the
+ * flyout offers the rest. `M`, `L`, and `\` are Illustrator's own keys; Polygon, Star, and Arc
+ * have no Illustrator defaults, so Vectr does not invent any.
  */
 export const TOOL_GROUPS: ToolGroup[] = [
   {
@@ -44,7 +45,12 @@ export const TOOL_GROUPS: ToolGroup[] = [
     label: 'Shape Tool',
     members: [
       { tool: 'rect', label: 'Rectangle Tool', action: 'tool.rect' },
+      { tool: 'roundedRect', label: 'Rounded Rectangle Tool', action: 'tool.roundedRect' },
       { tool: 'ellipse', label: 'Ellipse Tool', action: 'tool.ellipse' },
+      { tool: 'polygon', label: 'Polygon Tool', action: 'tool.polygon' },
+      { tool: 'star', label: 'Star Tool', action: 'tool.star' },
+      { tool: 'line', label: 'Line Segment Tool', action: 'tool.line' },
+      { tool: 'arc', label: 'Arc Tool', action: 'tool.arc' },
     ],
   },
   { id: 'text', label: 'Type Tool', members: [{ tool: 'text', label: 'Type Tool', action: 'tool.text' }] },
@@ -82,6 +88,7 @@ export type ToolOptionControl =
       options: Array<{ value: string; label: string; title: string; active: boolean }>
     }
   | { kind: 'number'; id: string; label: string; value: number; min: number; max: number; step: number }
+  | { kind: 'toggle'; id: string; label: string; active: boolean }
   | { kind: 'readout'; label: string; value: string }
   | { kind: 'swatches'; id: string; colors: string[]; active: string }
   | { kind: 'action'; id: EditorActionId; enabled: boolean }
@@ -146,23 +153,95 @@ export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
 
   if (group.id === 'shape') {
     // The switch marks the tool in use, or the member last picked while another tool is active.
-    const shown = displayToolFor(group, tool, defaults)
-    return [
+    const shown = displayToolFor(group, tool, defaults) as ShapeKind
+    const shortLabels: Record<ShapeKind, string> = {
+      rect: 'Rectangle',
+      roundedRect: 'Rounded',
+      ellipse: 'Ellipse',
+      polygon: 'Polygon',
+      star: 'Star',
+      line: 'Line',
+      arc: 'Arc',
+    }
+    const controls: ToolOptionControl[] = [
       { kind: 'label', text: 'Shape Tool' },
       {
         kind: 'segmented',
         id: 'shape.tool',
         options: group.members.map((member) => ({
           value: member.tool,
-          label: member.tool === 'rect' ? 'Rectangle' : 'Ellipse',
+          label: shortLabels[member.tool as ShapeKind],
           title: member.label,
           active: member.tool === shown,
         })),
       },
       { kind: 'separator' },
-      { kind: 'swatches', id: 'shape.fill', colors: TOOL_SWATCHES, active: defaults.shapeFill },
-      { kind: 'readout', label: 'Stroke', value: 'none' },
     ]
+    // The controls the shown member actually uses, which is Illustrator's Control-panel habit:
+    // the row changes with the tool, and every control changes what the next shape draws.
+    const params = defaults.shape
+    if (shown === 'roundedRect') {
+      controls.push({
+        kind: 'number',
+        id: 'shape.cornerRadius',
+        label: 'Corner radius',
+        value: params.cornerRadius,
+        min: 0,
+        max: 500,
+        step: 1,
+      })
+    }
+    if (shown === 'polygon') {
+      controls.push({ kind: 'number', id: 'shape.sides', label: 'Sides', value: params.sides, min: 3, max: 60, step: 1 })
+    }
+    if (shown === 'star') {
+      controls.push({ kind: 'number', id: 'shape.points', label: 'Points', value: params.points, min: 3, max: 60, step: 1 })
+      controls.push({
+        kind: 'number',
+        id: 'shape.innerRadius',
+        label: 'Inner radius %',
+        value: Math.round(params.innerRadius * 100),
+        min: 5,
+        max: 95,
+        step: 5,
+      })
+    }
+    if (shown === 'line') {
+      controls.push({
+        kind: 'number',
+        id: 'shape.strokeWidth',
+        label: 'Stroke weight',
+        value: params.strokeWidth,
+        min: 0.25,
+        max: 100,
+        step: 0.25,
+      })
+    }
+    if (shown === 'arc') {
+      controls.push({
+        kind: 'number',
+        id: 'shape.startAngle',
+        label: 'Start angle',
+        value: params.startAngle,
+        min: -360,
+        max: 360,
+        step: 15,
+      })
+      controls.push({
+        kind: 'number',
+        id: 'shape.sweepAngle',
+        label: 'Sweep',
+        value: params.sweepAngle,
+        min: -360,
+        max: 360,
+        step: 15,
+      })
+      controls.push({ kind: 'toggle', id: 'shape.pie', label: 'Pie', active: params.pie })
+    }
+    controls.push({ kind: 'separator' })
+    controls.push({ kind: 'swatches', id: 'shape.fill', colors: TOOL_SWATCHES, active: params.fill })
+    controls.push({ kind: 'hint', text: 'Shift constrains a square, a circle, or a 45° line.' })
+    return controls
   }
 
   const editingSelection = hasSelectedText(document, selection)

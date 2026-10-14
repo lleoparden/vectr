@@ -35,6 +35,7 @@ import wasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
 import fontUrl from '../assets/fonts/Inter-Variable.ttf?url'
 import type { NodeId } from '../doc/types.ts'
 import { DEFAULT_FONT_FAMILY } from '../doc/document.ts'
+import { clampCornerRadius, outlinePoints } from '../doc/shapeGeometry.ts'
 import type { Scene, SceneShape } from './scene.ts'
 
 export type EditorRendererInfo = {
@@ -417,6 +418,11 @@ export class EditorRenderer {
         this.drawText(recording, shape)
       } else if (shape.kind === 'image') {
         this.drawImage(recording, shape)
+      } else if (shape.kind === 'line') {
+        // A segment has no interior: its appearance is the stroke. When a line was created
+        // without one (a hand-edited file), fall back to the fill colour so it stays visible.
+        const stroke = shape.stroke ?? { color: shape.fill, width: 2 }
+        recording.drawPath(path, this.paintFor('stroke', stroke.color, stroke.width, shape.opacity))
       } else {
         recording.drawPath(path, this.paintFor('fill', shape.fill, 0, shape.opacity))
         if (shape.stroke !== null && shape.stroke.width > 0) {
@@ -487,13 +493,32 @@ export class EditorRenderer {
     return total
   }
 
-  /** Rounded corners are modelled but not drawn yet; see the file header. */
+  /**
+   * Every shape kind as a Skia path. The point-based kinds come from `shapeGeometry`, the same
+   * module the canvas uses for its drag preview, so the preview and the drawn shape agree.
+   * Shapes with a stroke and no fill (a line) are stroked by the caller.
+   */
   private makePath(shape: SceneShape): Path {
     const builder = new this.kit.PathBuilder()
     if (shape.kind === 'ellipse') {
       builder.addOval(this.kit.XYWHRect(0, 0, shape.width, shape.height))
     } else if (shape.kind === 'rect') {
-      builder.addRect(this.kit.XYWHRect(0, 0, shape.width, shape.height))
+      const radius = clampCornerRadius(shape.width, shape.height, shape.cornerRadius)
+      if (radius > 0) {
+        builder.addRRect(
+          this.kit.RRectXY(this.kit.XYWHRect(0, 0, shape.width, shape.height), radius, radius),
+        )
+      } else {
+        builder.addRect(this.kit.XYWHRect(0, 0, shape.width, shape.height))
+      }
+    } else {
+      const points = outlinePoints(shape)
+      if (points !== null && points.length > 0) {
+        builder.moveTo(points[0].x, points[0].y)
+        for (const point of points.slice(1)) builder.lineTo(point.x, point.y)
+        // A line stays open; every other point-based kind closes its outline.
+        if (shape.kind !== 'line') builder.close()
+      }
     }
     // Text draws glyphs instead of a path; an empty path keeps the per-shape array aligned.
     const path = builder.detach()

@@ -8,8 +8,9 @@
  * layer list. Layout changes now only wake the shell.
  */
 
-export type PanelId = 'layers' | 'properties' | 'appearance' | 'color'
+import { DEFAULT_SHAPE_PARAMS, type ShapeKind, type ShapeParams } from '../doc/document.ts'
 
+export type PanelId = 'layers' | 'properties' | 'appearance' | 'color'
 /** Illustrator groups panels into tabbed stacks; so does the dock. */
 export type PanelGroup = {
   id: string
@@ -29,8 +30,9 @@ export type UnsavedKind = 'close' | 'new' | 'open'
  */
 export type CreationDefaults = {
   /** The member of the shape group that the palette and the options bar show. */
-  shapeTool: 'rect' | 'ellipse'
-  shapeFill: string
+  shapeTool: ShapeKind
+  /** Geometry and colour every shape tool draws with, from the tool options bar. */
+  shape: ShapeParams
   textFill: string
   textFontSize: number
   textAlign: 'left' | 'center' | 'right'
@@ -38,7 +40,7 @@ export type CreationDefaults = {
 
 export const INITIAL_CREATION_DEFAULTS: CreationDefaults = {
   shapeTool: 'rect',
-  shapeFill: '#4f7cff',
+  shape: { ...DEFAULT_SHAPE_PARAMS },
   textFill: '#1e1e23',
   textFontSize: 16,
   textAlign: 'left',

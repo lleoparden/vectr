@@ -29,14 +29,19 @@ import type { LayerRow } from './panels/layerRows.ts'
 import { importImageBytes, pickImageFile } from './files/imageImport.ts'
 import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
-import { createGroup, createImage } from '../doc/document.ts'
+import { createGroup, createImage, type ShapeKind, type ShapeParams } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './canvas/viewportOps.ts'
 import { isLocked, type Command } from '../doc/commands.ts'
 
 export const ACTION_IDS = [
   'tool.select',
   'tool.rect',
+  'tool.roundedRect',
   'tool.ellipse',
+  'tool.line',
+  'tool.polygon',
+  'tool.star',
+  'tool.arc',
   'tool.text',
   'file.place',
   'file.new',
@@ -82,7 +87,12 @@ export type EditorActionId = (typeof ACTION_IDS)[number]
 export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.select': 'Selection Tool',
   'tool.rect': 'Rectangle Tool',
+  'tool.roundedRect': 'Rounded Rectangle Tool',
   'tool.ellipse': 'Ellipse Tool',
+  'tool.line': 'Line Segment Tool',
+  'tool.polygon': 'Polygon Tool',
+  'tool.star': 'Star Tool',
+  'tool.arc': 'Arc Tool',
   'tool.text': 'Type Tool',
   'file.place': 'Place…',
   'file.new': 'New',
@@ -331,10 +341,52 @@ export async function placeImage(
  * Tool options (owner request after Phase 1).
  *
  * Illustrator's tool options edit the selection when the selection can take the change and otherwise
- * set what the *next* object will be drawn with. Both halves live here: the default is remembered in
- * the workspace store, and applying to a selection goes through the ordinary style and text
+ * set what the *next* object will be drawn with. Both halves live here: the defaults are remembered
+ * in the workspace store, and applying to a selection goes through the ordinary style and text
  * commands so it is undoable like any other edit.
  */
+
+/** The member a shape tool's action id names. */
+export function shapeKindForAction(id: EditorActionId): ShapeKind {
+  switch (id) {
+    case 'tool.rect':
+      return 'rect'
+    case 'tool.roundedRect':
+      return 'roundedRect'
+    case 'tool.ellipse':
+      return 'ellipse'
+    case 'tool.line':
+      return 'line'
+    case 'tool.polygon':
+      return 'polygon'
+    case 'tool.star':
+      return 'star'
+    case 'tool.arc':
+      return 'arc'
+    default:
+      throw new Error(`${id} is not a shape tool`)
+  }
+}
+
+/** The action that activates a shape member; the palette flyout and the bar both use it. */
+export function shapeActionForKind(kind: ShapeKind): EditorActionId {
+  switch (kind) {
+    case 'rect':
+      return 'tool.rect'
+    case 'roundedRect':
+      return 'tool.roundedRect'
+    case 'ellipse':
+      return 'tool.ellipse'
+    case 'line':
+      return 'tool.line'
+    case 'polygon':
+      return 'tool.polygon'
+    case 'star':
+      return 'tool.star'
+    case 'arc':
+      return 'tool.arc'
+  }
+}
 
 function fillTargets(kind: 'shape' | 'text') {
   const document = documentStore.getState().document
@@ -366,13 +418,27 @@ function applyToolFill(kind: 'shape' | 'text', color: string): void {
 }
 
 /** Picks the shape member, which also activates it so the next drag draws that shape. */
-export function setToolShapeMember(tool: 'rect' | 'ellipse'): void {
+export function setToolShapeMember(tool: ShapeKind): void {
   workspaceStore.setCreationDefaults({ shapeTool: tool })
   documentStore.setTool(tool)
 }
 
+/** A numeric or switch option from the shape row of the tool options bar. */
+export function setToolShapeParam(patch: Partial<ShapeParams>): void {
+  const current = workspaceStore.getState().creationDefaults.shape
+  const next: ShapeParams = { ...current, ...patch }
+  if (patch.sides !== undefined) next.sides = Math.max(3, Math.min(60, Math.round(patch.sides)))
+  if (patch.points !== undefined) next.points = Math.max(3, Math.min(60, Math.round(patch.points)))
+  if (patch.innerRadius !== undefined) next.innerRadius = Math.max(0.05, Math.min(0.95, patch.innerRadius))
+  if (patch.cornerRadius !== undefined) next.cornerRadius = Math.max(0, patch.cornerRadius)
+  if (patch.strokeWidth !== undefined) next.strokeWidth = Math.max(0.25, Math.min(100, patch.strokeWidth))
+  if (patch.sweepAngle !== undefined) next.sweepAngle = Math.max(-360, Math.min(360, patch.sweepAngle))
+  if (patch.sweepAngle === 0) next.sweepAngle = current.sweepAngle
+  workspaceStore.setCreationDefaults({ shape: next })
+}
+
 export function setToolShapeFill(color: string): void {
-  workspaceStore.setCreationDefaults({ shapeFill: color })
+  setToolShapeParam({ fill: color })
   applyToolFill('shape', color)
 }
 
@@ -481,10 +547,16 @@ export function runEditorAction(id: EditorActionId): void {
       documentStore.setTool('select')
       return
     case 'tool.rect':
+    case 'tool.roundedRect':
     case 'tool.ellipse':
-      // Picking a shape member anywhere — palette, flyout, options bar, or M / L — also remembers
-      // it, so the palette's shape slot shows the tool last used the way Illustrator's does.
-      setToolShapeMember(id === 'tool.rect' ? 'rect' : 'ellipse')
+    case 'tool.line':
+    case 'tool.polygon':
+    case 'tool.star':
+    case 'tool.arc':
+      // Picking a shape member anywhere — palette, flyout, options bar, or its shortcut — also
+      // remembers it, so the palette's shape slot shows the tool last used the way Illustrator's
+      // does. The action id and the member's name differ only for the rounded rectangle.
+      setToolShapeMember(shapeKindForAction(id))
       return
     case 'tool.text':
       documentStore.setTool('text')

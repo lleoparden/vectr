@@ -11,7 +11,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { runEditorAction } from '../actions.ts'
-import { IconEllipse, IconRect, IconSelect, IconType } from '../ui/icons.tsx'
+import {
+  IconArc,
+  IconEllipse,
+  IconLine,
+  IconPolygon,
+  IconRect,
+  IconRoundedRect,
+  IconSelect,
+  IconStar,
+  IconType,
+} from '../ui/icons.tsx'
 import { shortcutLabel } from '../menus/shortcuts.ts'
 import { PALETTE_WIDTH, TOOL_BUTTON_SIZE } from '../ui/theme.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
@@ -21,7 +31,12 @@ import { TOOL_GROUPS, displayToolFor, memberFor, type ToolId } from '../ui/toolO
 const ICONS: Record<ToolId, typeof IconSelect> = {
   select: IconSelect,
   rect: IconRect,
+  roundedRect: IconRoundedRect,
   ellipse: IconEllipse,
+  polygon: IconPolygon,
+  star: IconStar,
+  line: IconLine,
+  arc: IconArc,
   text: IconType,
 }
 

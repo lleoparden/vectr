@@ -16,7 +16,7 @@ import {
   worldTransform,
 } from '../src/doc/document.ts'
 import { validateDocument } from '../src/doc/validate.ts'
-import type { Document, LayerNode, Transform } from '../src/doc/types.ts'
+import { FORMAT_VERSION, type Document, type LayerNode, type Transform } from '../src/doc/types.ts'
 
 function apply(document: Document, command: Command): Document {
   const result = applyCommand(document, command)
@@ -42,7 +42,8 @@ function scene(): { document: Document; rect: LayerNode; rect2: LayerNode; group
 
 test('a new document is valid, empty, and versioned', () => {
   const document = createDocument()
-  assert.equal(document.formatVersion, 1)
+  assert.equal(document.formatVersion, FORMAT_VERSION)
+  assert.equal(FORMAT_VERSION, 2, 'v2 added the line, polygon, star, and arc node kinds')
   assert.equal(countNodes(document), 0)
   assert.equal(validateDocument(document).ok, true)
 })

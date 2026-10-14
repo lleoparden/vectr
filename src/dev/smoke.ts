@@ -11,6 +11,7 @@
  */
 
 import { createEllipse, createGroup, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
+import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
@@ -686,11 +687,217 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   document.querySelector<HTMLButtonElement>('[data-tool-member="rect"]')?.click()
   await settle(120)
   record(
-    'the palette flyout offers both members and switches between them',
-    members.length === 2 &&
+    'the palette flyout offers every member and switches between them',
+    members.length === 7 &&
       documentStore.getState().tool === 'rect' &&
       workspaceStore.getState().creationDefaults.shapeTool === 'rect',
     `flyout listed ${members.length} member(s), tool now ${documentStore.getState().tool}`,
+  )
+
+  return { passed: steps.every((step) => step.ok), steps }
+}
+
+/**
+ * Shape tools report (owner request: line, polygon, star, arc, and rounded corners were missing,
+ * the ellipse preview drew a rectangle, and Shift did not constrain).
+ *
+ * This drives the real palette, the real options bar, and real pointer drags in the packaged app,
+ * then reads the document back. It also inspects the drag preview element mid-drag, which is the
+ * only way to prove the preview matches the shape being drawn. Logged as `[vectr-path]`.
+ */
+export async function runShapeToolsReport(): Promise<SmokeReport> {
+  const steps: SmokeStep[] = []
+  const record = (name: string, ok: boolean, detail: string) => steps.push({ name, ok, detail })
+  const settle = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+  const canvas = document.querySelector<HTMLCanvasElement>('canvas[aria-label="Design canvas"]')
+  const bar = () => document.querySelector<HTMLElement>('[aria-label="Tool options"]')
+
+  if (canvas === null || bar() === null) {
+    record('the canvas and the options bar are on screen', false, 'missing chrome')
+    return { passed: false, steps }
+  }
+
+  const dispatch = (type: string, x: number, y: number, extra: Record<string, unknown>) => {
+    const box = canvas.getBoundingClientRect()
+    canvas.dispatchEvent(
+      new PointerEvent(type, {
+        pointerId: 1,
+        pointerType: 'mouse',
+        button: 0,
+        bubbles: true,
+        isPrimary: true,
+        clientX: box.left + x,
+        clientY: box.top + y,
+        ...extra,
+      }),
+    )
+  }
+  const barButton = (text: string) =>
+    Array.from(bar()?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
+      (button) => button.textContent?.trim() === text,
+    )
+  /** Sets one of the bar's labelled number fields, the way typing into it would. */
+  const setField = (label: string, value: string) => {
+    const field = Array.from(bar()?.querySelectorAll('label') ?? []).find((element) =>
+      element.textContent?.trim().startsWith(label),
+    )
+    const input = field?.querySelector('input[type="number"]')
+    if (input === undefined || input === null) return false
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    return true
+  }
+  const nodes = () => documentStore.getState().document.root.children
+  const last = () => nodes()[nodes().length - 1]
+  const switchTo = async (label: string) => {
+    barButton(label)?.click()
+    await settle(80)
+  }
+
+  newDocument()
+  await settle(150)
+
+  // 1. One slot, seven members: the flyout lists the shape tools Illustrator ships and Vectr draws.
+  document.querySelector<HTMLButtonElement>('[data-tool-flyout="shape"]')?.click()
+  await settle(120)
+  const members = Array.from(document.querySelectorAll('[data-tool-member]')).map(
+    (element) => element.getAttribute('data-tool-member') ?? '',
+  )
+  record(
+    'the shape slot offers every shape tool',
+    members.length === 7 && members.includes('polygon') && members.includes('arc'),
+    `flyout lists ${members.join(', ')}`,
+  )
+  document.querySelector<HTMLButtonElement>('[data-tool-member="ellipse"]')?.click()
+  await settle(120)
+
+  // 2. The preview during an ellipse drag is an ellipse, which was the owner's report.
+  dispatch('pointerdown', 120, 140, { buttons: 1 })
+  dispatch('pointermove', 240, 260, { buttons: 1 })
+  await settle(80)
+  const preview = document.querySelector<SVGElement>('[data-shape-preview]')
+  const previewIsEllipse = preview !== null && preview.dataset.shapePreview === 'ellipse' && preview.querySelector('ellipse') !== null
+  record(
+    'the ellipse drag previews an ellipse, not a rectangle',
+    previewIsEllipse,
+    preview === null
+      ? 'no preview element'
+      : `preview kind ${preview.dataset.shapePreview}, ellipse element ${preview.querySelector('ellipse') === null ? 'missing' : 'present'}`,
+  )
+  dispatch('pointerup', 240, 260, { buttons: 0 })
+  await settle(120)
+  record(
+    'releasing creates the ellipse the preview showed',
+    last()?.type === 'ellipse',
+    `created ${last()?.type ?? 'nothing'}`,
+  )
+
+  // 3. Shift constrains the drag to a circle.
+  dispatch('pointerdown', 300, 140, { buttons: 1, shiftKey: true })
+  dispatch('pointermove', 420, 200, { buttons: 1, shiftKey: true })
+  await settle(60)
+  dispatch('pointerup', 420, 200, { buttons: 0, shiftKey: true })
+  await settle(120)
+  const circle = last()
+  const sizeOf = (node: LayerNode) => nodeSize(node)
+  const circleIsRound = circle !== undefined && circle.type === 'ellipse' && circle.width === circle.height
+  record(
+    'Shift with the ellipse tool draws a circle',
+    circleIsRound,
+    circle === undefined
+      ? 'nothing created'
+      : `${Math.round(sizeOf(circle).width)} x ${Math.round(sizeOf(circle).height)}`,
+  )
+
+  // 4. The polygon tool reads its Sides option, which the bar shows for that member.
+  await switchTo('Polygon')
+  const sidesSet = setField('Sides', '8')
+  await settle(60)
+  dispatch('pointerdown', 120, 320, { buttons: 1 })
+  dispatch('pointermove', 220, 420, { buttons: 1 })
+  dispatch('pointerup', 220, 420, { buttons: 0 })
+  await settle(120)
+  const polygon = last()
+  record(
+    'the polygon tool draws the side count the bar shows',
+    sidesSet && polygon?.type === 'polygon' && polygon.sides === 8,
+    sidesSet
+      ? `created ${polygon?.type ?? 'nothing'} with ${polygon?.type === 'polygon' ? polygon.sides : '-'} sides`
+      : 'the Sides field was not rendered for the polygon tool',
+  )
+  // 5. The star tool reads Points and the inner radius, and the node carries both.
+  await switchTo('Star')
+  const pointsSet = setField('Points', '7')
+  const radiusSet = setField('Inner radius', '30')
+  await settle(60)
+  dispatch('pointerdown', 320, 320, { buttons: 1 })
+  dispatch('pointermove', 420, 420, { buttons: 1 })
+  dispatch('pointerup', 420, 420, { buttons: 0 })
+  await settle(120)
+  const star = last()
+  record(
+    'the star tool draws the points and inner radius the bar shows',
+    pointsSet && radiusSet && star?.type === 'star' && star.points === 7 && Math.round(star.innerRadius * 100) === 30,
+    star?.type === 'star'
+      ? `${star.points} points at ${Math.round(star.innerRadius * 100)}% inner radius`
+      : `created ${star?.type ?? 'nothing'}`,
+  )
+
+  // 6. The rounded rectangle draws with its corner radius, which reaches the renderer's scene.
+  await switchTo('Rounded')
+  const radiusFieldSet = setField('Corner radius', '24')
+  await settle(60)
+  dispatch('pointerdown', 120, 480, { buttons: 1 })
+  dispatch('pointermove', 240, 560, { buttons: 1 })
+  dispatch('pointerup', 240, 560, { buttons: 0 })
+  await settle(120)
+  const rounded = last()
+  const sceneShape = buildScene(documentStore.getState().document).shapes.find((shape) => shape.id === rounded?.id)
+  record(
+    'a rounded rectangle carries its radius into the scene',
+    radiusFieldSet && rounded?.type === 'rect' && rounded.cornerRadius === 24 && sceneShape?.cornerRadius === 24,
+    rounded?.type === 'rect'
+      ? `radius ${rounded.cornerRadius}, scene radius ${String(sceneShape?.cornerRadius)}`
+      : `created ${rounded?.type ?? 'nothing'}`,
+  )
+
+  // 7. The line tool draws a segment, and Shift snaps its angle to a 45° step.
+  await switchTo('Line')
+  const weightSet = setField('Stroke weight', '4')
+  await settle(60)
+  dispatch('pointerdown', 320, 480, { buttons: 1, shiftKey: true })
+  dispatch('pointermove', 420, 540, { buttons: 1, shiftKey: true })
+  dispatch('pointerup', 420, 540, { buttons: 0, shiftKey: true })
+  await settle(120)
+  const line = last()
+  // A snapped segment is a diagonal (equal axes) or axis-aligned (one axis is the 1-unit floor).
+  const lineIsSnapped =
+    line !== undefined &&
+    line.type === 'line' &&
+    (Math.abs(nodeSize(line).width - nodeSize(line).height) <= 1 || Math.min(nodeSize(line).width, nodeSize(line).height) <= 1)
+  record(
+    'Shift snaps the line segment to a 45° step',
+    weightSet && lineIsSnapped,
+    line === undefined || line.type !== 'line'
+      ? `created ${line?.type ?? 'nothing'}`
+      : `segment ${Math.round(line.width)} x ${Math.round(line.height)}, stroke ${String(line.style.stroke?.width)}`,
+  )
+
+  // 8. The arc tool draws the sweep the bar shows, and pie mode closes it.
+  await switchTo('Arc')
+  const sweepSet = setField('Sweep', '180')
+  barButton('Pie')?.click()
+  await settle(60)
+  dispatch('pointerdown', 480, 480, { buttons: 1 })
+  dispatch('pointermove', 580, 560, { buttons: 1 })
+  dispatch('pointerup', 580, 560, { buttons: 0 })
+  await settle(120)
+  const arc = last()
+  record(
+    'the arc tool draws the sweep the bar shows',
+    sweepSet && arc?.type === 'arc' && arc.sweepAngle === 180 && arc.pie === true,
+    arc?.type === 'arc' ? `sweep ${arc.sweepAngle}, pie ${String(arc.pie)}` : `created ${arc?.type ?? 'nothing'}`,
   )
 
   return { passed: steps.every((step) => step.ok), steps }

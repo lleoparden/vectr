@@ -47,6 +47,8 @@
   React + TypeScript + Tailwind + Vite is the development baseline; the
   full-document SVG renderer is rejected. CanvasKit/Skia is the next renderer
   candidate and must pass a bounded measured spike before editor work.
+- Agent completion rule added: owner review/testing happens only after agents
+  complete the approved outcome and their planned validation.
 
 ## Next
 

@@ -166,3 +166,11 @@
   GPU/WASM disposal; no whole-document IPC during interaction; and a single
   editor window initially. These preserve the future compiler, MCP, and agent
   boundaries without implementing them now.
+
+## 2026-10-13 — Agent completion and owner handoff
+
+- Agents complete the approved outcome, self-review it, and run planned checks
+  before asking the owner to review or test.
+- Owner review/testing is the final handoff, not a substitute for unfinished
+  agent work. The only exception is a genuine need for new authority, a safety
+  decision, or an external blocker that prevents meaningful progress.

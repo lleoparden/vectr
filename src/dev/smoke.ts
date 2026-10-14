@@ -10,12 +10,22 @@
  * `tests/doc.test.ts` and `tests/editor.test.ts`.
  */
 
-import { createEllipse, createRect, createText, findNode } from '../doc/document.ts'
+import { createEllipse, createGroup, createRect, createText, findNode } from '../doc/document.ts'
 import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/arrange.ts'
 import { placeImage, runEditorAction } from '../app/actions.ts'
+import {
+  newDocument,
+  openDocument,
+  recoverDocument,
+  refreshRecoveryState,
+  saveDocument,
+  writeRecoverySnapshot,
+} from '../app/fileActions.ts'
+import { serializeDocument } from '../file/serialize.ts'
+import { documentStore } from '../state/documentStore.ts'
 import type { DocumentStore } from '../state/documentStore.ts'
 
 export type SmokeStep = { name: string; ok: boolean; detail: string }
@@ -181,6 +191,103 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
   )
   record('missing font is recorded, not refused', missingFont.ok, missingFont.ok ? 'set to Comic Sans MS' : missingFont.message)
 
+  return { passed: steps.every((step) => step.ok), steps }
+}
+
+/**
+ * Save/reopen/recovery evidence (issue #19), run on the packaged app.
+ *
+ * Everything here goes over the real preload bridge to the real filesystem, in a scratch
+ * directory under user data, so the round trip is the same code path a user's save takes. It is
+ * logged as `[vectr-file]`.
+ */
+export async function runFileRoundTrip(): Promise<SmokeReport> {
+  const steps: SmokeStep[] = []
+  const record = (name: string, ok: boolean, detail: string) => steps.push({ name, ok, detail })
+  const api = window.vectrFiles
+  if (api === undefined) {
+    record('file bridge', false, 'the preload bridge is missing')
+    return { passed: false, steps }
+  }
+
+  // A document with a nested group, text, and a placed image.
+  newDocument()
+  const root = documentStore.getState().document.root
+  const rect = createRect('Rect', 20, 30, 120, 80)
+  const group = createGroup('Group 1')
+  const inner = createRect('Inner', 200, 40, 60, 60)
+  const text = createText('Label', 60, 220, 'Saved text\nsecond line')
+  documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 0, nodes: [rect, group] })
+  documentStore.dispatch({ type: 'insertNodes', parentId: group.id, index: 0, nodes: [inner] })
+  documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 2, nodes: [text] })
+  const png = await makeSmokePng()
+  const placed = png === null ? null : await placeImage('round-trip.png', 'image/png', png)
+  const manifestBefore = serializeDocument(documentStore.getState().document).manifest
+  const idsBefore = documentStore
+    .getState()
+    .document.root.children.map((node) => node.id)
+    .join(',')
+
+  const directory = `${await api.scratchDirectory()}/round-trip-${Date.now()}.vectr`
+  const saved = await saveDocument({ directory })
+  record('save writes a project', saved, directory)
+  const savedState = documentStore.getState()
+  record(
+    'saving clears the dirty state',
+    savedState.document.revision === savedState.savedRevision && savedState.filePath === directory,
+    `filePath ${savedState.filePath === null ? 'none' : 'set'}`,
+  )
+
+  // An edit after the save must be discarded by reopening, which proves the file is the truth.
+  documentStore.dispatch({ type: 'renameNode', nodeId: rect.id, name: 'Changed after save' }, 'rename')
+  record('an edit after save is dirty', documentStore.isDirty(), 'dirty')
+
+  const opened = await openDocument({ directory })
+  const reopened = documentStore.getState().document
+  record(
+    'reopen restores the layer tree',
+    opened && reopened.root.children.map((node) => node.id).join(',') === idsBefore,
+    `${reopened.root.children.length} top-level nodes`,
+  )
+  record(
+    'reopen restores geometry, text, and the image',
+    findNode(reopened, rect.id)?.name === 'Rect' &&
+      reopened.assets.length === 1 &&
+      documentStore.getState().document.root.children.some((node) => node.type === 'text'),
+    `${reopened.assets.length} assets`,
+  )
+  record(
+    'a reopened document resaves byte-identically',
+    serializeDocument(reopened).manifest === manifestBefore,
+    serializeDocument(reopened).manifest.length + ' bytes',
+  )
+  record('reopened document is clean', documentStore.isDirty() === false, 'clean')
+
+  // Recovery: unsaved work is snapshotted, offered, and comes back.
+  documentStore.dispatch({ type: 'renameNode', nodeId: rect.id, name: 'Unsaved work' }, 'rename')
+  const wrote = await writeRecoverySnapshot()
+  await refreshRecoveryState()
+  record(
+    'recovery snapshot is written',
+    wrote && documentStore.getState().recovery.available,
+    documentStore.getState().recovery.savedAt ?? 'no timestamp',
+  )
+  const recovered = await recoverDocument()
+  record(
+    'recovery restores the unsaved work',
+    recovered && findNode(documentStore.getState().document, rect.id)?.name === 'Unsaved work',
+    'unsaved rename recovered',
+  )
+  await api.clearRecovery()
+  await refreshRecoveryState()
+  record('recovery clears after it is consumed', documentStore.getState().recovery.available === false, 'cleared')
+
+  const memory = await window.vectrBenchmark.getMemory()
+  record(
+    'memory recorded after save and reopen',
+    memory.workingSetBytes > 0,
+    `${(memory.workingSetBytes / (1024 * 1024)).toFixed(1)} MiB whole app, ${placed === null ? 'no image' : 'one image asset'}`,
+  )
   return { passed: steps.every((step) => step.ok), steps }
 }
 

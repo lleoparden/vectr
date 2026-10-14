@@ -869,6 +869,111 @@ depending on the dialog, which is a distinction worth revisiting when placement 
   removes node and asset`, `image redo restores both`, and `image drawn from its asset`; 1,004
   shapes in 16 buckets at render p95 1.30 ms over 60 frames.
 
+## 2026-10-14 — Durable local documents (issue #19)
+
+### The format
+
+A project is a directory, `<name>.vectr`, holding:
+
+```
+manifest.json      canonical JSON: manifestVersion, formatVersion, revision, id, name,
+                   artboards, asset references, and the whole node tree
+metadata.json      savedAt, app, versions — deliberately not part of the format
+assets/<key>.png   content-addressed bytes, one file per asset, shared by every node using it
+```
+
+Two rules shaped it. **No base64**: assets are referenced by content key and live as their own
+files, which a test asserts by refusing long base64-looking runs. **Byte-stable manifests**:
+saving an unchanged document twice produces identical text, so the manifest is canonical JSON
+(keys sorted recursively, two-space indent, trailing newline) and everything that changes on its
+own — the save timestamp, the app name — lives in `metadata.json` instead. The round trip is a
+fixed point: re-serializing what was read yields the same bytes.
+
+The tree is stored as the document model already is. The model was built JSON-safe from slice 2
+precisely so this step would be a copy rather than a translation, and the manifest is therefore
+also the compiler's future input.
+
+### Versioning and refusal
+
+`manifestVersion` (the file's shape) and `formatVersion` (the document model) are separate, so
+each can move without dragging the other. `MIGRATIONS` is the hook later versions plug into.
+Unknown or newer versions are refused with a reason (`unsupported-manifest-version`,
+`unsupported-format-version`), as are broken JSON (`not-json`), foreign files (`not-a-manifest`),
+and documents that fail the model's own validation (`invalid-document`, carrying the specific
+code: `duplicate-id`, `non-finite`, `invalid-asset`, …). **Nothing partial is ever returned**: the
+open path validates the manifest, then verifies the assets, and only then replaces what is on
+screen, so a bad file leaves the open document untouched.
+
+Asset verification is the part a manifest alone cannot do: every referenced asset must be present,
+must have the byte length the manifest claims, and must hash back to its own content key — which
+is what catches a file that was replaced with different bytes of the same size.
+
+### Atomic writes
+
+Order: new assets are written (temp file, then rename), then the manifest is written to
+`manifest.json.tmp` and **renamed** over `manifest.json`. The rename is the only step that can
+replace the previous manifest, so an interrupted save leaves the previous project complete and
+loadable; the worst case is an unreferenced asset file, which the next save prunes. The policy is
+tested against an in-memory filesystem that can be made to fail at exactly that step.
+
+Saves also prune: an asset no node references any more is deleted from the project, so editing an
+image out of a document does not leave its bytes behind forever.
+
+### Recovery: one snapshot, newest wins
+
+`recovery.json` (written through a temp file and renamed) holds one rolling snapshot: the document
+name, the project it came from, the time, and the manifest. It is written on a 30-second interval
+while the document is dirty, again before the window unloads, and once more if the user chooses
+"Don't Save" when closing. **Limits, stated plainly: one snapshot, no merge, no history, newest
+wins.** The snapshot lives outside the project, so a failed save can never be what breaks
+recovery. It is cleared on a successful save, and `File > Recover Unsaved Work` is greyed out when
+there is nothing to recover. Discarding is the only path that can lose work, which is why the
+snapshot is taken first.
+
+### Dirty state and the close guard
+
+The store holds `savedRevision` and `filePath`, and `isDirty` is a comparison — no edit path can
+forget to set a dirty bit. The menu bar shows the document name with an asterisk and the status
+bar shows the project path plus `saved` / `unsaved changes`. Closing the window is guarded in the
+main process: the first close asks the renderer, which answers through a native Save / Don't Save
+/ Cancel dialog and then calls `app:allow-close`, so the second close proceeds. A renderer killed
+before answering leaves the window open rather than quitting silently with unsaved work.
+
+### IPC surface
+
+Dialogs and disk IO stay in the main process; the renderer never touches the filesystem. Every
+result is a discriminated union with an `ok` flag: `{ ok: false, code, message }` for failures,
+`{ ok: true, canceled }` for cancels, and a payload for success, so the renderer cannot
+misinterpret a failure as data. Two extra handlers exist for automated runs only — `file:open-at`
+(read a project by explicit path) and `file:scratch-directory` (a scratch folder under user data)
+— so the packaged smoke run can exercise save and reopen without a dialog and without littering
+the user's Documents folder.
+
+### Deviations recorded
+
+- The issue names `tests/files.test.cjs`; the suite is `tests/files.test.ts`, because every other
+  test in this repository is TypeScript executed by Node's type stripping and a `.cjs` file could
+  not import the modules under test.
+- Cycle and missing-parent manifests are structurally unrepresentable in a JSON tree (a node's
+  parent *is* its container), so those classes are covered by `validateDocument`'s own tests and
+  by the open-time call into it, rather than by a hand-built manifest that cannot exist.
+
+### Evidence
+
+- 119 unit tests, 12 new here: manifest round-trip fidelity across every node kind with nested
+  groups and a placed image, byte-identical and fixed-point manifests, no-base64 assertions,
+  version/foreign/JSON refusals, four validation-failure classes, asset presence/length/hash
+  verification, one asset written once with reuse on the second save, an interrupted save leaving
+  the previous project intact, pruning, recovery write/read/newest-wins/clear/corrupt, dirty-state
+  derivation, and filesystem-safe names.
+- `electron . --smoke=stress`: the packaged `[vectr-file]` run passes **11/11** steps against the
+  real filesystem: `save writes a project`, `saving clears the dirty state`, `an edit after save is
+  dirty`, `reopen restores the layer tree` (4 top-level nodes), `reopen restores geometry, text,
+  and the image` (1 asset), `a reopened document resaves byte-identically` (3208 bytes),
+  `reopened document is clean`, `recovery snapshot is written`, `recovery restores the unsaved
+  work`, `recovery clears after it is consumed`, and a memory record of **453.5 MiB whole app**
+  after save and reopen with one image asset.
+
 ## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
 
 The owner went offline and gave standing permission to merge whatever an agent judges

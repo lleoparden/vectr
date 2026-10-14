@@ -35,6 +35,12 @@ export function StatusBar() {
         <span>
           {artboard.name} {artboard.width}×{artboard.height}
         </span>
+        <span title={state.filePath ?? 'This document has not been saved yet'}>
+          {state.filePath ?? 'unsaved'}
+        </span>
+        <span className="text-ink-muted">
+          {state.document.revision !== state.savedRevision ? 'unsaved changes' : 'saved'}
+        </span>
         <span title="Fit Artboard in Window (Ctrl+0)" className="text-ink-muted">
           {zoomPercent(state.viewport.zoom)}
         </span>

@@ -29,7 +29,17 @@ export const MENU_BAR: MenuSpec[] = [
   {
     id: 'file',
     label: 'File',
-    items: [{ kind: 'command', id: 'file.place', label: 'Place…' }],
+    items: [
+      { kind: 'command', id: 'file.new', label: 'New' },
+      { kind: 'command', id: 'file.open', label: 'Open…' },
+      { kind: 'separator' },
+      { kind: 'command', id: 'file.save', label: 'Save' },
+      { kind: 'command', id: 'file.saveAs', label: 'Save As…' },
+      { kind: 'separator' },
+      { kind: 'command', id: 'file.place', label: 'Place…' },
+      { kind: 'separator' },
+      { kind: 'command', id: 'file.recover', label: 'Recover Unsaved Work' },
+    ],
   },
   {
     id: 'edit',

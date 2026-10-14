@@ -39,7 +39,11 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'tool.ellipse', chord: { key: 'l' }, illustratorDefault: true },
   { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
 
-  // File (Illustrator's Place).
+  // File (Illustrator's document chords, then Place).
+  { id: 'file.new', chord: { key: 'n', ctrl: true }, illustratorDefault: true },
+  { id: 'file.open', chord: { key: 'o', ctrl: true }, illustratorDefault: true },
+  { id: 'file.save', chord: { key: 's', ctrl: true }, illustratorDefault: true },
+  { id: 'file.saveAs', chord: { key: 's', ctrl: true, shift: true }, illustratorDefault: true },
   { id: 'file.place', chord: { key: 'p', ctrl: true, shift: true }, illustratorDefault: true },
 
   // Type (Illustrator's size and alignment chords).

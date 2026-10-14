@@ -31,6 +31,12 @@ export type EditorState = {
   redoDepth: number
   /** Last rejected command, surfaced to the user instead of failing silently. */
   lastError: CommandError | null
+  /** The revision the project file on disk matches; `isDirty` derives from it (issue #19). */
+  savedRevision: number
+  /** The project directory this document came from, or null for an unsaved document. */
+  filePath: string | null
+  /** Whether a recovery snapshot is waiting, and when it was taken. */
+  recovery: { available: boolean; savedAt: string | null }
 }
 
 /** Caps selection bookkeeping so a runaway marquee cannot grow unbounded. */
@@ -54,7 +60,15 @@ export class DocumentStore {
       undoDepth: 0,
       redoDepth: 0,
       lastError: null,
+      savedRevision: document.revision,
+      filePath: null,
+      recovery: { available: false, savedAt: null },
     }
+  }
+
+  /** True when the document has changed since it was last saved. */
+  isDirty(): boolean {
+    return this.state.document.revision !== this.state.savedRevision
   }
 
   getState = (): EditorState => this.state
@@ -191,10 +205,27 @@ export class DocumentStore {
   }
 
   /** Replaces the document for new/open; history and selection are cleared. */
-  replaceDocument(document: Document) {
+  replaceDocument(document: Document, options: { savedRevision?: number; filePath?: string | null } = {}) {
     this.history.clear()
     this.transaction = null
-    this.update({ document, selection: [], lastError: null })
+    this.update({
+      document,
+      selection: [],
+      lastError: null,
+      // A freshly opened or new document matches what is on disk until the next edit.
+      savedRevision: options.savedRevision ?? document.revision,
+      filePath: options.filePath ?? null,
+    })
+  }
+
+  /** Records that the document now matches the project on disk (issue #19). */
+  markSaved(revision: number, filePath: string) {
+    this.update({ savedRevision: revision, filePath, lastError: null })
+  }
+
+  /** Records that a recovery snapshot exists, or that one was consumed. */
+  setRecovery(recovery: { available: boolean; savedAt: string | null }) {
+    this.update({ recovery })
   }
 
   clearError() {

@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App.tsx'
 import { BenchmarkApp } from './app/BenchmarkApp.tsx'
-import { runEditorSmoke, runEditorStress } from './dev/smoke.ts'
+import { runEditorSmoke, runEditorStress, runFileRoundTrip } from './dev/smoke.ts'
 import { documentStore } from './state/documentStore.ts'
 import './styles.css'
 
@@ -20,6 +20,8 @@ if (search.has('smoke')) {
     void (async () => {
       const report = runEditorSmoke(documentStore)
       console.log(`[vectr-smoke] ${JSON.stringify(report)}`)
+      const files = await runFileRoundTrip()
+      console.log(`[vectr-file] ${JSON.stringify(files)}`)
       if (search.get('smoke') === 'stress') {
         const stress = await runEditorStress(documentStore)
         console.log(`[vectr-stress] ${JSON.stringify(stress)}`)

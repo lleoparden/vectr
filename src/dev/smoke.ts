@@ -21,9 +21,12 @@ import {
   openDocument,
   recoverDocument,
   refreshRecoveryState,
+  requestNewDocument,
+  resolveUnsavedPrompt,
   saveDocument,
   writeRecoverySnapshot,
 } from '../app/files/fileActions.ts'
+import { workspaceStore } from '../state/workspaceStore.ts'
 import { serializeDocument } from '../file/serialize.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
 import { documentStore } from '../state/documentStore.ts'
@@ -282,6 +285,24 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
   await api.clearRecovery()
   await refreshRecoveryState()
   record('recovery clears after it is consumed', documentStore.getState().recovery.available === false, 'cleared')
+
+  // The unsaved-work guard: starting a new document must ask instead of discarding.
+  documentStore.dispatch({ type: 'renameNode', nodeId: rect.id, name: 'Guarded edit' }, 'rename')
+  requestNewDocument()
+  const prompt = workspaceStore.getState().pendingPrompt
+  const keptWhileAsking = findNode(documentStore.getState().document, rect.id)?.name === 'Guarded edit'
+  record(
+    'starting a new document asks before discarding unsaved work',
+    prompt?.kind === 'new' && keptWhileAsking,
+    prompt === null ? 'no prompt was raised' : `prompt "${prompt.kind}", work kept: ${keptWhileAsking}`,
+  )
+  await resolveUnsavedPrompt('cancel')
+  record(
+    'cancelling the prompt leaves the document untouched',
+    workspaceStore.getState().pendingPrompt === null &&
+      findNode(documentStore.getState().document, rect.id)?.name === 'Guarded edit',
+    'prompt closed, document unchanged',
+  )
 
   const memory = await window.vectrBenchmark.getMemory()
   record(

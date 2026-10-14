@@ -298,6 +298,14 @@ renderer, a working layer tree, and a project format the compiler can read.
   imported` (8×8 pixels, 89 bytes, content key `sha256-ab57fee…`), `image undo removes node and
   asset`, `image redo restores both`, and `image drawn from its asset`, with 1,004 shapes at
   render p95 1.30 ms; 107 unit tests pass (10 new) with clean typecheck and build.
+- UI enhancement, owner-requested, after Phase 1 (branch `feat/unsaved-changes-dialog`): the
+  unsaved-changes warning is now Vectr's own modal instead of a native operating-system message box
+  (`src/app/shell/UnsavedChangesDialog.tsx` with the copy in `src/app/files/unsavedPrompt.ts`,
+  `aria-modal`, focus on Save, Tab kept inside, Escape cancels, buttons disabled while saving), and
+  the same dialog now guards **New** and **Open**, which previously discarded unsaved work without
+  asking — a real data-loss bug. Cancelling a save keeps the prompt open; discarding on close still
+  writes the recovery snapshot first. Evidence: 121 unit tests (2 new) and 45 packaged smoke steps
+  across four reports, including two new steps proving the guard raises the prompt and keeps the work.
 - Phase 1 slice 6, durable local documents (issue #19, branch `feat/durable-documents`, PR #40):
   the project format (`src/file/format.ts`, `serialize.ts`, `validate.ts`, `atomicWrite.ts`,
   `recovery.ts`) — a `<name>.vectr/` directory with a canonical, byte-stable `manifest.json`, a

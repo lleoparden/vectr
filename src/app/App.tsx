@@ -10,6 +10,7 @@
 
 import { useEffect } from 'react'
 import { AboutDialog } from './shell/AboutDialog.tsx'
+import { UnsavedChangesDialog } from './shell/UnsavedChangesDialog.tsx'
 import { CanvasView } from './canvas/CanvasView.tsx'
 import { handleBeforeClose, RECOVERY_INTERVAL_MS, refreshRecoveryState, writeRecoverySnapshot } from './files/fileActions.ts'
 import { MenuBar } from './shell/MenuBar.tsx'
@@ -54,6 +55,7 @@ export function App() {
         <StatusBar />
       </div>
       <AboutDialog />
+      <UnsavedChangesDialog />
     </>
   )
 }

@@ -1009,6 +1009,44 @@ the new one. Evidence that it changed nothing but paths: typecheck clean, **119/
 identical production bundle hash before and after (`index-5DFkgqNk.js`, 480.32 kB), and the packaged
 smoke run passing all three reports (18 + 11 + 8 = 37 steps).
 
+## 2026-10-14 — Vectr's own unsaved-changes dialog, and a data-loss bug it exposed
+
+### The dialog is Vectr's, not the operating system's
+
+Closing with unsaved work used to raise a native `dialog.showMessageBox`. That made the one surface
+that interrupts the user the one surface that did not look like the product — against the UI rule,
+which wants the equivalent control where an Illustrator user expects it, drawn the way Vectr draws
+everything else. `src/app/shell/UnsavedChangesDialog.tsx` replaces it: Vectr's chrome, Vectr's copy
+(`src/app/files/unsavedPrompt.ts`, pure and tested), a real modal with `aria-modal`, a labelled
+title, focus on the primary action, Tab kept inside the dialog, Escape cancelling, and the primary
+button reading "Saving…" while an async save is in flight.
+
+The main process keeps the guard and loses the dialog: it still intercepts the first close and sends
+`app:before-close`, and the renderer answers with `app:allow-close` only when it may. **An unanswered
+prompt can never lose work** — no answer means the window stays open. `dialog:confirm-close` is gone
+from the main process, the preload bridge, and the type declarations.
+
+### The bug the same code path had: New and Open discarded unsaved work silently
+
+`file.new` and `file.open` called straight into `newDocument()` and `openDocument()`, so an unsaved
+document was replaced without a question. That is the exact silent data loss the recovery rules exist
+to prevent, and it was worse than the native dialog ever was. Both actions now go through
+`requestNewDocument()` / `requestOpenDocument()`, which raise the same dialog with copy written for
+the occasion ("Save changes before starting a new document?"). One dialog, three ways work can be
+lost: closing, New, and Open.
+
+Cancelling a save inside the dialog keeps the dialog open rather than dropping the work, and
+discarding on close still writes the recovery snapshot first — discarding remains the only lossy
+path, and it is now explicitly chosen in every case.
+
+### Evidence
+
+- 121 unit tests, two new: the copy for all three kinds (distinct wording, the document name, the
+  unnamed fallback, and that closing explains the snapshot), and the guard logic.
+- `electron . --smoke=stress` — 45 packaged steps across four reports, all passing. Two new steps in
+  `[vectr-file]` prove the guard end to end: `starting a new document asks before discarding unsaved
+  work` (prompt raised, work kept) and `cancelling the prompt leaves the document untouched`.
+
 ## 2026-10-14 — Bounded decoded-asset cache, and the Phase 1 exit audit
 
 ### The cache is now bounded

@@ -25,7 +25,7 @@ import {
 import { planDrop } from './editing/layerDrag.ts'
 import type { LayerRow } from './panels/layerRows.ts'
 import { importImageBytes, pickImageFile } from './files/imageImport.ts'
-import { newDocument, openDocument, recoverDocument, saveDocument } from './files/fileActions.ts'
+import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
 import { createImage } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './canvas/viewportOps.ts'
@@ -401,10 +401,10 @@ export function runEditorAction(id: EditorActionId): void {
       void placeImageFromDialog()
       return
     case 'file.new':
-      newDocument()
+      requestNewDocument()
       return
     case 'file.open':
-      void openDocument()
+      requestOpenDocument()
       return
     case 'file.save':
       void saveDocument()

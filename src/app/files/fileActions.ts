@@ -14,10 +14,12 @@
 import { createDocument } from '../../doc/document.ts'
 import { assetRegistry } from '../../state/assetRegistry.ts'
 import { documentStore } from '../../state/documentStore.ts'
+import { workspaceStore } from '../../state/workspaceStore.ts'
 import { requiredAssets, verifyAssets } from '../../file/validate.ts'
 import { deserializeDocument, serializeDocument } from '../../file/serialize.ts'
 import { projectFileName } from '../../file/format.ts'
 import { readRecovery } from '../../file/recovery.ts'
+import { needsUnsavedPrompt, promptChoiceFor } from './unsavedPrompt.ts'
 
 /** Autosave interval for the recovery snapshot: bounded work while the document is dirty. */
 export const RECOVERY_INTERVAL_MS = 30_000
@@ -146,25 +148,76 @@ export async function refreshRecoveryState(): Promise<void> {
   documentStore.setRecovery({ available: snapshot !== null, savedAt: snapshot?.savedAt ?? null })
 }
 
-/** The close question (issue #19): save, discard with a recovery snapshot, or cancel. */
+/**
+ * The close question: the main process asks before it closes, and with unsaved work we answer
+ * with Vectr's own dialog instead of a native message box. If the window is never told it may
+ * close, it stays open — an unanswered prompt can never lose work.
+ */
 export async function handleBeforeClose(): Promise<void> {
   const api = bridge()
   if (api === undefined) return
-  if (!documentStore.isDirty()) {
+  if (!needsUnsavedPrompt(documentStore.isDirty())) {
     await api.allowClose()
     return
   }
-  const choice = await api.confirmClose({ name: documentStore.getState().document.name })
-  if (choice === 'cancel') return
+  workspaceStore.promptFor('close', documentStore.getState().document.name)
+}
+
+/**
+ * Resolves the dialog: save, discard, or cancel. A failed or cancelled save leaves the prompt
+ * open so nothing is dropped silently, and discarding on close takes a recovery snapshot first.
+ */
+export async function resolveUnsavedPrompt(button: 'confirm' | 'discard' | 'cancel'): Promise<void> {
+  const prompt = workspaceStore.getState().pendingPrompt
+  if (prompt === null) return
+  const choice = promptChoiceFor(button)
+
+  if (choice === 'cancel') {
+    workspaceStore.clearPrompt()
+    return
+  }
   if (choice === 'save') {
     const saved = await saveDocument()
-    if (!saved) return
-    await api.allowClose()
+    if (!saved) {
+      // The user cancelled the save dialog or the write failed: keep asking rather than lose work.
+      workspaceStore.setPromptBusy(false)
+      return
+    }
+  }
+
+  workspaceStore.clearPrompt()
+  if (prompt.kind === 'close') {
+    // Discarding is the only path that can lose work, so the snapshot is taken first.
+    if (choice === 'discard') await writeRecoverySnapshot()
+    await bridge()?.allowClose()
     return
   }
-  // Discarding is the only path that can lose work, so the snapshot is taken first.
-  await writeRecoverySnapshot()
-  await api.allowClose()
+  if (prompt.kind === 'new') {
+    newDocument()
+    return
+  }
+  await openDocument()
+}
+
+/**
+ * New, guarded: starting a new document used to discard unsaved work without asking, which is
+ * exactly the silent data loss the recovery rules exist to prevent.
+ */
+export function requestNewDocument(): void {
+  if (needsUnsavedPrompt(documentStore.isDirty())) {
+    workspaceStore.promptFor('new', documentStore.getState().document.name)
+    return
+  }
+  newDocument()
+}
+
+/** Open, guarded the same way as New. */
+export function requestOpenDocument(): void {
+  if (needsUnsavedPrompt(documentStore.isDirty())) {
+    workspaceStore.promptFor('open', documentStore.getState().document.name)
+    return
+  }
+  void openDocument()
 }
 export async function recoverDocument(): Promise<boolean> {
   const api = bridge()

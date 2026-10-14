@@ -87,7 +87,6 @@ declare global {
         snapshot?: { savedAt: string; documentName: string; directory: string | null; manifest: string } | null
       }>
       clearRecovery: () => Promise<{ ok: boolean }>
-      confirmClose: (payload: { name: string }) => Promise<'save' | 'discard' | 'cancel'>
       allowClose: () => Promise<{ ok: boolean }>
       onBeforeClose: (handler: () => void) => void
     }

@@ -16,7 +16,6 @@ contextBridge.exposeInMainWorld('vectrFiles', {
   writeRecovery: (snapshot) => ipcRenderer.invoke('recovery:write', snapshot),
   readRecovery: () => ipcRenderer.invoke('recovery:read'),
   clearRecovery: () => ipcRenderer.invoke('recovery:clear'),
-  confirmClose: (payload) => ipcRenderer.invoke('dialog:confirm-close', payload),
   allowClose: () => ipcRenderer.invoke('app:allow-close'),
   onBeforeClose: (handler) => {
     ipcRenderer.on('app:before-close', () => handler())

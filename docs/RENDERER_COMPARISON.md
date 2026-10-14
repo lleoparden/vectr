@@ -37,10 +37,12 @@ are behavior evidence only — no source is copied into Vectr:
   warm-up render, then `ITERS` renders averaged (default 5) at "fit 2880x1800"
   (scale 1.6), "zoom 400% 2880x1800" (scale 6.4), and "thumb 400x300" (0.25).
 - **Fixture weight difference:** their shapes are simple primitives (4–10 points).
-  Our `primitives/stress` fixture is 10,000 shapes at 10 line segments (rect) or
-  40 (ellipse), drawn fill **and** stroke — about 255,000 line segments and 20,000
-  draw ops, materially heavier per shape. Recorded as a difference, not adjusted
-  for.
+  Our `primitives/stress` fixture declares a segment budget of 100,000 (10,000
+  shapes × 10, unchanged from Phase 0's stress definition) and renders about
+  250,000 polyline vertices, because each ellipse is tessellated at 4× the declared
+  budget (5,000 ellipses × 40 + 5,000 rects × 10), drawn fill **and** stroke —
+  about 20,000 draw ops per frame. It is materially heavier per shape than their
+  published fixture. Recorded as a difference, not adjusted for.
 - **Their native bench could not run here**: building needs the MSVC linker and
   this machine has no `link.exe` (the same Phase 0 Tauri blocker). The exact
   failure is recorded in the pull request; no native reference number is claimed

@@ -102,7 +102,7 @@ current report states its own definition.
 | Scenario (p95 across five runs) | build | draw | interaction (gate) | presented | React-driven |
 | --- | --- | --- | --- | --- | --- |
 | primitives / representative (1,000 layers) | 8 ms | 10.2 ms | 7.5 ms | 7.6 ms | 8.1 ms |
-| primitives / stress (10,000 layers, 100,000 segments) | 54 ms | 74.6 ms | **99.9 ms** | 93.4 ms | 18.4 ms |
+| primitives / stress (10,000 layers; 100,000 declared segments, ~250,000 rendered vertices) | 54 ms | 74.6 ms | **99.9 ms** | 93.4 ms | 18.4 ms |
 | text / representative (1,000 text nodes) | 48 ms | 1.8 ms | 32.2 ms | 3.5 ms | 7.5 ms |
 | text / stress (10,000 text nodes) | 202 ms | 32.6 ms | **60.7 ms** | 37.2 ms | 7.9 ms |
 | images / representative (100 images) | 2 ms | 0.7 ms | 0.5 ms | 1.1 ms | 7.1 ms |
@@ -139,7 +139,7 @@ definition. Five packaged runs are recorded in
 | Scenario (p95, five runs) | slice 1 direct | slice 1b direct (control) | **slice 1b picture** |
 | --- | --- | --- | --- |
 | primitives / 1,000 layers | 7.5 ms | 11.3 ms | **7.3 ms** |
-| primitives / 10,000 layers, 100,000 segments | 99.9 ms | 125.3 ms | **82.2 ms** |
+| primitives / 10,000 layers; 100,000 declared segments (~250,000 rendered vertices) | 99.9 ms | 125.3 ms | **82.2 ms** |
 | text / 1,000 nodes | 32.2 ms | 37.4 ms | **12.4 ms** |
 | text / 10,000 nodes | 60.7 ms | 63.0 ms | **35.0 ms** |
 | images / 1,000 images | 3.6 ms | 4.1 ms | **2.5 ms** |

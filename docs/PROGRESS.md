@@ -107,11 +107,18 @@
 
 ## Next
 
-- Owner action: review and merge PRs #21 (workflow docs), #22 (slice 1 spike), #24
-  (slice 1b optimization) and #26 (this comparison). Editor slices 2–6 stay stopped
-  until then, per the owner's instruction.
-- After merging, Phase 1 resumes with #18 (document, commands, shapes, selection),
-  then #20, #16, #17, #19 on the accepted CanvasKit recorded-picture path.
+- The workflow and renderer research stack is merged into `main`: #21 (PR 21),
+  #22 (merge `8c8f72c`, Phase 1 slice 1), #24 (merge `325508e`, slice 1b), #26
+  (merge `601c32e`, slice 1c comparison). All four are closed; no pull requests are
+  open.
+- Phase 1 slice 2 is in progress on `feat/document-command-core` (#18): document
+  model, validation, commands, and bounded undo/redo are implemented with 17 domain
+  tests, and `main` was merged into the branch after the stack landed. Remaining in
+  the slice before its pull request: document store, editor renderer on the
+  recorded-picture path, editor shell, app identity rename, and this file plus the
+  catalog update.
+- After #18: #20 (layers and groups), #16 (plain text), #17 (images), #19 (durable
+  local documents), one pull request per slice on the accepted renderer.
 - `PERF-01` revisit triggers: wasm threads with COOP/COEP isolation, Phase 4
   profiling with culling and retained regions on realistic documents, or an
   owner-approved revision of the 10,000-loose-primitive limit.

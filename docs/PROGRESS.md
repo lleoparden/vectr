@@ -110,6 +110,28 @@
   TypeScript parameter property that Node strip-only mode rejects; a locked group
   did not lock its subtree in hit testing; and a PowerShell rewrite of
   `package.json` added a UTF-8 BOM that broke the Vite build.
+- Phase 1 slice 2b, the UI shell alignment (issue #28, branch
+  `feat/ui-shell-alignment`, stacked on #18): the shell is now a modern Illustrator
+  rather than a placeholder — menu bar with Illustrator's menu structure
+  (`src/app/MenuBar.tsx`, `menuModel.ts`), docked left tool palette with V/M/L and
+  original icons (`ToolPalette.tsx`, `icons.tsx`), right panel dock with collapsible
+  tabbed groups (`src/app/panels/PanelDock.tsx`), Layers panel with disclosure, eye,
+  lock, and a reserved thumbnail slot (`panels/LayersPanel.tsx`), read-only
+  Properties, Appearance, and Color panels, status bar, theme tokens
+  (`src/styles.css` `@theme` plus `src/app/theme.ts`), one action table shared by
+  menus, palette, and keyboard (`src/app/actions.ts`), an Illustrator-default
+  shortcut map (`src/app/shortcuts.ts`), pure viewport arithmetic
+  (`src/app/viewportOps.ts`), and workspace state split out of the document store
+  (`src/state/workspaceStore.ts`) so layout changes stop waking document subscribers.
+- Slice 2b evidence: `electron . --smoke=stress` passes all nine command-path steps on
+  the new shell and measures 1,001 shapes in 16 recorded buckets at **render p95
+  1.10 ms** over 60 frames (scene build 3.5 ms), WebGL; 64 unit tests pass (16 new
+  shell tests) with clean typecheck and build.
+- Slice 2b bug found and fixed by the new tests: Hide/Lock over several selected nodes
+  first shared one transaction, and a transaction keeps only the first inverse, so
+  undo restored one layer and left the others hidden. Flag changes now record one
+  entry per node, and the aggregate-inverse fix is logged as a follow-up instead of
+  changing the command model inside a UI slice.
 
 ## Next
 
@@ -134,9 +156,20 @@
 
 - **Owner action: review and merge PR #30** (Phase 1 slice 2, issue #18 — versioned
   document, validated command path, bounded undo/redo, editor store, renderer, and
-  editor shell). It is classified big: it sets the command/undo model, the app
-  identity, and the interfaces slices 3–6 build on. Merged already: #21, #22, #24,
-  #26, #27, #29, #31.
+  the original editor shell). It is classified big: it sets the command/undo model,
+  the app identity, and the interfaces slices 3–6 build on. Merged already: #21, #22,
+  #24, #26, #27, #29, #31, #32.
+- **Then review and merge the UI shell alignment** (issue #28, PR stacked on #30):
+  it is the shell Phase 2 builds on, so it lands before any new tool. `UI-01` stays
+  `building` while the read-only panels, the unbuilt workspace layer, and the
+  per-node undo aggregation remain.
+- After that, Phase 1 continues in order: #20 (layers and groups: interactive tree,
+  reorder, group/ungroup, rename, the aggregate-inverse question), #16 (plain text),
+  #17 (images), #19 (durable local documents, which also retires the missing File
+  menu).
+- Known follow-up worth an owner decision before #20: whether the command model grows
+  an aggregate inverse so a multi-object Hide or Lock is one undo step, as it is in
+  Illustrator.
 - **UI direction recorded and enforced (PRs #29 and #31).** Vectr's interface is a
   modern Illustrator (`AGENTS.md`, Product identity; `docs/DECISIONS.md`, 2026-10-14;
   catalog `UI-01`). Interface work must state its Illustrator mapping in its issue and
@@ -175,8 +208,12 @@
   it is non-blocking and the temporary harness sits outside the repo.
 - `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
   remain untracked working files.
-- The shell does not yet meet the modern-Illustrator UI direction recorded in
-  `docs/DECISIONS.md` (2026-10-14). Slice 2 ships a top toolbar plus a plain layer
-  list, not a menu bar, left tool palette, and right-docked panels. Issue #20 owns
-  the layer tree and panel layout; issue #28 owns the menu bar, tool palette, and
-  docked panels, and must land before Phase 2 adds tools.
+- The shell now follows the UI direction, but with nineteen recorded divergences from
+  Illustrator (`docs/DECISIONS.md`, UI shell alignment). The load-bearing ones:
+  Properties, Appearance, and Color are read-only because style and transform commands
+  do not exist yet; the Layers panel is read-only beyond selection, hide, lock, and
+  disclosure (issue #20 owns the interactive tree, renaming, and thumbnails); the File
+  menu is absent until #19 adds documents; Hide/Lock/Show All/Unlock All record one
+  history entry per node instead of one per command, because aggregating needs an
+  aggregate inverse in the command model; and there are no context menus, rulers,
+  guides, or saved workspaces.

@@ -392,7 +392,94 @@ them. Implementation: `src/doc/{types,document,validate,commands,history}.ts`.
   verbatim, validates on open, and rejects unknown versions instead of repairing
   them silently.
 
+## 2026-10-14 — UI shell alignment (issue #28)
+
+The shell now follows the UI direction (recorded in the next section, *UI direction: a
+modern Illustrator*) instead of the slice 2 placeholder: a menu bar
+(`src/app/MenuBar.tsx` + `menuModel.ts`), the docked tool palette
+(`src/app/ToolPalette.tsx`), the right panel dock with collapsible tabbed groups
+(`src/app/panels/PanelDock.tsx`), the style panels
+(`panels/{Layers,Properties,Appearance,Color}Panel.tsx`), a status bar, theme tokens
+in `src/styles.css` (`@theme`) plus `src/app/theme.ts`, and an Illustrator-default
+keyboard map (`src/app/shortcuts.ts`) driving one action table (`src/app/actions.ts`)
+that the menus, palette, and keyboard all share.
+
+Panel layout, the canvas size, and the About dialog live in a new workspace store
+(`src/state/workspaceStore.ts`) rather than the document store. That is deliberate: it
+fixes the slice 2 wart where a viewport change notified every document subscriber,
+including the layer list.
+
+### Every place the shell diverges from Illustrator, and why
+
+1. **File, Type, and Effect menus are absent.** New/Open/Save are #19, Export React is
+   the compiler phase, text is #16, and Vectr has no effects. An empty menu or a
+   permanently greyed placeholder is worse than an honest omission.
+2. **The tool palette has three tools** (Selection, Rectangle, Ellipse). Illustrator
+   has around forty. Only built tools appear; Pen, Type, Shape Builder, gradients, and
+   the rest arrive with the slices that implement them.
+3. **No subtool groups or press-and-hold flyouts** on the palette; with three tools
+   there is nothing to nest.
+4. **Shortcut keys exist only where a command exists** (V, M, L, Ctrl+Z, Ctrl+Shift+Z,
+   Delete, Ctrl+A, Ctrl+Shift+A, Ctrl+2/3, Ctrl+Alt+2/3, Ctrl+=/−, Ctrl+0, Ctrl+1, F6,
+   Shift+F6, F7). P, T, A, Ctrl+G/H/J and the rest are absent because the commands are.
+5. **Escape also deselects** and clears the last rejection notice; Illustrator reserves
+   Escape for cancelling the active operation.
+6. **Backspace is an extra binding for Clear** (Delete is Illustrator's own key), for
+   keyboards without a Delete key.
+7. **No Alt-key menu activation.** Illustrator focuses its menu bar with Alt on
+   Windows; Vectr's menu bar is opened by click or by arrow keys, because Alt is also
+   the modifier in Ctrl+Alt+2/3 (Unlock All, Show All).
+8. **The panel dock has a fixed width** with collapsible tabbed groups. No drag-to-
+   resize, no floating or rearranged panels, no saved workspaces (that is UI-02).
+9. **The panel set is smaller**: Layers, Properties, Appearance, Color. Swatches,
+   Align, Transform, Stroke, Gradient, Character, Paragraph, Pathfinder, and Symbols
+   are not built, and panels have no flyout (hamburger) menu yet.
+10. **The Layers panel is read-only apart from selection, hide, lock, and disclosure.**
+    No drag reorder, group/ungroup, rename, duplicate, target/locate column, or
+    thumbnails; the thumbnail slot is reserved and empty. Issue #20 owns the
+    interactive tree.
+11. **Hide/Lock/Show All/Unlock All record one history entry per node**, not one per
+    command. Illustrator aggregates them into a single undo step. Aggregating needs an
+    aggregate inverse in the command model, because a transaction keeps only the first
+    inverse of a gesture (correct for a one-node drag, wrong across several nodes).
+    That is a command/undo-model change, so it is deliberately **not** in this UI slice
+    and stays on the list as a follow-up.
+12. **Properties, Appearance, and Color are read-only.** Editing values needs style and
+    transform commands that do not exist; the panels say so instead of showing
+    controls that silently do nothing.
+13. **No rulers, guides, grids, snapping, artboard tool, or multiple artboards on
+    screen.** Phase 2.
+14. **No context menus.** Illustrator's right-click menus are extensive; Vectr has none
+    yet.
+15. **The menu bar carries the document name** at its right edge. Illustrator relies on
+    the operating system's window title; Vectr draws its own single-window chrome.
+16. **Zoom and Hand are not tools.** Pan is middle-drag (or two-point drag on a
+    trackpad via the wheel), zoom is the wheel plus the View menu, so Z and H are not
+    bound while the tools they belong to do not exist.
+17. **Opening a document fits the artboard in the window.** Illustrator restores the
+    last view per document; Vectr has no persisted view state until #19.
+18. **Colors, type, icons, and copy are Vectr's own** — a dark chrome with a single
+    violet accent and hand-drawn geometric icons. This is the intended divergence: the
+    familiarity is in the layout, terminology, and behavior, never in artwork.
+19. **The status bar shows the zoom level, artboard, and revision**, and the render
+    statistics overlay stays on the canvas for this Phase 1 work; Illustrator keeps
+    renderer internals out of the interface.
+
+### Evidence and limits
+
+- `electron . --smoke=stress` passes all nine command-path steps on the new shell and
+  measures 1,001 shapes in 16 recorded buckets at render p95 1.10 ms over 60 frames
+  (scene build 3.5 ms), WebGL backend.
+- 64 unit tests pass, including the keyboard-map consistency, the menu model, the panel
+  layout rules, the viewport arithmetic, and the layer-row inheritance rules.
+- The panels' own interactions (dragging a layer, editing a value) are unbuilt by
+  design, so the GUI is still verified by scripted store-level evidence plus manual
+  checks rather than by browser automation.
+
 ## 2026-10-14 — UI direction: a modern Illustrator
+
+The shell that implements this direction, with its full divergence list, is recorded in
+the section above (*UI shell alignment*, issue #28).
 
 - Owner direction: Vectr's interface must be as close to Illustrator as is
   practical, so Illustrator users are productive without relearning anything, while

@@ -85,6 +85,31 @@
   nodes, 22 ms at 10,000 text nodes, 54–61 ms at 10,000 loose primitives. Leak
   check passed in both modes; peak whole-app working set 861 MiB across four
   processes.
+- The workflow and renderer stack merged into `main`: #21 (workflow), #22 (slice 1,
+  `8c8f72c`), #24 (slice 1b, `325508e`), #26 (slice 1c comparison, `601c32e`), and
+  #27 (small-vs-big merge policy plus mandatory self-review, `c0613de`).
+- Phase 1 slice 2 delivered (issue #18, branch `feat/document-command-core`):
+  versioned document model with structural sharing (`src/doc/types.ts`,
+  `document.ts`), stable rejection codes (`validate.ts`), one validated command
+  path with inverse commands (`commands.ts`), bounded history with single-entry
+  drag transactions (`history.ts`), pure hit testing (`hitTest.ts`), a
+  paint-order scene builder (`src/render/scene.ts`), the editor renderer on the
+  accepted recorded-picture path with per-bucket invalidation
+  (`src/render/EditorRenderer.ts`), the editor store with one `dispatch` entry
+  point (`src/state/documentStore.ts`), and the editor shell (toolbar, canvas with
+  rect/ellipse tools, marquee, drag transactions, zoom/pan, layer list, shortcuts).
+- The app identity is now `vectr` / `Vectr` / `com.vectr.app`, the benchmark
+  runner targets `Vectr.exe`, and the Phase 1 benchmark harness stays reachable
+  with `?benchmark` inside the same app.
+- Slice 2 evidence: `electron . --smoke=stress` passes all nine command-path steps
+  and measures 1,001 shapes in 16 recorded buckets at **render p95 1.10 ms** over
+  60 frames (scene build 4.4 ms), with 48 unit tests passing and clean typecheck
+  and build.
+- Bugs found and fixed while building the slice: `replaceNode` never matched the
+  document root (root-level inserts silently did nothing); `History` used a
+  TypeScript parameter property that Node strip-only mode rejects; a locked group
+  did not lock its subtree in hit testing; and a PowerShell rewrite of
+  `package.json` added a UTF-8 BOM that broke the Vite build.
 
 ## Next
 
@@ -130,24 +155,26 @@
 
 ## Known issues
 
-- No production editor code or GitHub labels exist yet.
+- No automated end-to-end test covers the GUI. The editor smoke run
+  (`electron . --smoke=stress`) is the current evidence path; a GUI test harness is
+  an open choice.
 - Graphify is installed, but no knowledge graph exists until source code is added.
-- Full-document SVG misses the stress interaction target. CanvasKit is now
-  measured and also misses it on the 10,000-node stress fixtures; the spike has no
-  viewport culling or retained layer cache, and the diagnosis points at per-item
-  call and state overhead.
+- The layer list is read-only until #20: reorder, group/ungroup, multi-select, and
+  nesting are not interactive yet.
+- `cornerRadius` is in the document model but a rectangle still draws with square
+  corners until a later slice adds rounded-rect rendering.
+- Nothing is persisted yet: the document lives in memory until #19 adds new/open/
+  save with a versioned manifest and asset directory.
+- Full-document SVG misses the stress interaction target. CanvasKit is measured and
+  the accepted recorded-picture path is inside budget up to 1,000 live layers, but
+  10,000 loose always-visible primitives remain a published limit (`PERF-01`).
 - CanvasKit raises the measured peak whole-app working set to 817 MiB on the
   combined fixture run (four processes, GPU process 280 MiB), so the shell memory
   question stays open alongside the renderer decision.
-- The current Windows benchmark machine lacks the MSVC linker required to
-  compile Tauri. Its comparison is deferred and non-blocking; the temporary
-  harness and dependencies are outside the repo.
-- The uncommitted Phase 0 harness identity (`vectr-phase-zero-benchmark`,
-  `com.vectr.phase-zero-benchmark`, "Vectr Phase Zero Benchmark") is still in
-  place; the rename to the Vectr app identity is part of slice 2.
-- `.ecc/tmp/canvaskit-smoke.json` (informal single-run smoke evidence) and
-  `.ecc/issues/*.md` (issue bodies used for creation) remain untracked working
-  files.
+- The deferred Tauri comparison still cannot build on this machine (no MSVC linker);
+  it is non-blocking and the temporary harness sits outside the repo.
+- `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
+  remain untracked working files.
 - The shell does not yet meet the modern-Illustrator UI direction recorded in
   `docs/DECISIONS.md` (2026-10-14). Slice 2 ships a top toolbar plus a plain layer
   list, not a menu bar, left tool palette, and right-docked panels. Issue #20 owns

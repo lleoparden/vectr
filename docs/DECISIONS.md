@@ -322,6 +322,76 @@ merge commits (slice 1 evidence, slice 1b optimization, and the workflow record)
   retained as an open item. It is not acceptance evidence; the recorded five-run
   spike evidence replaces it.
 
+## 2026-10-14 — Document model and command path (Phase 1 slice 2, issue #18)
+
+Recorded before slices 3–6 so they extend written decisions instead of guessing at
+them. Implementation: `src/doc/{types,document,validate,commands,history}.ts`.
+
+### Identity
+
+- Ids come from `newId(prefix)`: `${prefix}-${base36 counter}-${six random base36
+  characters}`. They are opaque, stable, never derived from a layer name, and never
+  reused, so renaming or moving a layer cannot break a reference to it.
+- Uniqueness is enforced by `validateDocument` (`duplicate-id`) rather than trusted
+  from the generator, so an imported or hand-edited document fails loudly.
+- Ids are the persistence key planned for the file format (slice #19) and the
+  component-identity key planned for the compiler (Phase 6, one component per
+  layer). Both later phases must treat ids as opaque strings and must not renumber,
+  reorder, or regenerate them on load or export.
+
+### Versioning
+
+- `FORMAT_VERSION = 1` is the document's `formatVersion`. It is separate from
+  `revision`.
+- `revision` increments on every applied command so renderers, caches, and future
+  consumers can invalidate without diffing the tree. It is not persisted as
+  identity and nothing may branch on its exact value.
+- An unsupported `formatVersion` is refused with `unsupported-version`; migrations
+  key off it. Loading must never guess at a newer or older shape.
+
+### Undo granularity
+
+- History stores **inverse commands**, never document snapshots. A command records
+  changed fields or the removed subtree, which is what keeps memory bounded on
+  large documents.
+- A drag, transform, or text edit is **one transaction**: the transaction keeps the
+  first inverse (which restores the pre-gesture state) and the last command (which
+  is what redo re-applies), so a 200-step drag costs one history entry.
+- The stack is bounded at 200 entries and drops the oldest first. A committed
+  command clears redo. If an inverse fails to apply, the entry is pushed back and
+  the document is left untouched rather than partially mutated.
+- Selection is deliberately **not** history state. Slices 3–6 must restore
+  selection from the command's effect (the ids still exist) instead of recording
+  selection snapshots, or the history stops being a record of document changes.
+
+### Validation error codes
+
+- The stable set: `duplicate-id`, `absent-node`, `absent-parent`, `invalid-parent`,
+  `cycle`, `invalid-index`, `non-finite`, `non-positive-size`, `unsupported-version`.
+- Codes are part of the contract, because the UI, the file loader (slice #19), and
+  the future MCP surface act on codes; messages are for people and may change.
+- Responsibility split: commands validate **structure** before mutating (parent
+  exists and is a group, index in range, no cycle, ids resolvable, transforms
+  finite) and leave the document byte-identical when they reject; `validateDocument`
+  additionally enforces **geometry** (non-positive sizes) at document boundaries
+  (create, open, save). The `createRect`/`createEllipse` helpers never produce
+  non-positive sizes, so the normal edit path cannot create an invalid document.
+- Known wart, recorded so a later slice can fix it deliberately: a locked node's
+  transform is rejected with `invalid-parent`, because no dedicated `locked` code
+  exists yet. Slice #20 or later should add one rather than overloading this code;
+  until then the message carries the distinction.
+
+### Consequences for slices 3–6
+
+- #20 (layers and groups) and later slices add behavior through new command types
+  in `src/doc/commands.ts`, never by mutating nodes directly, and group/ungroup
+  must preserve ids so the compiler and files stay stable.
+- #16 (text) and #17 (images) extend the same command path and must keep text and
+  asset references in the document, not in the renderer.
+- #19 (durable local documents) persists `formatVersion`, ids, order, and nesting
+  verbatim, validates on open, and rejects unknown versions instead of repairing
+  them silently.
+
 ## 2026-10-14 — UI direction: a modern Illustrator
 
 - Owner direction: Vectr's interface must be as close to Illustrator as is

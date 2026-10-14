@@ -14,6 +14,8 @@ import { createEllipse, createRect, findNode } from '../doc/document.ts'
 import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
+import { planGroup } from '../app/arrange.ts'
+import { runEditorAction } from '../app/actions.ts'
 import type { DocumentStore } from '../state/documentStore.ts'
 
 export type SmokeStep = { name: string; ok: boolean; detail: string }
@@ -75,6 +77,44 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
   store.setSelection([ellipse.id])
   store.dispatch({ type: 'removeNodes', nodeIds: [ellipse.id] }, 'smoke delete')
   record('delete + prune selection', store.getState().selection.length === 0, `${store.getState().selection.length} selected`)
+
+  // Issue #20: a second shape gives something to group, and grouping two layers is one
+  // gesture, so it must be one history entry with the new group selected.
+  const mate = createEllipse('Smoke Group Mate', 520, 200, 80, 80)
+  const root = store.getState().document.root
+  store.dispatch(
+    { type: 'insertNodes', parentId: root.id, index: root.children.length, nodes: [mate] },
+    'smoke group prep',
+  )
+  const orderBefore = store.getState().document.root.children.length
+  store.setSelection(store.getState().document.root.children.map((node) => node.id))
+  const groupPlan = planGroup(store.getState().document, store.getState().selection)
+  record('group planned', groupPlan !== null, groupPlan === null ? 'no plan' : `${groupPlan.length} steps`)
+
+  const depthBeforeGroup = store.getState().undoDepth
+  runEditorAction('object.group')
+  const grouped = store.getState().document.root.children
+  const group = grouped[grouped.length - 1]
+  record(
+    'group is one entry',
+    store.getState().undoDepth === depthBeforeGroup + 1 && grouped.length === orderBefore - 1,
+    `depth ${depthBeforeGroup} -> ${store.getState().undoDepth}, ${orderBefore} -> ${grouped.length} top-level`,
+  )
+  record(
+    'group selected and nested',
+    store.getState().selection.length === 1 &&
+      store.getState().selection[0] === group.id &&
+      (group.type === 'group' ? group.children.length : -1) === orderBefore,
+    `${store.getState().selection.length} selected, ${group.type} holds ${
+      group.type === 'group' ? group.children.length : 0
+    }`,
+  )
+  store.undo()
+  record(
+    'undo ungroups in one step',
+    store.getState().document.root.children.length === orderBefore,
+    `${store.getState().document.root.children.length} top-level again`,
+  )
 
   return { passed: steps.every((step) => step.ok), steps }
 }

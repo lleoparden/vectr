@@ -10,6 +10,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createEllipse, createRect, findNode } from '../doc/document.ts'
 import { hitTest, marqueeHitTest, type Point } from '../doc/hitTest.ts'
 import type { Transform } from '../doc/types.ts'
+import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
+import { canvasContextItems } from './contextMenus.ts'
 import { EditorRenderer, type RenderStats } from '../render/EditorRenderer.ts'
 import { setActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene, type SceneShape } from '../render/scene.ts'
@@ -44,6 +46,7 @@ export function CanvasView() {
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [menu, setMenu] = useState<ContextMenuState>(null)
   const renderedOnce = useRef(false)
   const fittedOnce = useRef(false)
 
@@ -274,6 +277,15 @@ export function CanvasView() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onContextMenu={(event) => {
+          event.preventDefault()
+          const point = toScene(event)
+          const hit = hitTest(documentStore.getState().document, point)
+          // Illustrator selects what is under the pointer when the selection does not
+          // already include it, so the menu always acts on something visible.
+          if (hit !== null && !documentStore.getState().selection.includes(hit)) documentStore.setSelection([hit])
+          setMenu({ x: event.clientX, y: event.clientY, items: canvasContextItems() })
+        }}
       />
       {overlay !== null && (
         <div
@@ -299,6 +311,7 @@ export function CanvasView() {
           Rejected {state.lastError.code}: {state.lastError.message}
         </p>
       )}
+      <ContextMenu menu={menu} onClose={() => setMenu(null)} />
     </div>
   )
 }

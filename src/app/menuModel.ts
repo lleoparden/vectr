@@ -11,9 +11,13 @@
 
 import type { EditorActionId } from './actions.ts'
 
+export type CommandItem = { kind: 'command'; id: EditorActionId; label: string }
+
 export type MenuItem =
-  | { kind: 'command'; id: EditorActionId; label: string }
+  | CommandItem
   | { kind: 'separator' }
+  /** Illustrator's menus nest (Object > Arrange); this is one level of that. */
+  | { kind: 'submenu'; label: string; items: CommandItem[] }
 
 export type MenuSpec = {
   id: string
@@ -36,11 +40,24 @@ export const MENU_BAR: MenuSpec[] = [
     id: 'object',
     label: 'Object',
     items: [
-      { kind: 'command', id: 'object.hideSelection', label: 'Hide Selection' },
-      { kind: 'command', id: 'object.showAll', label: 'Show All' },
+      {
+        kind: 'submenu',
+        label: 'Arrange',
+        items: [
+          { kind: 'command', id: 'object.arrangeFront', label: 'Bring to Front' },
+          { kind: 'command', id: 'object.arrangeForward', label: 'Bring Forward' },
+          { kind: 'command', id: 'object.arrangeBackward', label: 'Send Backward' },
+          { kind: 'command', id: 'object.arrangeBack', label: 'Send to Back' },
+        ],
+      },
+      { kind: 'command', id: 'object.group', label: 'Group' },
+      { kind: 'command', id: 'object.ungroup', label: 'Ungroup' },
       { kind: 'separator' },
       { kind: 'command', id: 'object.lockSelection', label: 'Lock Selection' },
       { kind: 'command', id: 'object.unlockAll', label: 'Unlock All' },
+      { kind: 'separator' },
+      { kind: 'command', id: 'object.hideSelection', label: 'Hide Selection' },
+      { kind: 'command', id: 'object.showAll', label: 'Show All' },
     ],
   },
   {
@@ -98,9 +115,19 @@ export const OMITTED_MENUS: OmittedMenu[] = [
   },
 ]
 
-/** Menu items in flat order, so keyboard traversal can walk one list. */
-export function menuCommands(menu: MenuSpec): Array<Extract<MenuItem, { kind: 'command' }>> {
-  return menu.items.filter((item): item is Extract<MenuItem, { kind: 'command' }> => item.kind === 'command')
+/** Menu items in flat order, so keyboard traversal can walk one list. Submenus are separate. */
+export function menuCommands(menu: MenuSpec): CommandItem[] {
+  return menu.items.filter((item): item is CommandItem => item.kind === 'command')
+}
+
+/** Every action a menu can run, including the ones inside its submenus. */
+export function menuActionIds(menu: MenuSpec): EditorActionId[] {
+  const ids: EditorActionId[] = []
+  for (const item of menu.items) {
+    if (item.kind === 'command') ids.push(item.id)
+    else if (item.kind === 'submenu') ids.push(...item.items.map((child) => child.id))
+  }
+  return ids
 }
 
 /**

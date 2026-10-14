@@ -67,6 +67,21 @@ export function parentIdOf(document: Document, nodeId: NodeId): GroupNode | null
   return document.root.id === nodeId ? null : walk(document.root)
 }
 
+/**
+ * True when the node or any of its ancestors is locked. Illustrator's lock is inherited, so
+ * a child of a locked layer cannot be edited even though its own flag is clear.
+ */
+export function isLocked(document: Document, nodeId: NodeId): boolean {
+  const node = findNode(document, nodeId)
+  if (node !== null && node.locked) return true
+  let container = parentIdOf(document, nodeId)
+  while (container !== null) {
+    if (container.locked) return true
+    container = parentIdOf(document, container.id)
+  }
+  return false
+}
+
 /** Insertion indices shift down when the node left the same parent before it. */
 function adjustIndexAfterDetach(
   previousParent: GroupNode,
@@ -111,6 +126,9 @@ export function applyCommand(document: Document, command: Command): CommandResul
     case 'removeNodes': {
       const removable = validateRemovable(document, command.nodeIds)
       if (!removable.ok) return rejected(removable.issue.code, removable.issue.message)
+      // A locked node, or a node inside a locked group, cannot be deleted (issue #20).
+      const blocked = command.nodeIds.find((nodeId) => isLocked(document, nodeId))
+      if (blocked !== undefined) return rejected('locked', `Node ${blocked} is locked; unlock it before deleting.`)
       // Capture the first removed node's position and the removed nodes themselves
       // so the inverse restores the exact tree.
       const first = command.nodeIds[0]
@@ -130,7 +148,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
     case 'setTransform': {
       const node = findNode(document, command.nodeId)
       if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
-      if (node.locked) return rejected('invalid-parent', `Node ${command.nodeId} is locked.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
       const next = { ...command.transform }
       if (![next.x, next.y, next.rotation, next.scaleX, next.scaleY].every((value) => Number.isFinite(value))) {
         return rejected('non-finite', `Transform for ${command.nodeId} is not finite.`)
@@ -148,6 +166,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
       const node = findNode(document, command.nodeId)
       if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
       if (isGroup(node)) return rejected('invalid-parent', `Groups have no style (${command.nodeId}).`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
       const previous = node.style
       return {
         ok: true,
@@ -191,6 +210,12 @@ export function applyCommand(document: Document, command: Command): CommandResul
       const container = parentIdOf(document, command.nodeId)
       if (node === null || container === null) {
         return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      }
+      if (isLocked(document, command.nodeId)) {
+        return rejected('locked', `Node ${command.nodeId} is locked; unlock it before reordering.`)
+      }
+      if (isLocked(document, command.parentId)) {
+        return rejected('locked', `Group ${command.parentId} is locked; unlock it before moving nodes into it.`)
       }
       const destination = validateDestination(document, command.parentId, command.index, [command.nodeId])
       if (!destination.ok) return rejected(destination.issue.code, destination.issue.message)

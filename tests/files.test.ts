@@ -302,11 +302,12 @@ test('stale asset files are pruned while used ones stay', async () => {
   assert.equal(fs.files.has(`${directory}/assets/${assetFileName(asset)}`), true, 'the used asset stays')
 })
 
-test('the recovery snapshot is one rolling file, newest wins, and clears on save', async () => {
+test('the recovery snapshot is a project folder: assets included, newest wins, clears on save', async () => {
   const { document } = await mixedDocument()
   const fs = new MemoryFileSystem()
-  const directory = '/recovery'
-  const manifest = serializeDocument(document).manifest
+  const directory = '/recovery.vectr'
+  const { manifest, assets } = serializeDocument(document)
+  const mixedAsset = document.assets[0]
 
   assert.equal(await readRecovery(fs, directory), null, 'no snapshot yet')
 
@@ -314,32 +315,90 @@ test('the recovery snapshot is one rolling file, newest wins, and clears on save
     savedAt: '2026-10-14T10:00:00.000Z',
     documentName: 'Mixed',
     directory: '/projects/Mixed.vectr',
+    savedRevision: 7,
     manifest,
+    assets: assets.map((ref) => ({ id: ref.id, mimeType: ref.mimeType, bytes: PNG })),
   })
   const first = await readRecovery(fs, directory)
   assert.equal(first?.savedAt, '2026-10-14T10:00:00.000Z')
   assert.equal(first?.directory, '/projects/Mixed.vectr')
+  assert.equal(first?.savedRevision, 7, 'the revision the file matched comes back, so a restore is dirty')
+  assert.equal(first?.assets.length, assets.length, 'every asset the document declares is in the folder')
+  assert.equal(first?.assets[0].bytes.byteLength, PNG.byteLength, 'and its bytes are the real bytes')
+  assert.equal(
+    fs.files.has(`${directory}/assets/${mixedAsset.id.replace(/^sha256-/, '')}.png`),
+    true,
+    'assets live under the same content-addressed name a project uses',
+  )
 
   await writeRecovery(fs, directory, {
     savedAt: '2026-10-14T11:00:00.000Z',
     documentName: 'Mixed again',
     directory: null,
+    savedRevision: 9,
     manifest,
+    assets: [],
   })
   const second = await readRecovery(fs, directory)
   assert.equal(second?.savedAt, '2026-10-14T11:00:00.000Z', 'the newest snapshot replaces the older one')
   assert.equal(second?.documentName, 'Mixed again')
   assert.equal(
-    [...fs.files.keys()].filter((key) => !key.endsWith('/') && key.includes('recovery')).length,
-    1,
-    'one snapshot file only',
+    second?.assets.length,
+    assets.length,
+    'content-addressed files are not rewritten, so they are still there for the same manifest',
   )
 
-  await clearRecovery(fs, directory)
-  assert.equal(await readRecovery(fs, directory), null)
+  // What the manifest references is what comes back: a manifest with no assets yields none, even
+  // though older files are still on disk from the previous write.
+  const cleanManifest = serializeDocument(createDocument('Clean')).manifest
+  await writeRecovery(fs, directory, {
+    savedAt: '2026-10-14T12:00:00.000Z',
+    documentName: 'Clean',
+    directory: null,
+    savedRevision: 1,
+    manifest: cleanManifest,
+    assets: [],
+  })
+  const third = await readRecovery(fs, directory)
+  assert.equal(third?.assets.length, 0, 'unreferenced files are ignored rather than invented')
 
-  await fs.writeFile(`${directory}/recovery.manifest.json`, 'not json')
-  assert.equal(await readRecovery(fs, directory), null, 'a corrupt snapshot counts as none')
+  await clearRecovery(fs, directory)
+  assert.equal(await readRecovery(fs, directory), null, 'clear removes the whole folder')
+})
+
+test('a corrupt or half-written recovery folder counts as no snapshot', async () => {
+  const { document } = await mixedDocument()
+  const fs = new MemoryFileSystem()
+  const directory = '/recovery.vectr'
+  const { manifest } = serializeDocument(document)
+
+  // A manifest with no sidecar: the write is not finished, so there is nothing to offer.
+  await fs.writeFile(`${directory}/manifest.json`, manifest)
+  assert.equal(await readRecovery(fs, directory), null, 'a manifest alone is not a snapshot')
+
+  await writeRecovery(fs, directory, {
+    savedAt: '2026-10-14T10:00:00.000Z',
+    documentName: 'Mixed',
+    directory: null,
+    savedRevision: 0,
+    manifest,
+    assets: [],
+  })
+  assert.notEqual(await readRecovery(fs, directory), null, 'a complete folder is a snapshot')
+
+  await fs.writeFile(`${directory}/recovery.json`, 'not json')
+  assert.equal(await readRecovery(fs, directory), null, 'a corrupt sidecar counts as none')
+
+  await writeRecovery(fs, directory, {
+    savedAt: '2026-10-14T10:30:00.000Z',
+    documentName: 'Mixed',
+    directory: null,
+    savedRevision: 0,
+    manifest,
+    assets: [],
+  })
+  await fs.remove(`${directory}/manifest.json`)
+  assert.equal(await readRecovery(fs, directory), null, 'a missing manifest counts as none')
 })
 
 test('dirty state is derived from the saved revision, not from a flag', async () => {

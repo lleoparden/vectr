@@ -60,8 +60,19 @@ export type WorkspaceState = {
   aboutOpen: boolean
   /** Set when work would be lost; the dialog resolves it and the action continues or stops. */
   pendingPrompt: PendingPrompt | null
+  /** Set when the last session died with a recovery copy waiting; the crash dialog resolves it. */
+  crashPrompt: CrashPrompt | null
+  /** Whether the Preferences dialog is open. */
+  preferencesOpen: boolean
   /** What the shape and text tools draw with, and which shape member is showing. */
   creationDefaults: CreationDefaults
+}
+
+/** What the crash dialog needs to say which file came back and from when. */
+export type CrashPrompt = {
+  documentName: string
+  savedAt: string
+  directory: string | null
 }
 
 export const PANEL_LABELS: Record<PanelId, string> = {
@@ -93,6 +104,8 @@ export class WorkspaceStore {
       canvas: { width: 0, height: 0 },
       aboutOpen: false,
       pendingPrompt: null,
+      crashPrompt: null,
+      preferencesOpen: false,
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
     }
   }
@@ -186,6 +199,18 @@ export class WorkspaceStore {
   /** Updates what the next drawn object uses; the tool options bar and the tools share this. */
   setCreationDefaults(patch: Partial<CreationDefaults>) {
     this.update({ creationDefaults: { ...this.state.creationDefaults, ...patch } })
+  }
+
+  /** Opens or closes the crash dialog; it has no other state. */
+  setCrashPrompt(crashPrompt: CrashPrompt | null) {
+    if (crashPrompt === null && this.state.crashPrompt === null) return
+    this.update({ crashPrompt })
+  }
+
+  /** The Preferences dialog, opened from Edit ▸ Preferences. */
+  setPreferencesOpen(preferencesOpen: boolean) {
+    if (this.state.preferencesOpen === preferencesOpen) return
+    this.update({ preferencesOpen })
   }
 }
 

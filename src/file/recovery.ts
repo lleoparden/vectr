@@ -1,24 +1,49 @@
 /**
- * Recovery snapshots (issue #19).
+ * Recovery snapshots (issue #19; reshaped to the owner's spec after Phase 1).
  *
- * Deliberately bounded: **one** rolling snapshot, written on an interval while the document is
- * dirty and once more before the window unloads, and overwritten each time. There is no merge
- * and no history of snapshots — newest wins — so the cost is one manifest plus the assets the
- * document already has on disk. The snapshot lives outside the project so a crash mid-save can
- * never make recovery the thing that corrupted the work.
+ * The snapshot is a **project folder**: `userData/recovery.vectr/` holds `manifest.json`, the
+ * content-addressed `assets/` the document uses, and a `recovery.json` sidecar naming the document
+ * it came from and when it was taken. It is written with the same failure-safe `writeProject` a
+ * normal save uses (assets first, then the manifest through a temporary file and a rename), and it
+ * lives outside any project so a crash mid-save can never make recovery the thing that corrupted
+ * the work.
+ *
+ * The reason it is a whole folder and not a bare manifest: a document that crashed with placed
+ * images has to come back **with** those images, and a manifest-only snapshot would have restored
+ * an empty frame where the picture was.
+ *
+ * Bounded on purpose: **one** rolling snapshot, overwritten each time, no merges, no history.
  */
 
-import { canonicalJson } from './format.ts'
-import type { ProjectFileSystem } from './atomicWrite.ts'
+import { writeProject, type AssetPayload, type ProjectFileSystem } from './atomicWrite.ts'
+import type { AssetRef } from '../doc/types.ts'
+import { ASSET_DIRECTORY, MANIFEST_NAME, assetFileName, canonicalJson } from './format.ts'
 
-export const RECOVERY_NAME = 'recovery.manifest.json'
+/** Sidecar with what the manifest cannot say: where it came from and when it was taken. */
+export const RECOVERY_NAME = 'recovery.json'
+
+/** The bytes of one asset, keyed the way the manifest references it. */
+export type RecoveryAsset = { id: string; mimeType: string; bytes: Uint8Array }
 
 export type RecoverySnapshot = {
   savedAt: string
   documentName: string
   /** The project directory the dirty document came from, when it had one. */
   directory: string | null
+  /** The revision the document's file matched; the snapshot is dirty by definition. */
+  savedRevision: number
   manifest: string
+  assets: RecoveryAsset[]
+}
+
+/** The asset references a manifest carries, which is where the file names come from. */
+export function manifestAssets(manifest: string): AssetRef[] {
+  try {
+    const parsed = JSON.parse(manifest) as { assets?: AssetRef[] }
+    return Array.isArray(parsed.assets) ? parsed.assets : []
+  } catch {
+    return []
+  }
 }
 
 export type RecoveryLimits = {
@@ -34,15 +59,34 @@ export function recoveryPath(directory: string): string {
   return `${directory}/${RECOVERY_NAME}`
 }
 
+/** The sidecar written beside the manifest, which is all the metadata a restore needs. */
+export function recoverySidecar(snapshot: RecoverySnapshot): string {
+  return canonicalJson({
+    savedAt: snapshot.savedAt,
+    documentName: snapshot.documentName,
+    directory: snapshot.directory,
+    savedRevision: snapshot.savedRevision,
+  })
+}
+
 export async function writeRecovery(
   fs: ProjectFileSystem,
   directory: string,
   snapshot: RecoverySnapshot,
 ): Promise<void> {
-  await fs.makeDirectory(directory)
-  // Write then rename, so a crash while snapshotting cannot leave half a manifest to "recover".
+  // The manifest is the source of the asset references, so the folder is written the same way a
+  // project is: bytes first, then the manifest through a rename, then the sidecar.
+  const bytesById = new Map(snapshot.assets.map((asset) => [asset.id, asset.bytes]))
+  const refs = manifestAssets(snapshot.manifest)
+  const payload: AssetPayload[] = refs
+    .map((ref) => {
+      const bytes = bytesById.get(ref.id)
+      return bytes === undefined ? null : { ref, bytes }
+    })
+    .filter((entry): entry is AssetPayload => entry !== null)
+  await writeProject(fs, directory, snapshot.manifest, payload, new Set(refs.map((ref) => ref.id)), snapshot.savedAt)
   const temporary = `${recoveryPath(directory)}.tmp`
-  await fs.writeFile(temporary, canonicalJson(snapshot))
+  await fs.writeFile(temporary, recoverySidecar(snapshot))
   await fs.rename(temporary, recoveryPath(directory))
 }
 
@@ -52,21 +96,40 @@ export async function readRecovery(
 ): Promise<RecoverySnapshot | null> {
   const bytes = await fs.readFile(recoveryPath(directory))
   if (bytes === null) return null
+  let sidecar: Partial<RecoverySnapshot>
   try {
-    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as Partial<RecoverySnapshot>
-    if (typeof parsed.manifest !== 'string' || typeof parsed.savedAt !== 'string') return null
-    return {
-      savedAt: parsed.savedAt,
-      documentName: typeof parsed.documentName === 'string' ? parsed.documentName : 'Untitled',
-      directory: typeof parsed.directory === 'string' ? parsed.directory : null,
-      manifest: parsed.manifest,
-    }
+    sidecar = JSON.parse(new TextDecoder().decode(bytes)) as Partial<RecoverySnapshot>
   } catch {
-    // A snapshot that cannot be read is not a snapshot; the caller treats this as "none".
+    // A sidecar that cannot be read is not a snapshot; the caller treats this as "none".
     return null
+  }
+  if (typeof sidecar.savedAt !== 'string') return null
+  const manifestBytes = await fs.readFile(`${directory}/${MANIFEST_NAME}`)
+  if (manifestBytes === null) return null
+
+  // Assets are rebuilt from the manifest's own references, so a missing file means "not there"
+  // rather than a fabricated ref that would fail verification later.
+  const manifest = new TextDecoder().decode(manifestBytes)
+  const assets: RecoveryAsset[] = []
+  for (const ref of manifestAssets(manifest)) {
+    const assetBytes = await fs.readFile(`${directory}/${ASSET_DIRECTORY}/${assetFileName(ref)}`)
+    if (assetBytes !== null) assets.push({ id: ref.id, mimeType: ref.mimeType, bytes: assetBytes })
+  }
+
+  return {
+    savedAt: sidecar.savedAt,
+    documentName: typeof sidecar.documentName === 'string' ? sidecar.documentName : 'Untitled',
+    directory: typeof sidecar.directory === 'string' ? sidecar.directory : null,
+    savedRevision: typeof sidecar.savedRevision === 'number' ? sidecar.savedRevision : 0,
+    manifest,
+    assets,
   }
 }
 
+/** Removes the whole snapshot folder, sidecar included. */
 export async function clearRecovery(fs: ProjectFileSystem, directory: string): Promise<void> {
   await fs.remove(recoveryPath(directory))
+  await fs.remove(`${directory}/${MANIFEST_NAME}`)
+  await fs.remove(`${directory}/${ASSET_DIRECTORY}`)
 }
+

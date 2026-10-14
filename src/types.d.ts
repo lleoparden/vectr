@@ -80,11 +80,22 @@ declare global {
         savedAt: string
         documentName: string
         directory: string | null
+        savedRevision: number
         manifest: string
+        assets: Array<{ id: string; mimeType: string; bytes: Uint8Array }>
       }) => Promise<{ ok: boolean; code?: string; message?: string }>
       readRecovery: () => Promise<{
         ok: boolean
-        snapshot?: { savedAt: string; documentName: string; directory: string | null; manifest: string } | null
+        /** True when the previous session ended without an orderly quit. */
+        uncleanExit?: boolean
+        snapshot?: {
+          savedAt: string
+          documentName: string
+          directory: string | null
+          savedRevision: number
+          manifest: string
+          assets: Array<{ id: string; mimeType: string; bytes: Uint8Array }>
+        } | null
       }>
       clearRecovery: () => Promise<{ ok: boolean }>
       allowClose: () => Promise<{ ok: boolean }>

@@ -15,14 +15,13 @@ import { createDocument } from '../../doc/document.ts'
 import { assetRegistry } from '../../state/assetRegistry.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { workspaceStore } from '../../state/workspaceStore.ts'
+import { settingsStore } from '../../state/settingsStore.ts'
 import { requiredAssets, verifyAssets } from '../../file/validate.ts'
 import { deserializeDocument, serializeDocument } from '../../file/serialize.ts'
 import { projectFileName } from '../../file/format.ts'
-import { readRecovery } from '../../file/recovery.ts'
+import { readRecovery, manifestAssets, type RecoverySnapshot } from '../../file/recovery.ts'
+import { shouldWriteSnapshot, type AutosaveReason } from './autosavePolicy.ts'
 import { needsUnsavedPrompt, promptChoiceFor } from './unsavedPrompt.ts'
-
-/** Autosave interval for the recovery snapshot: bounded work while the document is dirty. */
-export const RECOVERY_INTERVAL_MS = 30_000
 
 function bridge() {
   return typeof window === 'undefined' ? undefined : window.vectrFiles
@@ -122,30 +121,66 @@ export async function saveDocument(options: { askForPath?: boolean; directory?: 
   return true
 }
 
-/** Writes the rolling recovery snapshot; called on an interval and before unload. */
-export async function writeRecoverySnapshot(): Promise<boolean> {
+/**
+ * Writes the recovery snapshot: a whole project folder (manifest plus the document's assets), so a
+ * crashed document comes back with its images. Called on the user's interval for a document that
+ * already has a file, and once before unsaved work is dropped.
+ */
+export async function writeRecoverySnapshot(options: { reason: AutosaveReason } = { reason: 'interval' }): Promise<boolean> {
   const api = bridge()
-  if (api === undefined || !documentStore.isDirty()) return false
   const state = documentStore.getState()
-  const { manifest } = serializeDocument(state.document)
+  const settings = settingsStore.getState()
+  if (
+    api === undefined ||
+    !shouldWriteSnapshot({
+      reason: options.reason,
+      hasFilePath: state.filePath !== null,
+      isDirty: documentStore.isDirty(),
+      enabled: settings.autosaveEnabled,
+    })
+  ) {
+    return false
+  }
+  const { manifest, assets } = serializeDocument(state.document)
+  const payload = assets
+    .map((ref) => {
+      const record = assetRegistry.get(ref.id)
+      return record === undefined ? null : { ref, bytes: record.bytes }
+    })
+    .filter((entry): entry is { ref: (typeof assets)[number]; bytes: Uint8Array } => entry !== null)
   const savedAt = new Date().toISOString()
   const result = await api.writeRecovery({
     savedAt,
     documentName: state.document.name,
     directory: state.filePath,
+    savedRevision: state.savedRevision,
     manifest,
+    assets: payload.map((entry) => ({ id: entry.ref.id, mimeType: entry.ref.mimeType, bytes: entry.bytes })),
   })
   if (result.ok) documentStore.setRecovery({ available: true, savedAt })
   return result.ok
 }
 
-/** Checks for a recovery snapshot at launch and offers it through the File menu. */
-export async function refreshRecoveryState(): Promise<void> {
+/**
+ * Checks for a recovery snapshot at launch. An **unclean** exit with a snapshot waiting opens the
+ * crash dialog instead of leaving the user to find the File menu item, which is the owner's rule:
+ * after a crash Vectr must say it closed in the wrong way and offer the work back.
+ */
+export async function refreshRecoveryState(): Promise<boolean> {
   const api = bridge()
-  if (api === undefined) return
+  if (api === undefined) return false
   const result = await api.readRecovery()
-  const snapshot = result.snapshot ?? null
+  const snapshot: RecoverySnapshot | null = result.snapshot ?? null
   documentStore.setRecovery({ available: snapshot !== null, savedAt: snapshot?.savedAt ?? null })
+  if (snapshot !== null && result.uncleanExit === true) {
+    workspaceStore.setCrashPrompt({
+      documentName: snapshot.documentName,
+      savedAt: snapshot.savedAt,
+      directory: snapshot.directory,
+    })
+    return true
+  }
+  return false
 }
 
 /**
@@ -187,8 +222,9 @@ export async function resolveUnsavedPrompt(button: 'confirm' | 'discard' | 'canc
 
   workspaceStore.clearPrompt()
   if (prompt.kind === 'close') {
-    // Discarding is the only path that can lose work, so the snapshot is taken first.
-    if (choice === 'discard') await writeRecoverySnapshot()
+    // Discarding is the only path that can lose work, so the snapshot is taken first. This is the
+    // close net, not autosave: it covers an untitled document too, which the interval never does.
+    if (choice === 'discard') await writeRecoverySnapshot({ reason: 'close' })
     await bridge()?.allowClose()
     return
   }
@@ -219,11 +255,16 @@ export function requestOpenDocument(): void {
   }
   void openDocument()
 }
+/**
+ * Restores the snapshot: the document, its assets, and the file it came from. Restoring reopens it
+ * where it lived, so the next Save writes back to the user's own file rather than a copy — which is
+ * what the owner asked for ("if vectr crashes it brings up the old file").
+ */
 export async function recoverDocument(): Promise<boolean> {
   const api = bridge()
   if (api === undefined) return false
   const result = await api.readRecovery()
-  const snapshot = result.snapshot ?? null
+  const snapshot: RecoverySnapshot | null = result.snapshot ?? null
   if (snapshot === null) {
     report('no-recovery', 'No recovery snapshot is available.')
     return false
@@ -233,11 +274,41 @@ export async function recoverDocument(): Promise<boolean> {
     report(parsed.code, parsed.message)
     return false
   }
+  // Assets come from the snapshot folder, matched to the manifest's own references so the registry
+  // holds exactly what the document declares (id, mime type, size, and dimensions). An image that
+  // was placed but never saved into a project therefore still draws after a crash.
+  assetRegistry.clear()
+  const refsById = new Map(manifestAssets(snapshot.manifest).map((ref) => [ref.id, ref]))
+  for (const asset of snapshot.assets) {
+    const ref = refsById.get(asset.id)
+    if (ref !== undefined) assetRegistry.put({ ref, bytes: asset.bytes, name: ref.id })
+  }
   documentStore.replaceDocument(parsed.document, {
-    savedRevision: parsed.document.revision,
-    // Recovered work is deliberately not attached to the old path: the user decides where it goes.
-    filePath: null,
+    savedRevision: snapshot.savedRevision,
+    filePath: snapshot.directory,
   })
   documentStore.setRecovery({ available: true, savedAt: snapshot.savedAt })
   return true
+}
+
+/**
+ * The crash dialog's two answers. Discard removes the copy so it cannot be offered again; restore
+ * runs the same path the File menu item does.
+ */
+export async function resolveCrashPrompt(button: 'restore' | 'discard'): Promise<void> {
+  workspaceStore.setCrashPrompt(null)
+  if (button === 'discard') {
+    await bridge()?.clearRecovery().catch(() => undefined)
+    documentStore.setRecovery({ available: false, savedAt: null })
+    return
+  }
+  await recoverDocument()
+}
+
+/**
+ * Closes the crash dialog and keeps the copy. Escape and a click outside take this path, so the
+ * non-destructive answer is always available; the File menu still offers the restore.
+ */
+export function dismissCrashPrompt(): void {
+  workspaceStore.setCrashPrompt(null)
 }

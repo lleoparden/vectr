@@ -61,7 +61,12 @@ async function writeProjectToDisk(directory, manifest, assets, usedAssetIds) {
 
 /** Recovery snapshots live outside any project, so a failed save cannot corrupt recovery. */
 function recoveryDirectory() {
-  return path.join(app.getPath('userData'), 'recovery')
+  return path.join(app.getPath('userData'), 'recovery.vectr')
+}
+
+/** Written on an orderly quit; its absence at launch is what "Vectr closed unexpectedly" means. */
+function cleanExitMarker() {
+  return path.join(app.getPath('userData'), 'recovery-clean-exit.json')
 }
 
 /** Every file failure becomes a structured result; the renderer never sees a partial project. */
@@ -215,24 +220,68 @@ app.whenReady().then(() => {
     }
   })
 
+  /**
+   * Recovery is a whole project folder — `userData/recovery.vectr/` — so a crashed document comes
+   * back with its images, and it is written the same way a normal save is: asset bytes first, then
+   * the manifest through a temporary file and a rename, and the sidecar last.
+   */
   ipcMain.handle('recovery:write', async (_event, snapshot) => {
     try {
       const directory = recoveryDirectory()
-      await fs.promises.mkdir(directory, { recursive: true })
-      const temporary = path.join(directory, 'recovery.json.tmp')
-      await fs.promises.writeFile(temporary, JSON.stringify(snapshot), 'utf8')
-      await fs.promises.rename(temporary, path.join(directory, 'recovery.json'))
+      await fs.promises.mkdir(path.join(directory, 'assets'), { recursive: true })
+      for (const asset of snapshot.assets ?? []) {
+        // The file name is derived from the content key, exactly as a project save derives it.
+        const extension = asset.mimeType === 'image/png' ? 'png' : 'jpg'
+        const key = String(asset.id).replace(/^sha256-/, '')
+        await fs.promises.writeFile(path.join(directory, 'assets', `${key}.${extension}`), Buffer.from(asset.bytes))
+      }
+      const manifestTemporary = path.join(directory, 'manifest.json.tmp')
+      await fs.promises.writeFile(manifestTemporary, String(snapshot.manifest), 'utf8')
+      await fs.promises.rename(manifestTemporary, path.join(directory, 'manifest.json'))
+      const sidecarTemporary = path.join(directory, 'recovery.json.tmp')
+      await fs.promises.writeFile(
+        sidecarTemporary,
+        JSON.stringify({
+          savedAt: snapshot.savedAt,
+          documentName: snapshot.documentName,
+          directory: snapshot.directory ?? null,
+          savedRevision: snapshot.savedRevision ?? 0,
+        }),
+        'utf8',
+      )
+      await fs.promises.rename(sidecarTemporary, path.join(directory, 'recovery.json'))
       return { ok: true }
     } catch (cause) {
       return failure(cause)
     }
   })
 
+  /**
+   * Reads the snapshot back, plus whether the previous session died without the clean-exit marker
+   * that an orderly quit writes. The marker is consumed here, so the *next* crash is detectable.
+   */
   ipcMain.handle('recovery:read', async () => {
     try {
-      const file = path.join(recoveryDirectory(), 'recovery.json')
-      if (!fs.existsSync(file)) return { ok: true, snapshot: null }
-      return { ok: true, snapshot: JSON.parse(await fs.promises.readFile(file, 'utf8')) }
+      const directory = recoveryDirectory()
+      const sidecar = path.join(directory, 'recovery.json')
+      const cleanExit = fs.existsSync(cleanExitMarker())
+      if (cleanExit) await fs.promises.rm(cleanExitMarker(), { force: true })
+      if (!fs.existsSync(sidecar)) return { ok: true, snapshot: null, uncleanExit: false }
+      const parsed = JSON.parse(await fs.promises.readFile(sidecar, 'utf8'))
+      const manifest = await fs.promises.readFile(path.join(directory, 'manifest.json'), 'utf8')
+      const assets = []
+      for (const asset of JSON.parse(manifest).assets ?? []) {
+        const extension = asset.mimeType === 'image/png' ? 'png' : 'jpg'
+        const key = String(asset.id).replace(/^sha256-/, '')
+        const file = path.join(directory, 'assets', `${key}.${extension}`)
+        if (!fs.existsSync(file)) continue
+        assets.push({ id: asset.id, mimeType: asset.mimeType, bytes: new Uint8Array(await fs.promises.readFile(file)) })
+      }
+      return {
+        ok: true,
+        snapshot: { ...parsed, manifest, assets },
+        uncleanExit: !cleanExit,
+      }
     } catch (cause) {
       return failure(cause)
     }
@@ -240,12 +289,23 @@ app.whenReady().then(() => {
 
   ipcMain.handle('recovery:clear', async () => {
     try {
-      await fs.promises.rm(path.join(recoveryDirectory(), 'recovery.json'), { force: true })
+      await fs.promises.rm(recoveryDirectory(), { recursive: true, force: true })
       return { ok: true }
     } catch (cause) {
       return failure(cause)
     }
   })
+
+  // An orderly quit leaves this marker; a crash cannot, which is how the next launch knows.
+  app.on('will-quit', () => {
+    try {
+      fs.mkdirSync(path.dirname(cleanExitMarker()), { recursive: true })
+      fs.writeFileSync(cleanExitMarker(), JSON.stringify({ at: new Date().toISOString() }), 'utf8')
+    } catch {
+      // A marker that cannot be written costs a "it closed unexpectedly" question, nothing more.
+    }
+  })
+
 
   ipcMain.handle('app:allow-close', () => {
     allowClose = true

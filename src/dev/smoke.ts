@@ -314,6 +314,11 @@ async function makeSmokePng(): Promise<Uint8Array | null> {
 export async function runEditorStress(store: DocumentStore): Promise<SmokeReport> {
   const steps: SmokeStep[] = []
 
+  // Each evidence run starts from a known document: the file round trip runs before this one
+  // and replaces the document, so depending on the earlier fixture would make these steps
+  // order-dependent evidence.
+  newDocument()
+
   // Issue #17: a generated PNG runs the whole image path, including the renderer drawing the
   // asset instead of its placeholder frame.
   let placedAssetId: string | null = null
@@ -353,6 +358,18 @@ export async function runEditorStress(store: DocumentStore): Promise<SmokeReport
     createRect(`Stress ${index}`, (index * 17) % 1200, (index * 29) % 800, 40, 30),
   )
   const root = store.getState().document.root
+  // Issue #16: this run owns the text object that asks for a family Vectr does not bundle, so
+  // the substitution report below is this run's evidence rather than a leftover from another.
+  const missingFontText = createText('Missing font', 20, 20, 'Missing family', { fontFamily: 'Comic Sans MS' })
+  const textInserted = store.dispatch(
+    { type: 'insertNodes', parentId: root.id, index: 0, nodes: [missingFontText] },
+    'smoke missing font',
+  )
+  steps.push({
+    name: 'missing font text placed',
+    ok: textInserted.ok,
+    detail: textInserted.ok ? missingFontText.fontFamily : textInserted.message,
+  })
   const inserted = store.dispatch({ type: 'insertNodes', parentId: root.id, index: root.children.length, nodes }, 'smoke stress')
 
   if (!inserted.ok) {

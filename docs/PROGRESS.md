@@ -132,12 +132,23 @@
 
 ## Next
 
-- Owner review for `#18` (Phase 1 slice 2 pull request). It is classified **big**
-  because it touches the command/undo model and the app identity, so it is not
-  self-merged.
-- After that: #20 (layers and groups: interactive tree, reorder, group/ungroup,
-  nesting, isolation), then #16 (plain text), #17 (images), and #19 (durable local
-  documents) — one pull request per slice on the accepted renderer.
+- **Owner action: review and merge PR #30** (Phase 1 slice 2, issue #18 — versioned
+  document, validated command path, bounded undo/redo, editor store, renderer, and
+  editor shell). It is classified big: it sets the command/undo model, the app
+  identity, and the interfaces slices 3–6 build on. Merged already: #21, #22, #24,
+  #26, #27, #29, #31.
+- **UI direction recorded and enforced (PRs #29 and #31).** Vectr's interface is a
+  modern Illustrator (`AGENTS.md`, Product identity; `docs/DECISIONS.md`, 2026-10-14;
+  catalog `UI-01`). Interface work must state its Illustrator mapping in its issue and
+  pull request, divergence needs a recorded reason, and Adobe or VectorCraft assets,
+  screenshots, or branding are never used.
+- Issue #28 owns the shell alignment (menu bar, left tool palette, right panel dock,
+  theme tokens, Illustrator-default shortcuts) and must land before Phase 2 adds
+  tools, so no tool is built twice. Issue #20 must build the Illustrator-style Layers
+  panel, docked in the same layout, with per-row visibility and lock.
+- After #18 merges, Phase 1 continues in order: #20 (layers and groups), #16 (plain
+  text), #17 (images), #19 (durable local documents) — one branch and one pull
+  request each, with the UI mapping recorded for the slices that have an interface.
 - `PERF-01` revisit triggers: wasm threads with COOP/COEP isolation, Phase 4
   profiling with culling and retained regions on realistic documents, or an
   owner-approved revision of the 10,000-loose-primitive limit.

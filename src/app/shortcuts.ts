@@ -47,12 +47,6 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   // Select.
   { id: 'select.all', chord: { key: 'a', ctrl: true }, illustratorDefault: true },
   { id: 'select.deselect', chord: { key: 'a', ctrl: true, shift: true }, illustratorDefault: true },
-  {
-    id: 'select.deselect',
-    chord: { key: 'escape' },
-    illustratorDefault: false,
-    note: 'Illustrator reserves Escape for cancelling the active operation; Vectr also deselects, and clears the last rejection notice.',
-  },
 
   // Object.
   { id: 'object.hideSelection', chord: { key: '3', ctrl: true }, illustratorDefault: true },

@@ -35,7 +35,6 @@ export function StatusBar() {
         <span>
           {artboard.name} {artboard.width}×{artboard.height}
         </span>
-        <span>revision {state.document.revision}</span>
         <span title="Fit Artboard in Window (Ctrl+0)" className="text-ink-muted">
           {zoomPercent(state.viewport.zoom)}
         </span>

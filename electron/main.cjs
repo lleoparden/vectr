@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -65,6 +65,11 @@ const smokeArgument = process.argv.find((argument) => argument === '--smoke' || 
 const smokeValue = smokeArgument === undefined ? null : smokeArgument.includes('=') ? smokeArgument.split('=')[1] : '1'
 
 app.whenReady().then(() => {
+  // Vectr draws its own menu bar, the way Illustrator does, so the Electron default menu
+  // (File, Edit, View, Window, Help) is removed: it would otherwise put a second menu bar
+  // in the window and take Alt away from Vectr's own menu mnemonics.
+  Menu.setApplicationMenu(null)
+
   ipcMain.handle('benchmark:memory', getMemory)
 
   ipcMain.handle('benchmark:result', async (_event, result) => {

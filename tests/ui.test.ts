@@ -10,7 +10,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { ACTION_IDS, canRunAction, panelActionId, runEditorAction } from '../src/app/actions.ts'
-import { MENU_BAR, OMITTED_MENUS, menuCommands, separatorsAreSane } from '../src/app/menuModel.ts'
+import { MENU_BAR, OMITTED_MENUS, menuCommands, menuForMnemonic, menuMnemonic, separatorsAreSane } from '../src/app/menuModel.ts'
 import { chordFromEvent, chordLabel, chordKeys, matchShortcut, SHORTCUTS, shortcutLabel } from '../src/app/shortcuts.ts'
 import { actualSize, clampZoom, fitArtboard, nextZoomStep, zoomAtPoint, zoomByStep } from '../src/app/viewportOps.ts'
 import { expandedGroupIds, layerRows, rowDescription } from '../src/app/layerRows.ts'
@@ -85,6 +85,21 @@ test('chords print the way a menu shows them', () => {
   assert.equal(chordLabel({ key: 'delete' }), 'Del')
   assert.equal(shortcutLabel('view.fitArtboard'), 'Ctrl+0')
   assert.equal(shortcutLabel('window.togglePanel.properties'), null, 'Properties has no default key in Illustrator')
+})
+
+test('Escape cancels instead of deselecting, as it does in Illustrator', () => {
+  assert.equal(matchShortcut(chordFromEvent({ key: 'escape' })), null, 'Escape is not bound to an action')
+  assert.equal(shortcutLabel('select.deselect'), 'Ctrl+Shift+A', 'Deselect keeps Illustrator’s chord')
+})
+
+test('menu mnemonics are distinct, so Alt+letter is unambiguous', () => {
+  const letters = MENU_BAR.map(menuMnemonic)
+  assert.deepEqual(letters, ['e', 'o', 's', 'v', 'w', 'h'])
+  assert.equal(new Set(letters).size, MENU_BAR.length)
+  assert.equal(menuForMnemonic('e'), 0)
+  assert.equal(menuForMnemonic('E'), 0, 'case does not matter')
+  assert.equal(menuForMnemonic('w'), MENU_BAR.findIndex((menu) => menu.label === 'Window'))
+  assert.equal(menuForMnemonic('q'), -1, 'an unbound letter opens nothing')
 })
 
 test('the menu model uses Illustrator names, order, and sane separators', () => {

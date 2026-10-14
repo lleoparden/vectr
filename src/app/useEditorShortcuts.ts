@@ -29,6 +29,12 @@ export function useEditorShortcuts() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target) || isMenuOrDialogTarget(event.target)) return
+      // Escape cancels, as it does in Illustrator: menus and dialogs close themselves and
+      // the pending rejection notice goes away. Deselect is Ctrl+Shift+A, not Escape.
+      if (event.key === 'Escape') {
+        documentStore.clearError()
+        return
+      }
       const action = matchShortcut(chordFromEvent(event))
       if (action === null) return
       // A chord that cannot run right now (undo with an empty history) does nothing,

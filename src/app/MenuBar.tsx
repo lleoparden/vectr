@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { canRunAction, runEditorAction } from './actions.ts'
-import { MENU_BAR, menuCommands, type MenuItem, type MenuSpec } from './menuModel.ts'
+import { MENU_BAR, menuCommands, menuForMnemonic, type MenuItem, type MenuSpec } from './menuModel.ts'
 import { shortcutLabel } from './shortcuts.ts'
 import { useEditorState } from '../state/useEditorState.ts'
 
@@ -45,6 +45,27 @@ export function MenuBar() {
     if (openIndex === null) return
     itemRefs.current[focusIndex]?.focus()
   }, [openIndex, focusIndex])
+
+  // Illustrator's Windows behavior: Alt+letter opens the matching menu by mnemonic.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+      if (event.key.length !== 1) return
+      const target = event.target
+      if (target instanceof HTMLElement) {
+        if (target.isContentEditable) return
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
+        if (target.closest('[role="dialog"]') !== null) return
+      }
+      const index = menuForMnemonic(event.key)
+      if (index === -1) return
+      event.preventDefault()
+      setOpenIndex(index)
+      setFocusIndex(0)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   function firstEnabledIndex(menu: MenuSpec): number {
     const index = menuCommands(menu).findIndex((item) => canRunAction(item.id, state))
@@ -147,7 +168,9 @@ export function MenuBar() {
             }}
             onKeyDown={(event) => onTitleKeyDown(event, index)}
           >
-            {menu.label}
+            {/* The mnemonic letter is underlined, the way Illustrator marks Alt access keys. */}
+            <span className="underline decoration-1 underline-offset-2">{menu.label.slice(0, 1)}</span>
+            {menu.label.slice(1)}
           </button>
           {openIndex === index && (
             <div

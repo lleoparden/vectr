@@ -279,6 +279,14 @@ renderer, a working layer tree, and a project format the compiler can read.
 
 ## Next
 
+- **Phase 1 is complete** (see the section at the top of this file). The next approved work is
+  Phase 2 — core vector illustration (pen and anchor editing, path editing, transform tools,
+  align/distribute, rulers and guides). It must open with the owner's plan approval, because
+  Phase 2's slice list has not been approved yet. The one carry-over decision is the renderer:
+  `PERF-01` stays open for the 10,000-loose-primitives case recorded in issue #25.
+
+### Older next-step notes, kept for context
+
 - **Renderer gate amended by measurement (issue #25).** A candidate comparison ran
   end to end with criteria frozen before measurement, five packaged runs per
   candidate, on the same fixtures and protocol:

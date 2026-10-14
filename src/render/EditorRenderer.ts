@@ -276,6 +276,54 @@ export class EditorRenderer {
     return released
   }
 
+  /**
+   * Renders a top-level layer into a small PNG data URL for the Layers panel (UI enhancement).
+   *
+   * It reuses the bucket's already-recorded picture, so a thumbnail costs one draw and one encode
+   * rather than a scene rebuild, and the caller decides how often to ask. The bounds let the
+   * caller fit the layer into the square. Returns null when no picture is available yet.
+   */
+  renderThumbnail(
+    rootId: NodeId,
+    size: number,
+    bounds: { x: number; y: number; width: number; height: number },
+  ): string | null {
+    // Only a bucket holding exactly this root can be previewed truthfully: with more top-level
+    // layers than the renderer's bucket budget, a bucket holds several roots and its picture would
+    // show the neighbours too, so the row keeps its placeholder instead of a misleading preview.
+    const bucket = this.buckets.find((candidate) => candidate.roots.length === 1 && candidate.roots[0] === rootId)
+    if (bucket === undefined) return null
+    if (bucket.picture === null) this.recordBucket(bucket)
+    if (bucket.picture === null) return null
+
+    const surface = this.kit.MakeSurface(size, size)
+    if (surface === null) return null
+    try {
+      const canvas = surface.getCanvas()
+      canvas.clear(this.kit.TRANSPARENT)
+      const scale = Math.min(
+        size / Math.max(bounds.width, 1),
+        size / Math.max(bounds.height, 1),
+      )
+      const offsetX = (size - bounds.width * scale) / 2
+      const offsetY = (size - bounds.height * scale) / 2
+      canvas.save()
+      canvas.translate(offsetX - bounds.x * scale, offsetY - bounds.y * scale)
+      canvas.scale(scale, scale)
+      canvas.drawPicture(bucket.picture)
+      canvas.restore()
+      const image = surface.makeImageSnapshot()
+      const bytes = image.encodeToBytes()
+      image.delete()
+      if (bytes === null) return null
+      return `data:image/png;base64,${base64FromBytes(bytes)}`
+    } catch {
+      return null
+    } finally {
+      surface.dispose()
+    }
+  }
+
   /** Measured box for a text node (issue #16). The editor uses this so selection bounds match
    * the glyphs that are actually drawn; it returns null when no font is loaded, and callers
    * fall back to the shared estimate.
@@ -536,6 +584,16 @@ export class EditorRenderer {
 }
 
 /** Cheap content signature: any pixel-affecting change alters the bucket's record. */
+/** Base64 for the thumbnail data URLs; chunked so a larger encode cannot blow the call stack. */
+function base64FromBytes(bytes: Uint8Array): string {
+  let binary = ''
+  const chunk = 0x8000
+  for (let index = 0; index < bytes.length; index += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunk))
+  }
+  return btoa(binary)
+}
+
 function signatureOf(shapes: SceneShape[]): string {
   let signature = ''
   for (const shape of shapes) {

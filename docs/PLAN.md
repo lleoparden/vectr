@@ -3,6 +3,27 @@
 The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). This file
 remains the short operational checklist for the active phase.
 
+Every phase in the master plan owns an epic GitHub issue; all phase epics are
+created up front. When a phase starts, each approved slice below becomes a
+sub-issue of that epic, and each slice ships as its own branch and pull request.
+The issue and pull-request flow is defined in
+[`.agents/workflows/issue-ready.md`](../.agents/workflows/issue-ready.md).
+
+## Phase 1 issue tracking
+
+- Epic: [#3 Phase 1 — Core application foundation](https://github.com/lleoparden/vectr/issues/3)
+- Sub-issues in approved slice order:
+  - [#15 CanvasKit/Skia renderer spike with recorded memory and lifecycle evidence](https://github.com/lleoparden/vectr/issues/15) (`PERF-01`)
+  - [#18 Versioned document, validated commands, bounded undo/redo, editable shapes and selection](https://github.com/lleoparden/vectr/issues/18) (`DOC-01`, `DOC-03`, `PATH-01`, `SEL-01`)
+  - [#20 Layer panel, multi-selection, ordering, groups, and nesting](https://github.com/lleoparden/vectr/issues/20) (`DOC-02`, `SEL-03`)
+  - [#16 Plain text nodes with accessible editing and defined missing-font behavior](https://github.com/lleoparden/vectr/issues/16) (`TYPE-01`)
+  - [#17 Image import with content-addressed local assets](https://github.com/lleoparden/vectr/issues/17) (`IMAGE-01`)
+  - [#19 Durable local documents: versioned manifest, assets, validation, recovery](https://github.com/lleoparden/vectr/issues/19) (`DOC-04`)
+- Pull-request strategy for this phase: one stacked branch and pull request per
+  slice, each based on the previous slice, reviewed and merged by the owner in
+  order. Every slice pull request carries its own catalog and `docs/PROGRESS.md`
+  update.
+
 ## Phase 0 — Reference catalog and platform decision
 
 - [x] Approve Electron + React + TypeScript as the proposed desktop direction:

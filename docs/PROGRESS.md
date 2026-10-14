@@ -164,3 +164,8 @@
   it is non-blocking and the temporary harness sits outside the repo.
 - `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
   remain untracked working files.
+- The shell does not yet meet the modern-Illustrator UI direction recorded in
+  `docs/DECISIONS.md` (2026-10-14). Slice 2 ships a top toolbar plus a plain layer
+  list, not a menu bar, left tool palette, and right-docked panels. Issue #20 owns
+  the layer tree and panel layout; issue #28 owns the menu bar, tool palette, and
+  docked panels, and must land before Phase 2 adds tools.

@@ -14,6 +14,29 @@ The platform and technical stack are intentionally undecided. Do not select a
 stack, initialize an app, add dependencies, or write product code until the
 owner approves a feature plan.
 
+## Product identity
+
+- Vectr's interface deliberately reads as a **modern Illustrator**. Illustrator
+  users must feel at home immediately: a menu bar, a left tool palette, the canvas
+  in the middle, and docked panels on the right (Properties, Layers, Appearance,
+  Color, Swatches, Align, Transform), with the Layers panel as the spine of the
+  document.
+- Familiarity is a requirement, not a nicety. Where Illustrator's behavior is a
+  convention users rely on — shortcut keys, tool grouping, panel layout, selection
+  and transform conventions, panel terminology — Vectr follows it, so the
+  equivalent control is where an Illustrator user expects to find it.
+- Vectr still has to be its own product: original icons, type, colors, and copy,
+  modern and clean styling, and no Adobe or VectorCraft assets, branding,
+  screenshots, or copied source. The differentiator is the modern execution and
+  Vectr's own layer-to-React compiler, never a different mental model.
+- Divergence is allowed only deliberately: a better interaction, a missing
+  dependency, or an accessibility need. Record every divergence and its reason in
+  `docs/DECISIONS.md` instead of drifting quietly.
+- A UI slice states its Illustrator mapping in its issue or plan before
+  implementation: what matches Illustrator, what deliberately differs, and what is
+  simply not built yet. The parity catalog's `UI-01`/`UI-02` entries carry the
+  status.
+
 ## Start and finish every session
 
 1. Read `docs/PLAN.md` and `docs/PROGRESS.md`.

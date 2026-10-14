@@ -129,3 +129,36 @@
 - Electron is not locked as the desktop shell. Its empty working set is above
   the proposed 300 MiB target, so the same benchmark must be run on Tauri
   before the shell decision is finalized.
+
+## 2026-10-13 — Tauri benchmark environment blocker
+
+- A disposable Tauri + React harness was prepared with the identical SVG
+  fixtures and five-run measurement design; it is not Vectr source and does
+  not add Tauri to the project.
+- Rust, WebView2, and the JavaScript build completed. Native compilation stops
+  at the missing MSVC `link.exe`.
+- Two approved Build Tools installation attempts exited without registering the
+  product or installing the C++ linker. No Tauri measurements exist, so no
+  desktop-shell decision may be inferred from this setup attempt.
+
+## 2026-10-14 — Desktop stack and renderer direction
+
+- Electron + React + TypeScript + Tailwind + Vite is selected as Vectr's
+  desktop development baseline. Electron's packaged empty working set exceeded
+  the provisional budget by 3.90 MiB (1.3%), while full-document SVG missed
+  the stress performance target by a far larger margin.
+- The Electron evidence rejects full-document SVG, not the desktop shell.
+  The editor will use one authoritative, renderer-independent document model;
+  React owns controls and the visible layer list, not thousands of drawing
+  objects. The one-component-per-layer rule applies to exported React code.
+- CanvasKit/Skia is the production-renderer candidate. No renderer dependency
+  is approved yet: first run a bounded spike on the frozen fixtures, including
+  total-process memory, 33 ms stress interaction, and repeated open/close
+  checks.
+- Tauri remains a deferred comparison. It may replace Electron only if an
+  equivalent foreground workload shows a repeatable runtime-memory advantage
+  of about 20% or more, measuring all app-owned processes and private memory.
+- Phase 1 must use typed, undoable commands; bounded history/caches; explicit
+  GPU/WASM disposal; no whole-document IPC during interaction; and a single
+  editor window initially. These preserve the future compiler, MCP, and agent
+  boundaries without implementing them now.

@@ -40,18 +40,28 @@
   SVG fails the stress performance target; Electron remains unapproved pending
   the same benchmark on Tauri because its empty working set exceeds the
   proposed memory target.
+- Tauri comparison setup reached Rust, WebView2, Vite, and Cargo dependency
+  compilation. It cannot yet produce an executable because the benchmark
+  machine has no MSVC `link.exe`; two approved Build Tools installation attempts
+  exited without registering Build Tools or installing that linker.
+- Phase 0 platform decision completed after independent review: Electron +
+  React + TypeScript + Tailwind + Vite is the development baseline; the
+  full-document SVG renderer is rejected. CanvasKit/Skia is the next renderer
+  candidate and must pass a bounded measured spike before editor work.
 
 ## Next
 
-- Run the same fixture set on Tauri, then lock the desktop-shell and renderer
-  decisions from the comparison evidence.
-- Write and approve the first feature plan from the parity catalog.
+- Write and approve the CanvasKit/Skia renderer-spike plan, then measure it
+  against the frozen fixtures before editor features.
+- Write and approve the first core foundation feature plan from the parity
+  catalog.
 
 ## Known issues
 
-- No production editor code, packaged benchmark executable, measured renderer
-  result, or GitHub labels exist yet.
+- No production editor code or GitHub labels exist yet.
 - Graphify is installed, but no knowledge graph exists until source code is added.
-- Electron's empty working set exceeds the proposed target, and SVG misses the
-  stress interaction target; Tauri comparison evidence is required before the
-  desktop shell can be locked.
+- Full-document SVG misses the stress interaction target. CanvasKit/Skia is
+  unproven until its renderer spike passes the same workload.
+- The current Windows benchmark machine lacks the MSVC linker required to
+  compile Tauri. Its comparison is deferred and non-blocking; the temporary
+  harness and dependencies are outside the repo.

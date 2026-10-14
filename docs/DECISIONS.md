@@ -212,6 +212,38 @@
   app shell; `npm run typecheck` was added so type regressions fail a check instead
   of reaching review.
 
+## 2026-10-14 — Recorded-picture replay optimization (PERF-01)
+
+- Issue #23 added a recorded-picture draw path and measured it against the slice 1
+  direct path on the same frozen fixtures and the same gate definition. Evidence:
+  `.ecc/benchmarks/phase-one-optimization/`.
+- The production path records the scene into at most 16 Skia pictures (buckets of
+  consecutive top-level roots) and replays one `drawPicture` call per bucket; an
+  edit re-records only the bucket that contains the changed root. Paints are
+  cached per style/color/width with batch eviction at 512 entries.
+- Worst picture interaction p95 fell from 99.9 ms to 82.2 ms across five packaged
+  runs, and several fixtures now pass: nested groups at 10,000 leaves 34.8 → 21.4
+  ms, text at 1,000 nodes 32.2 → 12.4 ms, images 3.6 → 2.5 ms. Text at 10,000
+  nodes is marginal at 35.0 ms.
+- The 33 ms stress target is still not met for 10,000 loose primitives. Replay
+  removed the per-item JS-to-WASM work, so the remaining cost is GPU-side
+  per-draw overhead across roughly 20,000 anti-aliased path draws per frame.
+  Order-preserving batching cannot reduce that without changing paint order, and
+  viewport culling has no effect because every fixture node is visible in the
+  1200×800 viewport.
+- Edit cost is recorded next to interaction cost: re-recording one bucket takes
+  1–7 ms at 1,000 nodes, 22 ms for 10,000 text nodes, and 54–61 ms for 10,000
+  loose primitives, after which interaction is cached.
+- Paint caching slows the direct control path because it adds a map lookup per
+  item per frame; it only helps because recording is one-time. The direct path is
+  retained as a control and its numbers are reported but do not decide the gate.
+- Leak behavior is unchanged and verified in both modes: retained paths, images,
+  paragraphs, and pictures return to zero after 10 build/draw/release cycles.
+  Peak whole-app working set is 861 MiB across four processes, slightly above
+  slice 1 because picture mode holds recordings and retained objects together.
+- Because the gate is still not met, editor slices 2–6 remain paused for the
+  owner's renderer decision, with the options recorded in `docs/PROGRESS.md`.
+
 ## 2026-10-14 — Issue, epic, and pull-request workflow
 
 - Every phase in `docs/MASTER_PLAN.md` owns one epic issue, and all phase epics

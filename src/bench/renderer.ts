@@ -14,12 +14,14 @@
 import CanvasKitInit, {
   type CanvasKit,
   type Color,
+  type Canvas,
   type FontMgr,
   type GrDirectContext,
   type Image,
   type Paint,
   type Paragraph,
   type Path,
+  type SkPicture,
   type Surface,
 } from 'canvaskit-wasm'
 import wasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
@@ -27,6 +29,13 @@ import fontUrl from '../assets/fonts/Inter-Variable.ttf?url'
 import { FIXTURE_PIXEL_SIZE, type Fixture, type FixtureNode } from './fixtures.ts'
 
 export type Viewport = { zoom: number; panX: number; panY: number }
+
+/**
+ * `direct` re-issues every node to CanvasKit on each frame (the slice 1 control
+ * path). `picture` records geometry into Skia pictures once and replays them, so
+ * an interaction costs one call per picture instead of roughly ten per node.
+ */
+export type RenderMode = 'direct' | 'picture'
 
 export type RendererInfo = {
   backend: 'webgl' | 'cpu-fallback'
@@ -37,14 +46,16 @@ export type RendererInfo = {
 }
 
 export type SceneStats = {
+  mode: RenderMode
   buildMs: number
   items: number
   paths: number
   images: number
   paragraphs: number
+  pictures: number
 }
 
-export type LiveObjects = { paths: number; images: number; paragraphs: number }
+export type LiveObjects = { paths: number; images: number; paragraphs: number; pictures: number }
 
 type SceneItem =
   | {
@@ -74,14 +85,34 @@ type SceneItem =
       paragraph: Paragraph
     }
 
+/**
+ * A recorded scene unit. Roots are batched into a bounded number of buckets, so a
+ * 10,000-layer fixture still records a handful of pictures, and an edit re-records
+ * only the bucket that contains the changed root.
+ */
+type SceneBucket = { id: string; rootIds: string[]; items: SceneItem[]; picture: SkPicture | null }
+
+/** One top-level fixture root and the items it produced, in paint order. */
+type SceneRoot = { id: string; items: SceneItem[] }
+
+/** Upper bound on recorded pictures per scene, so recording memory stays bounded. */
+const MAX_BUCKETS = 16
+
+/** Upper bound on cached paints; a larger palette evicts the batch instead of failing. */
+const MAX_PAINTS = 512
+
 export class SceneRenderer {
   private readonly paint: Paint
   private readonly fontManager: FontMgr | null
   private readonly colorCache = new Map<string, Color>()
+  private readonly paintCache = new Map<string, Paint>()
   private readonly assetImages = new Map<string, Image>()
   private readonly paragraphs: Paragraph[] = []
   private readonly ownedPaths: Path[] = []
   private items: SceneItem[] = []
+  private roots: SceneRoot[] = []
+  private buckets: SceneBucket[] = []
+  private mode: RenderMode = 'direct'
   private viewport: Viewport = { zoom: 1, panX: 0, panY: 0 }
   private surface: Surface
   private context: GrDirectContext | null
@@ -143,7 +174,33 @@ export class SceneRenderer {
       paths: this.ownedPaths.length,
       images: this.assetImages.size,
       paragraphs: this.paragraphs.length,
+      pictures: this.buckets.reduce((total, bucket) => total + (bucket.picture === null ? 0 : 1), 0),
     }
+  }
+
+  /** Switches the draw path; the caller rebuilds so the scene matches the mode. */
+  setMode(mode: RenderMode) {
+    this.mode = mode
+  }
+
+  currentMode(): RenderMode {
+    return this.mode
+  }
+
+  /** Re-records only the bucket that contains the edited root. */
+  invalidateRoot(rootId: string) {
+    const bucket = this.buckets.find((candidate) => candidate.rootIds.includes(rootId))
+    if (!bucket) throw new Error(`Cannot invalidate unknown root ${rootId}.`)
+    if (this.mode !== 'picture') return
+    this.recordBucket(bucket)
+  }
+
+  rootIds(): string[] {
+    return this.roots.map((root) => root.id)
+  }
+
+  bucketCount(): number {
+    return this.buckets.length
   }
 
   viewportState(): Viewport {
@@ -154,19 +211,51 @@ export class SceneRenderer {
     this.viewport = { ...this.viewport, ...next }
   }
 
-  /** Builds the retained scene for a fixture and returns the one-time build cost. */
+  /**
+   * Builds the retained scene for a fixture. In picture mode the scene is also
+   * recorded into a bounded number of buckets, which moves per-item cost out of
+   * the interaction path.
+   */
   build(fixture: Fixture): SceneStats {
     const started = performance.now()
     this.releaseScene()
     for (const asset of fixture.assets) this.assetImages.set(asset.id, this.makeAssetImage(asset.id))
-    for (const root of fixture.roots) this.buildNode(root, 0, 0, 1)
+    this.roots = fixture.roots.map((root) => {
+      this.items = []
+      this.buildNode(root, 0, 0, 1)
+      return { id: root.id, items: this.items }
+    })
+    this.items = []
+    if (this.mode === 'picture') {
+      this.buckets = this.createBuckets()
+      for (const bucket of this.buckets) this.recordBucket(bucket)
+    }
     return {
+      mode: this.mode,
       buildMs: performance.now() - started,
-      items: this.items.length,
+      items: this.roots.reduce((total, root) => total + root.items.length, 0),
       paths: this.ownedPaths.length,
       images: this.assetImages.size,
       paragraphs: this.paragraphs.length,
+      pictures: this.liveObjects().pictures,
     }
+  }
+
+  /** Distributes roots into at most {@link MAX_BUCKETS} recording buckets. */
+  private createBuckets(): SceneBucket[] {
+    const bucketCount = Math.max(1, Math.min(MAX_BUCKETS, this.roots.length))
+    const chunkSize = Math.ceil(this.roots.length / bucketCount)
+    const buckets: SceneBucket[] = []
+    for (let start = 0; start < this.roots.length; start += chunkSize) {
+      const slice = this.roots.slice(start, start + chunkSize)
+      buckets.push({
+        id: `bucket-${buckets.length}`,
+        rootIds: slice.map((root) => root.id),
+        items: slice.flatMap((root) => root.items),
+        picture: null,
+      })
+    }
+    return buckets
   }
 
   /** Draws the retained scene with the current viewport and returns submission time. */
@@ -177,19 +266,57 @@ export class SceneRenderer {
     canvas.save()
     canvas.translate(this.viewport.panX, this.viewport.panY)
     canvas.scale(this.viewport.zoom, this.viewport.zoom)
-    for (const item of this.items) {
+    if (this.mode === 'picture') {
+      for (const bucket of this.buckets) {
+        if (bucket.picture === null) this.recordBucket(bucket)
+        if (bucket.picture !== null) canvas.drawPicture(bucket.picture)
+      }
+    } else {
+      for (const root of this.roots) this.drawItems(canvas, root.items)
+    }
+    canvas.restore()
+    this.surface.flush()
+    return performance.now() - started
+  }
+
+  private recordBucket(bucket: SceneBucket) {
+    const recorder = new this.kit.PictureRecorder()
+    const recording = recorder.beginRecording(this.kit.XYWHRect(0, 0, 1200, 800))
+    this.drawItems(recording, bucket.items)
+    bucket.picture?.delete()
+    bucket.picture = recorder.finishRecordingAsPicture()
+    recorder.delete()
+  }
+
+  private paintFor(style: 'fill' | 'stroke', color: Color, strokeWidth = 0): Paint {
+    const key = `${style}:${color.toString()}:${strokeWidth}`
+    const cached = this.paintCache.get(key)
+    if (cached) return cached
+    if (this.paintCache.size >= MAX_PAINTS) {
+      // Batch eviction keeps the cache bounded on unusual palettes without failing.
+      for (const paint of this.paintCache.values()) paint.delete()
+      this.paintCache.clear()
+    }
+    const paint = new this.kit.Paint()
+    paint.setAntiAlias(true)
+    paint.setColor(color)
+    if (style === 'stroke') {
+      paint.setStyle(this.kit.PaintStyle.Stroke)
+      paint.setStrokeWidth(strokeWidth)
+    }
+    this.paintCache.set(key, paint)
+    return paint
+  }
+
+  private drawItems(canvas: Canvas, items: SceneItem[]) {
+    for (const item of items) {
       canvas.save()
       canvas.translate(item.x, item.y)
       if (item.scale !== 1) canvas.scale(item.scale, item.scale)
       if (item.kind === 'path') {
-        this.paint.setStyle(this.kit.PaintStyle.Fill)
-        this.paint.setColor(item.fill)
-        canvas.drawPath(item.path, this.paint)
+        canvas.drawPath(item.path, this.paintFor('fill', item.fill))
         if (item.stroke) {
-          this.paint.setStyle(this.kit.PaintStyle.Stroke)
-          this.paint.setColor(item.stroke)
-          this.paint.setStrokeWidth(item.strokeWidth)
-          canvas.drawPath(item.path, this.paint)
+          canvas.drawPath(item.path, this.paintFor('stroke', item.stroke, item.strokeWidth))
         }
       } else if (item.kind === 'image') {
         const imageInfo = item.image.getImageInfo()
@@ -197,7 +324,7 @@ export class SceneRenderer {
           item.image,
           this.kit.XYWHRect(0, 0, imageInfo.width ?? item.width, imageInfo.height ?? item.height),
           this.kit.XYWHRect(0, 0, item.width, item.height),
-          this.paint,
+          this.paintFor('fill', this.color('#000000')),
           true,
         )
       } else {
@@ -205,9 +332,6 @@ export class SceneRenderer {
       }
       canvas.restore()
     }
-    canvas.restore()
-    this.surface.flush()
-    return performance.now() - started
   }
 
   /** Recreates the surface at a new size, releasing the previous one first. */
@@ -226,7 +350,10 @@ export class SceneRenderer {
     for (const path of this.ownedPaths) path.delete()
     for (const paragraph of this.paragraphs) paragraph.delete()
     for (const image of this.assetImages.values()) image.delete()
+    for (const root of this.buckets) root.picture?.delete()
     this.items = []
+    this.roots = []
+    this.buckets = []
     this.ownedPaths.length = 0
     this.paragraphs.length = 0
     this.assetImages.clear()
@@ -236,6 +363,8 @@ export class SceneRenderer {
   dispose() {
     this.releaseScene()
     this.colorCache.clear()
+    for (const paint of this.paintCache.values()) paint.delete()
+    this.paintCache.clear()
     this.paint.delete()
     this.surface.dispose()
     if (this.context) {

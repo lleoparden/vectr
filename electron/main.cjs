@@ -4,6 +4,8 @@ const path = require('node:path')
 
 const isBenchmark = process.argv.includes('--benchmark')
 const outputArgument = process.argv.find((argument) => argument.startsWith('--output='))
+/** Optional fixture filter (for example `--contents=primitives`) for quick checks. */
+const contentsArgument = process.argv.find((argument) => argument.startsWith('--contents='))
 /** The benchmark must never hang a run: quit with a failure after five minutes. */
 const benchmarkWatchdogMs = 300_000
 let mainWindow
@@ -33,7 +35,23 @@ function createWindow() {
   })
 
   mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), {
-    query: isBenchmark ? { benchmark: '1' } : {},
+    query: isBenchmark
+      ? {
+          benchmark: '1',
+          ...(contentsArgument ? { contents: contentsArgument.slice('--contents='.length) } : {}),
+        }
+      : {},
+  })
+
+  // Forward renderer diagnostics so a failed or hung benchmark is visible on stdout.
+  mainWindow.webContents.on('console-message', (_event, level, message) => {
+    console.log(`[renderer:${level}] ${message}`)
+  })
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error(`Renderer process gone: ${details.reason} (exitCode ${details.exitCode})`)
+  })
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('Renderer became unresponsive during the benchmark.')
   })
 }
 

@@ -6,6 +6,7 @@
  */
 
 import { FIXTURE_VERSION } from './fixtures.ts'
+import type { RenderMode } from './renderer.ts'
 
 export const REPORT_SCHEMA_VERSION = 1
 
@@ -18,6 +19,8 @@ export type ScenarioMetrics = {
   scenario: string
   /** Fixture content or interaction label this measurement belongs to. */
   detail: string
+  /** Draw path under test: the slice 1 control path or recorded-picture replay. */
+  renderMode: RenderMode
   /** One-time parse/build cost for the scene, excluded from interaction timing. */
   buildMs: number
   /** Draw submission time for the measured action, excluding build and React. */
@@ -38,6 +41,7 @@ export type ScenarioMetrics = {
   livePaths: number
   liveImages: number
   liveParagraphs: number
+  livePictures: number
   /** Transient JS heap reading, when the runtime exposes it. */
   heapBytes: number | null
 }
@@ -115,17 +119,18 @@ export function summarizeRuns(runs: RunRecord[], target = INTERACTION_TARGET_MS)
   const byDetail = new Map<string, ScenarioMetrics[]>()
   for (const run of runs) {
     for (const scenario of run.scenarios) {
-      const key = `${scenario.scenario}:${scenario.detail}`
+      const key = `${scenario.renderMode}:${scenario.scenario}:${scenario.detail}`
       const list = byDetail.get(key) ?? []
       list.push(scenario)
       byDetail.set(key, list)
     }
   }
   const entries = [...byDetail.entries()].map(([key, list]) => {
-    const [scenario, detail] = key.split(':')
+    const [renderMode, scenario, detail] = key.split(':')
     const interactions = list.map((item) => item.interactionMs)
     const draws = list.map((item) => item.drawMs)
     return {
+      renderMode,
       scenario,
       detail,
       runs: list.length,
@@ -138,20 +143,33 @@ export function summarizeRuns(runs: RunRecord[], target = INTERACTION_TARGET_MS)
       maxLivePaths: Math.max(...list.map((item) => item.livePaths)),
       maxLiveImages: Math.max(...list.map((item) => item.liveImages)),
       maxLiveParagraphs: Math.max(...list.map((item) => item.liveParagraphs)),
+      maxLivePictures: Math.max(...list.map((item) => item.livePictures)),
       maxHeapBytes: Math.max(...list.map((item) => item.heapBytes ?? 0)),
     }
   })
-  const worst = entries.reduce((highest, entry) => Math.max(highest, entry.interactionMsP95), 0)
+
+  const scenariosOf = (mode: RenderMode) =>
+    runs.flatMap((run) => run.scenarios.filter((scenario) => scenario.renderMode === mode))
+  const verdicts = {
+    // The control path is measured, reported, and not used to decide the gate.
+    direct: computeVerdict(scenariosOf('direct'), target),
+    // The production candidate: recorded-picture replay.
+    picture: computeVerdict(scenariosOf('picture'), target),
+  }
+  const deciding = verdicts.picture.worstInteractionMs > 0 ? verdicts.picture : verdicts.direct
+
   return {
     schemaVersion: REPORT_SCHEMA_VERSION,
     fixtureVersion: FIXTURE_VERSION,
     runCount: runs.length,
     interactionTargetMs: target,
-    worstInteractionMsP95: round(worst),
-    pass: entries.length > 0 && worst <= target,
+    worstInteractionMsP95: deciding.worstInteractionMs,
+    decidingMode: deciding === verdicts.picture ? 'picture' : 'direct',
+    pass: deciding.pass,
     backend: runs[0]?.renderer.backend ?? 'unsupported',
     fontLoaded: runs[0]?.renderer.fontLoaded ?? false,
     wasmBytes: runs[0]?.renderer.wasmBytes ?? 0,
+    verdicts,
     entries,
   }
 }

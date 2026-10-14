@@ -69,25 +69,43 @@
   build/draw/release cycles); peak whole-app working set 817 MiB, private bytes
   995 MiB, GPU process 280 MiB across four processes. Full numbers and the gate
   definition are in `docs/PARITY_CATALOG.md` ("Renderer evidence (PERF-01)").
+- Phase 1 slice 1b delivered (issue #23, branch `enhance/renderer-picture-replay`):
+  a recorded-picture draw path (at most 16 Skia pictures over buckets of
+  consecutive top-level roots), per-bucket invalidation for edits, cached paints
+  with batch eviction, an edit scenario in the suite, per-mode verdicts, and a
+  `--directory=`/`--contents=` runner for scoped evidence runs and quick checks.
+  Renderer diagnostics now forward to stdout so a failed or hung run is visible.
+- Optimization verdict: still **FAIL**, but the worst stress interaction dropped
+  from 99.9 ms to 82.2 ms across five packaged runs. Nested groups at 10,000
+  leaves now pass (34.8 → 21.4 ms), text at 1,000 nodes 32.2 → 12.4 ms, images
+  3.6 → 2.5 ms, 1,000 primitives 7.5 → 7.3 ms. Text at 10,000 nodes is marginal
+  (35.0 ms); 10,000 loose primitives remain the failing case. The remaining cost
+  is GPU-side per-draw overhead across roughly 20,000 anti-aliased path draws per
+  frame, not JS-to-WASM work. Edit cost (re-record one bucket): 1–7 ms at 1,000
+  nodes, 22 ms at 10,000 text nodes, 54–61 ms at 10,000 loose primitives. Leak
+  check passed in both modes; peak whole-app working set 861 MiB across four
+  processes.
 
 ## Next
 
-- **Owner decision required on the renderer gate.** The approved Phase 1 plan
-  pauses editor work after a failed spike. The measured position: CanvasKit is
-  far faster than the rejected full-document SVG path, 1,000-layer, image, and
-  nested-group documents are well inside 33 ms, and only the 10,000-node
-  primitives and text fixtures miss it. Options:
-  1. Fund a renderer optimization slice before editor work: viewport culling,
-     retained layer caching/reuse, and paint-object reuse to remove per-item
-     JS-to-WASM state churn, then re-run the same fixtures and definition.
-  2. Accept CanvasKit with a revised, evidence-based stress target or a
-     documented stress limit (for example "1,000 fully visible layers at 33 ms,
-     10,000 with culling"), which changes a Phase 0 decision and needs to be
-     logged as such.
-  3. Compare another renderer candidate (batched WebGL or a tiled/hybrid
-     approach) against the same fixtures before choosing.
-  4. Proceed with editor slices 2–6 on CanvasKit as an accepted risk and revisit
-     performance in Phase 4 profiling.
+- **Owner decision required on the renderer gate (refined after slice 1b).** The
+  recorded-picture path halved the worst stress interaction, and the remaining
+  misses are 10,000 loose primitives (82.2 ms) and, marginally, 10,000 text nodes
+  (35.0 ms). Options:
+  1. Accept the recorded-picture path and set an evidence-based stress limit: for
+     example "documents with up to 1,000 fully visible live layers hold 33 ms;
+     10,000-leaf *nested-group* documents hold 33 ms (21.4 ms measured); 10,000
+     loose primitives are a recorded limit at ~82 ms". This changes a Phase 0
+     decision and needs to be logged as such.
+  2. Fund a second optimization iteration: rasterize the static scene into a
+     cached image for pan (one texture blit) and re-rasterize on zoom, and/or
+     non-order-preserving paint batching behind an explicit fidelity flag. The
+     trade-offs are zoom-time latency, blur during zoom, or changed paint order.
+  3. Compare another renderer candidate (batched WebGL/WebGPU path playback) on the
+     same fixtures before choosing.
+  4. Proceed with slices 2–6 on the recorded-picture path as an accepted risk, and
+     revisit with Phase 4 profiling using real documents rather than the synthetic
+     always-visible stress fixture.
 - After that decision, execute Phase 1 slices 2–6 in order: #18 document,
   commands, shapes, selection; #20 layers and groups; #16 plain text; #17 images;
   #19 durable local documents.

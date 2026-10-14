@@ -15,6 +15,15 @@ import { FIXTURE_VERSION, type FixtureContent, type FixtureSize } from '../bench
 const contents: FixtureContent[] = ['primitives', 'text', 'images', 'groups']
 const sizes: FixtureSize[] = ['empty', 'representative', 'stress']
 
+/** `?contents=primitives,text` narrows the run for quick validation checks. */
+function activeContents(): FixtureContent[] {
+  const requested = new URLSearchParams(window.location.search).get('contents')
+  if (requested === null) return contents
+  const wanted = requested.split(',')
+  const filtered = contents.filter((content) => wanted.includes(content))
+  return filtered.length > 0 ? filtered : contents
+}
+
 type RunSummary = {
   verdict: Verdict
   renderer: RendererInfo
@@ -44,7 +53,9 @@ export function BenchmarkApp() {
         setRendererInfo(renderer.info)
         setProgress('idle')
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'CanvasKit did not initialize.')
+        const message = cause instanceof Error ? cause.message : 'CanvasKit did not initialize.'
+        console.error(`renderer create failed: ${message}`)
+        setError(message)
         setProgress('failed')
       }
     })()
@@ -69,16 +80,18 @@ export function BenchmarkApp() {
     setSummary(null)
     try {
       const suite = await runScenarioSuite(renderer, {
-        contents,
+        contents: activeContents(),
         sizes,
+        modes: ['direct', 'picture'],
         cycles: 10,
         samples: 5,
         measureUiInteraction,
         onProgress: setProgress,
       })
       suite.notes.push(
-        'Spike scope: every fixture node is visible (no viewport culling, no retained layer cache),',
-        'so per-item draw cost includes JS-to-WASM call overhead that an editor optimization pass would reduce.',
+        'Modes: direct re-issues every node each frame (slice 1 control); picture replays recorded Skia pictures.',
+        'Spike scope: every fixture node is visible (no viewport culling), so per-item cost includes JS-to-WASM call overhead an editor optimization pass would reduce.',
+        'The gate decides on the picture path; the direct path is reported as a control.',
       )
       const verdict = computeVerdict(suite.scenarios)
       const record: RunRecord = {
@@ -107,7 +120,9 @@ export function BenchmarkApp() {
       setProgress('reported')
       await window.vectrBenchmark.reportResult({ record, memory })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'The benchmark run failed.')
+      const message = cause instanceof Error ? cause.message : 'The benchmark run failed.'
+      console.error(`benchmark run failed at ${progress}: ${message}`)
+      setError(message)
       setProgress('failed')
     }
   }

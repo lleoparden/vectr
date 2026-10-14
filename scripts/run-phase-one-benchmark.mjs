@@ -15,7 +15,9 @@ import { fileURLToPath } from 'node:url'
 import { summarizeRuns } from '../src/bench/report.ts'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const outputDirectory = path.join(root, '.ecc', 'benchmarks', 'phase-one')
+const directoryArgument = process.argv.find((argument) => argument.startsWith('--directory='))
+const evidenceDirectory = directoryArgument ? directoryArgument.slice('--directory='.length) : 'phase-one'
+const outputDirectory = path.join(root, '.ecc', 'benchmarks', evidenceDirectory)
 const executable = path.join(root, 'release', 'win-unpacked', 'Vectr Phase Zero Benchmark.exe')
 const runCount = 5
 
@@ -93,8 +95,12 @@ const finalSummary = {
   memoryPeak,
   verdict: {
     renderer: summary.pass
-      ? `pass: worst interaction p95 ${summary.worstInteractionMsP95} ms is within ${summary.interactionTargetMs} ms`
-      : `fail: worst interaction p95 ${summary.worstInteractionMsP95} ms exceeds ${summary.interactionTargetMs} ms`,
+      ? `pass: worst interaction p95 ${summary.worstInteractionMsP95} ms is within ${summary.interactionTargetMs} ms (deciding mode: ${summary.decidingMode})`
+      : `fail: worst interaction p95 ${summary.worstInteractionMsP95} ms exceeds ${summary.interactionTargetMs} ms (deciding mode: ${summary.decidingMode})`,
+    perMode: {
+      direct: summary.verdicts.direct.summary,
+      picture: summary.verdicts.picture.summary,
+    },
     leaks: records.some((record) => record.notes.some((note) => note.startsWith('LEAK')))
       ? 'fail: retained scene objects did not return to zero'
       : 'pass: retained scene objects returned to zero after release',

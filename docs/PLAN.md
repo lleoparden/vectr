@@ -39,8 +39,13 @@ The issue and pull-request flow is defined in
 - [ ] Run the prepared Tauri comparison when its Windows toolchain is available.
   It is retained as non-blocking evidence: switch only for a repeatable,
   equivalent-workload memory advantage of about 20% or more.
-- [ ] Run a bounded CanvasKit/Skia renderer spike before editor features. It
+- [x] Run a bounded CanvasKit/Skia renderer spike before editor features. It
   must use the frozen fixtures and retain the 33 ms stress interaction target.
+  Done and recorded in issues #15, #23 and #25: the spike missed the target, the owner approved a
+  bounded optimization, and the frozen 1,000-shape stress document now renders at p95 1.0–1.3 ms in
+  the packaged smoke run. **The gate is not fully closed**: the #25 comparison records 10,000 loose
+  primitives at 89.8 ms, so `PERF-01` stays open with revisit triggers for Phase 2 (see
+  `PROGRESS.md` and the catalog's renderer evidence section).
 - [x] Build parity catalog v1 and define its feature-completion standard in
   `docs/PARITY_CATALOG.md`.
 - [x] Approve a versioned, renderer-independent document model: stable layer
@@ -88,6 +93,11 @@ SVG is rejected; CanvasKit/Skia is the production-renderer candidate pending
 the bounded spike above. Tauri remains a deferred comparison, not a stack gate.
 
 ## Phase 1 — Core application foundation
+
+**Status: complete.** All six approved slices are merged (issues #18, #20, #16, #17, #19, plus the
+renderer spike #15 and its optimization #23), and the phase's product statement holds on the
+packaged Windows build: *a user can create, edit, save, reopen, and recover a layered document.*
+See `PROGRESS.md` for the exit evidence and the recorded gaps.
 
 ### Approved execution plan
 

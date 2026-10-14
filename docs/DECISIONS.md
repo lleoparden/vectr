@@ -424,18 +424,22 @@ including the layer list.
 4. **Shortcut keys exist only where a command exists** (V, M, L, Ctrl+Z, Ctrl+Shift+Z,
    Delete, Ctrl+A, Ctrl+Shift+A, Ctrl+2/3, Ctrl+Alt+2/3, Ctrl+=/−, Ctrl+0, Ctrl+1, F6,
    Shift+F6, F7). P, T, A, Ctrl+G/H/J and the rest are absent because the commands are.
-5. **Escape also deselects** and clears the last rejection notice; Illustrator reserves
-   Escape for cancelling the active operation.
+5. **RESOLVED in the conformance pass below** — Escape used to deselect as well. Escape is
+   now a cancel key only: it closes menus and dialogs and clears the pending rejection
+   notice, and Deselect keeps Illustrator's Ctrl+Shift+A.
 6. **Backspace is an extra binding for Clear** (Delete is Illustrator's own key), for
    keyboards without a Delete key.
-7. **No Alt-key menu activation.** Illustrator focuses its menu bar with Alt on
-   Windows; Vectr's menu bar is opened by click or by arrow keys, because Alt is also
-   the modifier in Ctrl+Alt+2/3 (Unlock All, Show All).
+7. **RESOLVED in the conformance pass below** — the menu bar takes Alt now: Alt+letter opens
+   the matching menu by mnemonic (Alt+E for Edit, Alt+O for Object, and so on) and the
+   mnemonic letter is underlined in the title, the way Illustrator's Windows menu bar shows
+   it. Ctrl+Alt+2/3 stay unambiguous because they require Ctrl.
 8. **The panel dock has a fixed width** with collapsible tabbed groups. No drag-to-
    resize, no floating or rearranged panels, no saved workspaces (that is UI-02).
 9. **The panel set is smaller**: Layers, Properties, Appearance, Color. Swatches,
    Align, Transform, Stroke, Gradient, Character, Paragraph, Pathfinder, and Symbols
-   are not built, and panels have no flyout (hamburger) menu yet.
+   are not built. Each group now carries Illustrator's flyout menu at its top right; the
+   Layers flyout runs Hide Selection, Show All, Lock Selection, and Unlock All, and the
+   style group's flyout is absent rather than empty because it has no commands yet.
 10. **The Layers panel is read-only apart from selection, hide, lock, and disclosure.**
     No drag reorder, group/ungroup, rename, duplicate, target/locate column, or
     thumbnails; the thumbnail slot is reserved and empty. Issue #20 owns the
@@ -462,9 +466,39 @@ including the layer list.
 18. **Colors, type, icons, and copy are Vectr's own** — a dark chrome with a single
     violet accent and hand-drawn geometric icons. This is the intended divergence: the
     familiarity is in the layout, terminology, and behavior, never in artwork.
-19. **The status bar shows the zoom level, artboard, and revision**, and the render
-    statistics overlay stays on the canvas for this Phase 1 work; Illustrator keeps
-    renderer internals out of the interface.
+19. **The status bar shows the zoom level, the tool, the selection, and the artboard.** The
+    revision counter was removed from it in the conformance pass, because Illustrator keeps
+    renderer internals out of the interface; the renderer statistics overlay on the canvas
+    remains a Phase 1 dev affordance and should become optional before Phase 2 ships.
+
+### Conformance pass (owner direction, after #28)
+
+The owner flagged that the shell was drifting from the UI rule — inventing elements rather
+than following Illustrator. This pass removes the invented pieces and closes three
+divergences:
+
+- **Electron's default application menu is gone.** `electron/main.cjs` now calls
+  `Menu.setApplicationMenu(null)`. Until now the window showed the native File/Edit/View/
+  Window/Help menu *and* Vectr's own menu bar, and Alt opened the native one; Illustrator has
+  exactly one menu bar, so the native menu had to go. This was the most serious violation of
+  the direction and it was invisible to the test suite.
+- **Alt mnemonics work.** Alt+letter opens the matching menu (Alt+E, Alt+O, Alt+S, Alt+V,
+  Alt+W, Alt+H) and the mnemonic letter is underlined in the title, as on Windows
+  Illustrator. `menuMnemonic`/`menuForMnemonic` derive the letter from the label and a test
+  asserts the six letters are distinct.
+- **Escape cancels instead of deselecting** (divergence 5). Deselect stays Ctrl+Shift+A.
+- **Panel groups got Illustrator's flyout menu** at the top right of the tab strip (divergence
+  9, narrower). The Layers flyout runs the same object commands the Object menu does.
+- **Invented chrome removed.** The tool palette no longer prints the active tool's letter in
+  its corner — Illustrator's palette has no such element — and the status bar no longer shows
+  the document revision, which is renderer bookkeeping (divergence 19, narrower).
+- **Panel tab labels are sentence case**, like Illustrator's, instead of the uppercase
+  treatment the first pass used.
+
+What this leaves genuinely diverging is behaviour that needs features Vectr does not have
+yet (File/Type/Effect menus, the missing panels, panels' read-only contents, the fixed dock,
+context menus, rulers, and the Layers panel's read-only tree), not styling or gestures
+chosen differently for their own sake. Sixteen divergences remain live.
 
 ### Evidence and limits
 
@@ -586,4 +620,24 @@ things an aggregate already expresses.
   restores both layers.
 - `electron . --smoke=stress`: 9/9 command-path steps, drag still one entry, 1,001 shapes in
   16 buckets at render p95 1.00 ms over 60 frames (scene build 3.5 ms).
+
+## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
+
+The owner went offline and gave standing permission to merge whatever an agent judges
+complete, until the end of Phase 1, and asked that Phase 1 be 100% complete on return.
+
+How that permission is used, so the record is unambiguous:
+
+- It **supersedes the "big or important pull requests need the owner's review and merge
+  decision" rule** in `AGENTS.md` only for the duration of Phase 1. From Phase 2 onward the
+  rule applies again unless the owner says otherwise.
+- Every slice still ships with its own branch, its required self-review posted on the pull
+  request, the three checks run on the branch head (`npm run typecheck`, `npm test`,
+  `npm run build`), the packaged smoke run, and its catalog, decisions, and progress updates
+  in the same pull request.
+- The big-PR classification is still recorded on each pull request, so the owner can see
+  which merges they would otherwise have reviewed.
+- Anything the agent cannot judge honestly — where it would be guessing at the owner's
+  intent — is recorded as an open question in `docs/PROGRESS.md` instead of being merged on
+  a guess.
 

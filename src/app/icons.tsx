@@ -115,3 +115,14 @@ export function IconChevron(props: IconProps) {
     </Icon>
   )
 }
+
+/** Panel flyout: the three-line control Illustrator puts at a panel's top right. */
+export function IconFlyout(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.6}>
+      <path d="M2.5 4 H13.5" />
+      <path d="M2.5 8 H13.5" />
+      <path d="M2.5 12 H13.5" />
+    </Icon>
+  )
+}

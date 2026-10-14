@@ -103,6 +103,21 @@ export function menuCommands(menu: MenuSpec): Array<Extract<MenuItem, { kind: 'c
   return menu.items.filter((item): item is Extract<MenuItem, { kind: 'command' }> => item.kind === 'command')
 }
 
+/**
+ * The menu's Alt-key mnemonic, taken from its first letter the way Illustrator's Windows
+ * menu bar does it (Alt+E opens Edit). Every menu label starts with a distinct letter, and
+ * a test asserts that, so Alt+letter can never be ambiguous.
+ */
+export function menuMnemonic(menu: MenuSpec): string {
+  return menu.label.slice(0, 1).toLowerCase()
+}
+
+/** The menu a mnemonic opens, or null when the letter belongs to no menu. */
+export function menuForMnemonic(letter: string, menus: MenuSpec[] = MENU_BAR): number {
+  const wanted = letter.toLowerCase()
+  return menus.findIndex((menu) => menuMnemonic(menu) === wanted)
+}
+
 /** A separator cannot come first, last, or sit next to another separator. */
 export function separatorsAreSane(menu: MenuSpec): boolean {
   const items = menu.items

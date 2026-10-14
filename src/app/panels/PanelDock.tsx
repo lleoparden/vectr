@@ -12,13 +12,27 @@
  */
 
 import { IconChevron } from '../icons.tsx'
+import { PanelFlyout } from '../PanelFlyout.tsx'
 import { DOCK_WIDTH } from '../theme.ts'
-import { PANEL_LABELS, workspaceStore, type PanelId } from '../../state/workspaceStore.ts'
+import { workspaceStore, type PanelId } from '../../state/workspaceStore.ts'
+import { PANEL_LABELS } from '../../state/workspaceStore.ts'
+import type { EditorActionId } from '../actions.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { AppearancePanel } from './AppearancePanel.tsx'
 import { ColorPanel } from './ColorPanel.tsx'
 import { LayersPanel } from './LayersPanel.tsx'
 import { PropertiesPanel } from './PropertiesPanel.tsx'
+
+/** The commands each panel group's flyout offers, following Illustrator's panel menus. */
+const GROUP_FLYOUT: Record<string, EditorActionId[]> = {
+  'group.layers': [
+    'object.hideSelection',
+    'object.showAll',
+    'object.lockSelection',
+    'object.unlockAll',
+  ],
+  'group.style': [],
+}
 
 function PanelBody({ panel }: { panel: PanelId }) {
   switch (panel) {
@@ -60,7 +74,7 @@ export function PanelDock() {
                       ? `Collapse ${PANEL_LABELS[tab]}`
                       : `Show ${PANEL_LABELS[tab]}`
                   }
-                  className={`flex-1 px-2 py-[5px] text-ui-xs uppercase tracking-wide ${
+                  className={`flex-1 px-2 py-[5px] text-ui-xs ${
                     !group.collapsed && group.active === tab
                       ? 'bg-chrome text-ink'
                       : 'text-ink-faint hover:bg-chrome-active hover:text-ink-muted'
@@ -70,6 +84,7 @@ export function PanelDock() {
                   {PANEL_LABELS[tab]}
                 </button>
               ))}
+              <PanelFlyout label={PANEL_LABELS[group.active]} items={GROUP_FLYOUT[group.id] ?? []} />
               <button
                 type="button"
                 aria-label={

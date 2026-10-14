@@ -143,6 +143,14 @@
   drag still one entry and 1,001 shapes in 16 buckets at render p95 1.00 ms over 60
   frames (scene build 3.5 ms); 74 unit tests pass (10 new aggregate-inverse tests);
   clean typecheck and build.
+- UI conformance pass (branch `enhance/ui-conformance`), after the owner's direction that the
+  shell was drifting from Illustrator: Electron's default application menu is removed so the
+  window has one menu bar instead of two, Alt+letter opens menus by mnemonic with the letter
+  underlined in the title, Escape cancels instead of deselecting (Deselect stays
+  Ctrl+Shift+A), panel groups gained Illustrator's flyout menu (the Layers flyout runs the
+  object commands), the tool palette's invented corner letter and the status bar's revision
+  counter are gone, and panel tabs are sentence case. Sixteen divergences remain live, all of
+  them features Vectr does not have yet rather than styling chosen differently.
 
 ## Next
 
@@ -218,11 +226,14 @@
   it is non-blocking and the temporary harness sits outside the repo.
 - `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
   remain untracked working files.
-- The shell now follows the UI direction, with eighteen live divergences from Illustrator
+- The shell now follows the UI direction, with sixteen live divergences from Illustrator
   (`docs/DECISIONS.md`, UI shell alignment). The load-bearing ones: Properties, Appearance,
   and Color are read-only because style and transform commands do not exist yet; the Layers
   panel is read-only beyond selection, hide, lock, and disclosure (issue #20 owns the
   interactive tree, renaming, and thumbnails); the File menu is absent until #19 adds
-  documents; and there are no context menus, rulers, guides, or saved workspaces. A
-  nineteenth divergence — multi-object Hide and Lock taking one undo step per node — was
-  resolved in #34 and stays listed there with its resolution.
+  documents; and there are no context menus, rulers, guides, or saved workspaces. Three
+  divergences were resolved after #28 — the per-node undo aggregation (#34), Escape
+  deselecting, and the missing Alt menu mnemonics — and two more were narrowed by the
+  conformance pass (panel flyout menus, and the status bar no longer showing the document
+  revision). That pass also removed Electron's default application menu, which had been
+  putting a second menu bar in the window.

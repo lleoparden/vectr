@@ -52,9 +52,6 @@ export function ToolPalette() {
           </button>
         )
       })}
-      <div className="mt-auto text-ui-xs text-ink-faint" aria-hidden="true">
-        {state.tool === 'select' ? 'V' : state.tool === 'rect' ? 'M' : 'L'}
-      </div>
     </div>
   )
 }

@@ -523,6 +523,69 @@ export async function runTextEntryReport(): Promise<SmokeReport> {
     }
   }
 
+  // 6. The editor has to grow with what it holds: the owner reported the box that appears on the
+  //    first click was too small for anything to fit in it. These steps run last so the document
+  //    they add cannot disturb the counts the earlier steps depend on.
+  const textObjects = () =>
+    documentStore.getState().document.root.children.filter((node) => node.type === 'text').length
+  runEditorAction('tool.text')
+  await settle(120)
+  clickCanvas(480, 360)
+  await settle(200)
+  let growing = editor()
+  let attempts = 1
+  // A click that lands while the tool change is still propagating can be read as the previous
+  // tool; a real user would simply click again, so the check does the same and reports it.
+  while (growing === null && attempts < 3) {
+    attempts += 1
+    clickCanvas(480 + attempts * 40, 360 + attempts * 20)
+    await settle(250)
+    growing = editor()
+  }
+  if (growing === null) {
+    record(
+      'the editor opens for its own size check',
+      false,
+      `no editor after ${attempts} clicks; tool ${documentStore.getState().tool}, ${textObjects()} text object(s)`,
+    )
+  } else {
+    record('the editor opens for its own size check', true, `open after ${attempts} click(s)`)
+    const before = growing.getBoundingClientRect()
+    typeInto(growing, 'A line of text long enough to need a wider box')
+    await settle(80)
+    const wider = growing.getBoundingClientRect()
+    record(
+      'the editor widens as the text gets longer',
+      wider.width > before.width + 40,
+      `${Math.round(before.width)} px → ${Math.round(wider.width)} px wide`,
+    )
+    typeInto(growing, 'A line of text long enough to need a wider box\nand a second line below it')
+    await settle(80)
+    const taller = growing.getBoundingClientRect()
+    record(
+      'a second line makes the editor taller',
+      taller.height > wider.height,
+      `${Math.round(wider.height)} px → ${Math.round(taller.height)} px tall`,
+    )
+    record(
+      'the editor is at least as big as it was on the previous keystroke',
+      taller.width >= wider.width && taller.height >= wider.height,
+      `editor ${Math.round(taller.width)}×${Math.round(taller.height)} px`,
+    )
+    growing.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle(150)
+    const stored = documentStore
+      .getState()
+      .document.root.children.find((node) => node.type === 'text' && node.text.includes('second line'))
+    record(
+      'committing stores the box the editor grew to',
+      stored !== undefined && stored.type === 'text' && stored.height >= stored.lineHeight * 2 - 0.5,
+      stored === undefined || stored.type !== 'text'
+        ? 'no committed text'
+        : `stored ${Math.round(stored.width)}×${Math.round(stored.height)} px`,
+    )
+  }
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

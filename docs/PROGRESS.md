@@ -1,6 +1,33 @@
 # Progress
 
 
+## The inline text editor now grows as you type (2026-10-14, owner report)
+
+"I told you the text box that appears when you click for the first time [should] expand when you
+write more, as it's too small and nothing fits in it." Correct, and this is what was wrong: the
+editor was sized from the node's **stored** box — the text's size at its last commit — so a new empty
+object started at 32 px and stayed there, clipping everything after the first glyphs.
+
+**Fixed** (`fix/text-editor-grows`, issue #54):
+
+- `src/app/canvas/textEditorBox.ts` (new, pure, unit-tested): the sizing rule — measured size, a
+  32 px × one-line minimum so an empty object is still clickable, 2 px for the border that sits inside
+  the box, whole pixels.
+- `TextEditor` takes a `measure` callback and re-measures on **every** keystroke with the same
+  function the commit uses, so the box you type in is the box the canvas stores and draws.
+- `wrap="off"` + `white-space: pre` + the node's font family: the canvas never wraps text, so the
+  editor must not either.
+
+**Evidence:** one new unit test (138 total, all passing) and five new packaged steps in
+`[vectr-text]` (12 there now, 79 across the seven reports) that measure the real textarea's bounding
+rect: the editor was **34 px** wide on the first click and **312 px** after a long line was typed,
+grew **19 px → 36 px** tall when a second line was added, and the committed object stores the box the
+editor had grown to (354×38 document units at that zoom).
+
+Still a documented difference: the canvas underneath shows the previous box until you commit, because
+a text edit must stay **one** undo step (issue #16) rather than issuing a command per keystroke.
+
+
 ## Shape tools complete, honest drag previews, and autosave/recovery answered (2026-10-14, owner request)
 
 The owner reported that an ellipse drag previewed a rectangle, that Shift did nothing, and that

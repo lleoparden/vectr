@@ -205,14 +205,29 @@ export function CanvasView() {
     const world = worldTransform(current, nodeId)
     if (node === null || world === null || !isText(node)) return null
     const { zoom, panX, panY } = state.viewport
+    // Size comes from `editorMeasure`, which grows with the text; this box is the anchor and the type.
     return {
       left: world.x * zoom + panX,
       top: world.y * zoom + panY,
-      width: Math.max(32, node.width * world.scaleX * zoom),
-      height: Math.max(node.lineHeight * world.scaleY * zoom, node.height * world.scaleY * zoom),
       fontSize: Math.max(8, node.fontSize * world.scaleY * zoom),
       lineHeight: Math.max(10, node.lineHeight * world.scaleY * zoom),
+      fontFamily: node.fontFamily,
     }
+  }
+
+  /**
+   * Screen-space size of the given text, measured the way the commit will store it (the renderer's
+   * metrics when it has them, otherwise the shared estimate). The editor grows with this, so the
+   * box you type into is the box the canvas will draw.
+   */
+  function editorMeasure(nodeId: NodeId, text: string): { width: number; height: number } {
+    const current = documentStore.getState().document
+    const node = findNode(current, nodeId)
+    const world = worldTransform(current, nodeId)
+    if (node === null || world === null || !isText(node)) return { width: 0, height: 0 }
+    const size = textBoxFor(node.fontFamily, node.fontSize, node.lineHeight, text)
+    const { zoom } = state.viewport
+    return { width: size.width * world.scaleX * zoom, height: size.height * world.scaleY * zoom }
   }
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -505,6 +520,7 @@ export function CanvasView() {
               box={box}
               color={node.style.fill}
               align={node.align}
+              measure={(text) => editorMeasure(editing.nodeId, text)}
               onCommit={(text) => commitText(editing.nodeId, text)}
               onCancel={() => setEditing(null)}
             />

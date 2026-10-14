@@ -1367,3 +1367,44 @@ Rectangle. The switch now resolves the clicked value through the group table, an
 each member draws what it says. This is the same lesson as the Type tool bug recorded earlier: a
 control that *looks* wired is not evidence until something drives it.
 
+
+## 2026-10-14 — The inline text editor grows with its content
+
+The owner reported that the box which appears on the first Type-tool click is too small — "nothing
+fits in it". They were right, and the cause was simple: the editor was sized from the node's *stored*
+box, which is the box the text had when it was last committed. An empty new object is one character
+wide, so the editor started at 32 px and stayed there while the user typed into a box that clipped
+everything past the first couple of glyphs (`overflow: hidden`).
+
+**The fix.** `src/app/canvas/textEditorBox.ts` holds the sizing rule, pure and unit-tested, and
+`TextEditor` now takes a `measure` callback instead of a fixed width and height:
+
+- Every keystroke is measured with **the same function the commit uses** (`textBoxFor`: the
+  renderer's real metrics when it has them, the shared estimate otherwise), so the box you type into
+  is the box the canvas will store and draw. The editor can no longer be smaller than its text.
+- A **minimum of 32 px wide and one line tall** keeps an empty object clickable — Illustrator's point
+  text is a bare caret, which is not a target worth copying for a DOM control.
+- `EDITOR_BORDER = 2` is added to both axes because the editor's 1 px border sits *inside* its box
+  (border-box): the content area then equals the measured box exactly, so the text starts where the
+  canvas will draw it.
+- The textarea gets `wrap="off"` and `white-space: pre`, and the node's font family is set explicitly.
+  The canvas draws text line by line and never wraps it, so the editor must not wrap either — that was
+  a second, quieter way the old editor could disagree with the canvas.
+- Sizes are rounded to whole pixels so the caret never sits on a half pixel.
+
+**Divergences, unchanged in spirit but now explicit:**
+
+- Illustrator's point-text caret is a bare insertion point with no box; Vectr keeps a small bordered
+  box because a DOM textarea has to be a real, focusable, screen-reader-visible target. The border is
+  the editing affordance, and it is outside the measured content area.
+- The editor still does not update the *node's* box until the commit, so the canvas underneath shows
+  the previous box while you type. Illustrator reshapes the object live. Live reshaping needs a
+  per-keystroke document command, which would flood the undo stack — a text edit must stay one undo
+  step (issue #16) — so this stays a documented difference rather than a compromise that would trade
+  away the one-entry rule.
+
+**Evidence.** A unit test covers the rule (minimum, border compensation, growth in both axes, whole
+pixels) and the packaged `[vectr-text]` report now measures the real textarea's bounding rect before
+and after typing: it widens past 40 px of growth, grows taller when a second line is added, and the
+committed object's stored box matches the size the editor had reached.
+

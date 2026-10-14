@@ -22,6 +22,7 @@ import {
 import { validateDocument } from '../src/doc/validate.ts'
 import { hitTest, marqueeHitTest } from '../src/doc/hitTest.ts'
 import { buildScene } from '../src/render/scene.ts'
+import { EDITOR_BORDER, MIN_EDITOR_WIDTH, editorSizeFor } from '../src/app/canvas/textEditorBox.ts'
 import { documentStore } from '../src/state/documentStore.ts'
 import { runEditorAction, nextFontSize } from '../src/app/actions.ts'
 import type { Document, LayerNode, NodeId, TextNode } from '../src/doc/types.ts'
@@ -58,6 +59,28 @@ test('a new text object carries the documented defaults and an estimated box', (
   assert.equal(node.width, box.width)
   assert.equal(node.height, box.height, 'two lines are two line heights tall')
   assert.equal(node.transform.x, 10)
+})
+
+test('the text editor grows with its content and stays clickable when empty', () => {
+  const line = 19.2
+  // The editor never shrinks below a clickable minimum, plus one pixel per border side so the
+  // text lines up with the box the canvas draws.
+  const empty = editorSizeFor({ width: 8.8, height: line }, line)
+  assert.equal(empty.width, MIN_EDITOR_WIDTH + EDITOR_BORDER)
+  assert.equal(empty.height, Math.round(line) + EDITOR_BORDER)
+
+  const oneLine = editorSizeFor({ width: 40, height: line }, line)
+  assert.equal(oneLine.width, 42, 'a measured box is used as-is plus the border')
+  assert.equal(oneLine.height, Math.round(line) + EDITOR_BORDER)
+
+  // Longer text is wider; another line is taller. This is the owner's report: the box has to grow.
+  const long = editorSizeFor({ width: 220, height: line }, line)
+  assert.ok(long.width > oneLine.width, 'typing more widens the editor')
+  const twoLines = editorSizeFor({ width: 220, height: line * 2 }, line)
+  assert.ok(twoLines.height > long.height, 'a second line makes the editor taller')
+
+  // Sizes are whole pixels, so the caret cannot sit on a half pixel.
+  assert.equal(editorSizeFor({ width: 10.4, height: line }, line).width % 1, 0)
 })
 
 test('the measurement estimate grows with text, size, and lines', () => {

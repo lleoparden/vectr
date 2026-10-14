@@ -1,23 +1,28 @@
 /**
- * In-place text editor (issue #16).
+ * In-place text editor (issue #16; sizing fixed after the owner reported the box was too small).
  *
  * Illustrator edits text on the canvas; so does this: a textarea is positioned over the text
  * object at its own size, weight, color, and alignment, so what the user types is what the
  * canvas will draw. Escape commits (Illustrator's Escape ends text editing), Ctrl+Enter
  * commits, and clicking away commits. It is a real labelled control, so the whole flow works
  * from the keyboard and with a screen reader.
+ *
+ * The editor grows with what it holds: every keystroke is measured through the same function the
+ * commit uses, so the box is never smaller than the text inside it, and never smaller than a
+ * clickable minimum. Text does not wrap here, because the canvas does not wrap it either.
  */
 
 import { useEffect, useRef, useState } from 'react'
 import type { TextAlign } from '../../doc/types.ts'
+import { editorSizeFor, type BoxSize } from './textEditorBox.ts'
 
 export type TextEditorBox = {
   left: number
   top: number
-  width: number
-  height: number
   fontSize: number
   lineHeight: number
+  /** The node's font family, so the caret and the glyph advances match the canvas. */
+  fontFamily: string
 }
 
 export function TextEditor({
@@ -25,6 +30,7 @@ export function TextEditor({
   box,
   color,
   align,
+  measure,
   onCommit,
   onCancel,
 }: {
@@ -32,6 +38,8 @@ export function TextEditor({
   box: TextEditorBox
   color: string
   align: TextAlign
+  /** Measured size of the given text in screen units; the same measurement the commit stores. */
+  measure: (text: string) => BoxSize
   onCommit: (text: string) => void
   onCancel: () => void
 }) {
@@ -47,20 +55,27 @@ export function TextEditor({
     ref.current?.select()
   }, [])
 
+  const size = editorSizeFor(measure(value), box.lineHeight)
+
   return (
     <textarea
       ref={ref}
       value={value}
       aria-label="Edit text"
       spellCheck={false}
+      // `off` plus `pre` is what keeps the editor's line breaks identical to the node's: the
+      // canvas draws the text line by line and never wraps it.
+      wrap="off"
       className="absolute z-40 resize-none overflow-hidden rounded-ui border border-accent bg-artboard/95 p-0"
       style={{
         left: box.left,
         top: box.top,
-        width: box.width,
-        height: box.height,
+        width: size.width,
+        height: size.height,
         fontSize: box.fontSize,
         lineHeight: `${box.lineHeight}px`,
+        fontFamily: `${box.fontFamily}, Inter, sans-serif`,
+        whiteSpace: 'pre',
         color,
         textAlign: align,
       }}

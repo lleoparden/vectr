@@ -1011,6 +1011,53 @@ the new one. Evidence that it changed nothing but paths: typecheck clean, **119/
 identical production bundle hash before and after (`index-5DFkgqNk.js`, 480.32 kB), and the packaged
 smoke run passing all three reports (18 + 11 + 8 = 37 steps).
 
+## 2026-10-14 — Bug: the Type tool did nothing (owner-reported), and why the evidence missed it
+
+### The report
+
+The owner pressed the Type tool and clicked the canvas: **nothing happened, and they could not type.**
+
+### The cause
+
+The click placed a text object and opened the inline editor, and then the *same click* closed it. A
+real mouse-down runs the browser's default focus change **after** the `pointerdown` handler returns;
+the canvas is not focusable, so focus went to the document body, which blurred the textarea that had
+just been focused. The editor's blur handler committed the (still empty) text, and the empty-text rule
+discarded the new object. From the user's side: a flash, then nothing.
+
+### The fix, in two parts
+
+1. **Root cause, in the canvas:** the Text tool's `pointerdown` now calls `event.preventDefault()`, so
+   the browser does not move focus away from the editor it just opened. That is what `preventDefault`
+   is for in this exact situation, and it is why the fix belongs in the canvas rather than in a
+   timeout.
+2. **Safety net, in the editor:** a blur that arrives before the user has typed anything no longer
+   counts as leaving. It is recovered from **once** by re-focusing; a second blur commits as usual.
+   So a stray focus change can never delete the object the user was about to type into, and a genuine
+   departure (clicking another panel, pressing Escape) still behaves normally.
+
+### Why the existing tests did not catch it — the lesson worth keeping
+
+The unit tests cover the text *commands*, and the file round trip covers *saving* a text object, so
+both were green while the interaction was completely broken. I then wrote a DOM-level test that
+dispatched `pointerdown`/`pointerup` at the canvas and **it passed too**, which proved nothing:
+`dispatchEvent` does not run a browser's *default* actions, so the focus change that caused the bug
+never happened in the test.
+
+The regression test now simulates the missing half as well — it blurs the editor immediately after the
+click, which is what the real browser does — and that step failed before the fix (`editor closed`) and
+passes after it (`editor open, 2 text object(s)`, followed by typing that commits). The lesson is
+recorded because it generalises: for interaction bugs, a test that dispatches events is not evidence
+until it also reproduces the browser behavior around them.
+
+### Evidence
+
+- The new `[vectr-text]` packaged report drives the real canvas element: click with the Type tool
+  places text and opens the editor; typing commits as one entry; the editor closes after committing;
+  an abandoned empty object is discarded; **a blur before typing does not destroy the object**;
+  typing still works after that blur; and double-clicking an existing object reopens the editor.
+- Full run: 126 unit tests and **58 packaged steps** across five reports, all passing.
+
 ## 2026-10-14 — Layer thumbnails, made real rather than decorative
 
 The Layers panel's thumbnail slot had been an empty box since #28, recorded as a divergence. It now

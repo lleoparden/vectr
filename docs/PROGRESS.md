@@ -298,6 +298,15 @@ renderer, a working layer tree, and a project format the compiler can read.
   imported` (8×8 pixels, 89 bytes, content key `sha256-ab57fee…`), `image undo removes node and
   asset`, `image redo restores both`, and `image drawn from its asset`, with 1,004 shapes at
   render p95 1.30 ms; 107 unit tests pass (10 new) with clean typecheck and build.
+- Bug fix, owner-reported: **the Type tool did nothing.** A real mouse-down ran the browser's default
+  focus change after the canvas handler, blurring the inline text editor the same click had just
+  opened; its blur committed empty text and the empty-object rule discarded it. Fixed at the source
+  (`preventDefault` on the canvas pointer-down for the Text tool) plus a one-shot stray-blur recovery
+  in the editor. The gap that let this ship: the text tests covered commands and saving but never the
+  interaction, and a first DOM-level test passed misleadingly because `dispatchEvent` does not run
+  browser default actions. A packaged `[vectr-text]` report now drives the real canvas, blurs the
+  editor the way a real click does, and proves typing works. Evidence: 126 unit tests and 58 packaged
+  steps across five reports.
 - UI enhancement, owner-requested, after Phase 1 (branch `feat/layers-thumbnails`): Layers rows now
   show **live thumbnails** rendered by the real renderer from its recorded picture (no approximation,
   so a preview cannot disagree with the canvas). Deliberate limits, each asserted in the packaged run:
@@ -309,8 +318,7 @@ renderer, a working layer tree, and a project format the compiler can read.
   panel gained the foot Illustrator has — New Layer, Duplicate Selection, and Delete Selection —
   reachable from the panel foot, the Layers flyout, and the row context menu. `duplicateSubtree`
   deep-copies with fresh ids while sharing content-addressed image assets, and delete now uses one
-  shared locked-aware policy everywhere. **Thumbnails are still the open half**: the row's thumbnail
-  slot remains an empty box, recorded as a divergence. Evidence: 126 unit tests (5 new) and 48
+  shared locked-aware policy everywhere. Thumbnails followed in their own branch (see the entry above). Evidence: 126 unit tests (5 new) and 48
   packaged smoke steps across four reports.
 - UI enhancement, owner-requested, after Phase 1 (branch `feat/unsaved-changes-dialog`): the
   unsaved-changes warning is now Vectr's own modal instead of a native operating-system message box

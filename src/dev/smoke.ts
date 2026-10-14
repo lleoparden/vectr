@@ -381,6 +381,156 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
 }
 
 /**
+ * Text entry at the DOM level (fix for "the Type tool does nothing").
+ *
+ * The unit tests cover the text commands, and the file round trip covers saving a text object, but
+ * nothing exercised the actual interaction: press the Type tool, click the canvas, type, click away.
+ * That gap is exactly where the editor was being closed by the same click that opened it, so this
+ * report drives the real canvas element with real pointer events and reads the real DOM back.
+ */
+export async function runTextEntryReport(): Promise<SmokeReport> {
+  const steps: SmokeStep[] = []
+  const record = (name: string, ok: boolean, detail: string) => steps.push({ name, ok, detail })
+  const settle = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+  const canvas = document.querySelector<HTMLCanvasElement>('canvas[aria-label="Design canvas"]')
+  if (canvas === null) {
+    record('canvas found', false, 'no canvas element')
+    return { passed: false, steps }
+  }
+  const editor = () => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Edit text"]')
+
+  /** Clicks the canvas the way a user does: pointerdown then pointerup at the same point. */
+  const clickCanvas = (x: number, y: number) => {
+    const box = canvas.getBoundingClientRect()
+    const clientX = box.left + x
+    const clientY = box.top + y
+    const options = { pointerId: 1, button: 0, buttons: 1, clientX, clientY, bubbles: true, isPrimary: true }
+    canvas.dispatchEvent(new PointerEvent('pointerdown', options))
+    canvas.dispatchEvent(new PointerEvent('pointerup', { ...options, buttons: 0 }))
+  }
+
+  /** Types into a controlled React textarea the way the browser would. */
+  const typeInto = (element: HTMLTextAreaElement, value: string) => {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+    setter?.call(element, value)
+    element.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+
+  newDocument()
+  await settle(150)
+  runEditorAction('tool.text')
+  await settle(100)
+
+  // 1. Clicking with the Type tool must place a text object *and* leave an editor open.
+  clickCanvas(200, 180)
+  await settle(150)
+  const placed = documentStore.getState().document.root.children.filter((node) => node.type === 'text').length
+  const openedEditor = editor()
+  record(
+    'clicking with the Type tool places text and opens the editor',
+    placed === 1 && openedEditor !== null,
+    `${placed} text object(s), editor ${openedEditor === null ? 'NOT open' : 'open'}`,
+  )
+
+  // 2. Typing must survive committing, and be one history entry.
+  if (openedEditor !== null) {
+    const depthBefore = documentStore.getState().undoDepth
+    typeInto(openedEditor, 'Hello Vectr')
+    await settle(50)
+    openedEditor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle(150)
+    const textNode = documentStore.getState().document.root.children.find((node) => node.type === 'text')
+    const content = textNode !== undefined && textNode.type === 'text' ? textNode.text : null
+    record(
+      'typed text is committed as one entry',
+      content === 'Hello Vectr' && documentStore.getState().undoDepth === depthBefore + 1,
+      `content ${JSON.stringify(content)}, depth ${depthBefore} -> ${store_depth()} `,
+    )
+    record(
+      'the editor closes after committing',
+      editor() === null && documentStore.getState().selection.length === 1,
+      `editor ${editor() === null ? 'closed' : 'still open'}`,
+    )
+  }
+
+  // 3. Clicking away without typing must not leave an invisible empty object behind.
+  runEditorAction('tool.text')
+  clickCanvas(320, 260)
+  await settle(150)
+  const emptyEditor = editor()
+  if (emptyEditor !== null) {
+    typeInto(emptyEditor, '   ')
+    emptyEditor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle(150)
+  }
+  const remaining = documentStore.getState().document.root.children.filter((node) => node.type === 'text').length
+  record(
+    'an abandoned empty text object is discarded',
+    remaining === 1,
+    `${remaining} text object(s) left after the empty one was abandoned`,
+  )
+
+  // 4. A real mouse click moves focus, so a blur can arrive the instant the editor opens. That
+  //    must not destroy the object the user was about to type into.
+  runEditorAction('tool.text')
+  clickCanvas(420, 320)
+  await settle(150)
+  const beforeBlur = editor()
+  beforeBlur?.blur()
+  await settle(150)
+  const stillOpen = editor()
+  const stillPlaced = documentStore.getState().document.root.children.filter((node) => node.type === 'text').length
+  record(
+    'a blur before typing does not destroy the text object',
+    stillOpen !== null && stillPlaced >= 1,
+    `editor ${stillOpen === null ? 'closed' : 'open'}, ${stillPlaced} text object(s)`,
+  )
+  if (stillOpen !== null) {
+    typeInto(stillOpen, 'Recovered')
+    stillOpen.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle(150)
+    const typed = documentStore
+      .getState()
+      .document.root.children.filter((node) => node.type === 'text' && node.text === 'Recovered').length
+    record('typing still works after that blur', typed === 1, `${typed} object(s) with the typed content`)
+  }
+
+  // 5. Double-clicking an existing text object opens the same editor.
+  runEditorAction('tool.select')
+  await settle(50)
+  const onlyText = documentStore.getState().document.root.children.find((node) => node.type === 'text')
+  if (onlyText !== undefined) {
+    documentStore.setSelection([onlyText.id])
+    const box = canvas.getBoundingClientRect()
+    const world = worldBounds(documentStore.getState().document, onlyText.id)
+    const viewport = documentStore.getState().viewport
+    if (world !== null) {
+      const x = (world.x + 4) * viewport.zoom + viewport.panX
+      const y = (world.y + 4) * viewport.zoom + viewport.panY
+      canvas.dispatchEvent(
+        new MouseEvent('dblclick', { bubbles: true, clientX: box.left + x, clientY: box.top + y }),
+      )
+      await settle(150)
+      record(
+        'double-clicking a text object reopens the editor',
+        editor() !== null,
+        editor() === null ? 'no editor' : 'editor open for the existing text',
+      )
+      editor()?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await settle(100)
+    }
+  }
+
+  return { passed: steps.every((step) => step.ok), steps }
+}
+
+/** Current history depth, for step details. */
+function store_depth(): string {
+  return String(documentStore.getState().undoDepth)
+}
+
+/**
  * Memory and zoom evidence (Phase 1 exit criteria 5 and 6), run on the packaged app.
  *
  * Criterion 6 asks for memory on a representative *and* a stress document, recorded after save,

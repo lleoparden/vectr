@@ -209,6 +209,10 @@ export function CanvasView() {
     // The Type tool places a text object where the click landed and starts editing it, which
     // is what Illustrator's Type tool does.
     if (state.tool === 'text') {
+      // Keep focus on the canvas from moving: a real mouse-down runs the browser's default focus
+      // change *after* this handler, which would blur the editor we are about to open and close it
+      // before the user could type a character.
+      event.preventDefault()
       const existing = state.document.root.children.filter((node) => node.type === 'text').length
       const node = createText(`Text ${existing + 1}`, start.x, start.y, '')
       const result = documentStore.dispatch(

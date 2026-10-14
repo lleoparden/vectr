@@ -1,24 +1,27 @@
 /**
- * Measurement scenarios for the Phase 1 renderer spike (issue #15).
+ * Measurement scenarios for the Phase 1 renderer comparison (issues #15, #23, #25).
  *
- * Timing definitions, applied identically to every fixture:
- * - `buildMs`: one-time fixture-to-retained-object work (geometry/decode/layout).
- * - `drawMs`: median viewport-apply + draw + flush submission.
- * - `interactionMs` (gate): median of viewport change + draw + flush, excluding
- *   build and React, so it measures the renderer work an interaction costs.
+ * Timing definitions, applied identically to every target and candidate:
+ * - `buildMs`: one-time scene work (geometry, decode, layout, upload, recording).
+ * - `drawMs`: median viewport-apply + frame production + flush.
+ * - `interactionMs` (gate): median of viewport change + frame production + flush,
+ *   excluding build and React, so it measures the work an interaction costs.
  * - `presentedMs`: one interaction including a presented frame (vsync visible).
  * - `uiInteractionMs`: the same action driven through React state, as Phase 0 did.
+ *
+ * One implementation serves every target, so candidates cannot accidentally be
+ * measured with a different method.
  */
 
 import { createFixture, type FixtureContent, type FixtureSize } from './fixtures.ts'
 import type { ScenarioMetrics } from './report.ts'
-import type { RenderMode, SceneRenderer } from './renderer.ts'
+import type { SceneTarget } from './target.ts'
 
 export type ScenarioSuiteOptions = {
+  /** Renderer targets to measure; each one reports its own candidate name. */
+  targets: SceneTarget[]
   contents: FixtureContent[]
   sizes: FixtureSize[]
-  /** Draw paths to measure; both are measured in one run by default. */
-  modes?: RenderMode[]
   /** Unload/reload cycles used for the leak check. */
   cycles?: number
   /** Repeated samples per timing measurement; the median is reported. */
@@ -54,51 +57,48 @@ export function median(values: number[]) {
   return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
 }
 
-export async function runScenarioSuite(
-  renderer: SceneRenderer,
-  options: ScenarioSuiteOptions,
-): Promise<ScenarioSuiteResult> {
+export async function runScenarioSuite(options: ScenarioSuiteOptions): Promise<ScenarioSuiteResult> {
   const cycles = options.cycles ?? 10
   const samples = options.samples ?? 5
-  const modes = options.modes ?? ['direct', 'picture']
   const scenarios: ScenarioMetrics[] = []
   const notes: string[] = []
 
-  const measureFixture = async (content: FixtureContent, size: FixtureSize, mode: RenderMode) => {
-    renderer.setMode(mode)
+  const measureFixture = async (content: FixtureContent, size: FixtureSize, target: SceneTarget, mode: string) => {
+    target.setMode(mode)
     const fixture = createFixture(content, size)
-    const stats = renderer.build(fixture)
+    const stats = target.build(fixture)
 
     const drawSamples: number[] = []
     for (let sample = 0; sample < samples; sample += 1) {
-      renderer.setViewport({ zoom: 1, panX: 0, panY: 0 })
-      drawSamples.push(renderer.draw())
+      target.setViewport({ zoom: 1, panX: 0, panY: 0 })
+      drawSamples.push(target.draw())
     }
 
     const interactionSamples: number[] = []
     for (let sample = 0; sample < samples; sample += 1) {
       const started = performance.now()
-      renderer.setViewport({
+      target.setViewport({
         zoom: 1 + (sample + 1) * 0.02,
         panX: (sample + 1) * 3,
         panY: (sample + 1) * 2,
       })
-      renderer.draw()
+      target.draw()
       interactionSamples.push(performance.now() - started)
     }
 
     const presentedStarted = performance.now()
-    renderer.setViewport({ zoom: 1.1, panX: 6, panY: 4 })
-    renderer.draw()
+    target.setViewport({ zoom: 1.1, panX: 6, panY: 4 })
+    target.draw()
     await nextFrame()
     const presentedMs = performance.now() - presentedStarted
 
     const uiInteractionMs = options.measureUiInteraction ? await options.measureUiInteraction() : 0
 
-    renderer.setViewport({ zoom: 1, panX: 0, panY: 0 })
-    renderer.draw()
-    const live = renderer.liveObjects()
+    target.setViewport({ zoom: 1, panX: 0, panY: 0 })
+    target.draw()
+    const live = target.liveObjects()
     scenarios.push({
+      candidate: target.candidate,
       scenario: 'fixture',
       detail: `${content}/${size}`,
       renderMode: mode,
@@ -107,25 +107,27 @@ export async function runScenarioSuite(
       interactionMs: median(interactionSamples),
       presentedMs,
       uiInteractionMs,
-      livePaths: live.paths,
-      liveImages: live.images,
-      liveParagraphs: live.paragraphs,
-      livePictures: live.pictures,
+      livePaths: live.paths ?? 0,
+      liveImages: live.images ?? 0,
+      liveParagraphs: live.paragraphs ?? 0,
+      livePictures: live.pictures ?? 0,
+      liveShapes: live.shapes ?? 0,
       heapBytes: heapBytes(),
     })
 
-    // Invalidation only exists on the recorded path, so the edit cost is measured
-    // there: change one root and re-record just that root.
+    // Invalidation only exists on the recorded path; a candidate that reports no
+    // roots skips the edit scenario rather than faking it.
     if (mode === 'picture') {
-      const rootIds = renderer.rootIds()
+      const rootIds = target.rootIds()
       if (rootIds.length > 0) {
         const editedRoot = rootIds[0]
         const editStarted = performance.now()
-        renderer.invalidateRoot(editedRoot)
-        renderer.draw()
+        target.invalidateRoot(editedRoot)
+        target.draw()
         const editMs = performance.now() - editStarted
-        const editedLive = renderer.liveObjects()
+        const editedLive = target.liveObjects()
         scenarios.push({
+          candidate: target.candidate,
           scenario: 'edit',
           detail: `${content}/${size} root ${editedRoot}`,
           renderMode: mode,
@@ -134,109 +136,120 @@ export async function runScenarioSuite(
           interactionMs: 0,
           presentedMs: 0,
           uiInteractionMs: 0,
-          livePaths: editedLive.paths,
-          liveImages: editedLive.images,
-          liveParagraphs: editedLive.paragraphs,
-          livePictures: editedLive.pictures,
+          livePaths: editedLive.paths ?? 0,
+          liveImages: editedLive.images ?? 0,
+          liveParagraphs: editedLive.paragraphs ?? 0,
+          livePictures: editedLive.pictures ?? 0,
+          liveShapes: editedLive.shapes ?? 0,
           heapBytes: heapBytes(),
         })
       }
     }
   }
 
-  for (const content of options.contents) {
-    for (const size of options.sizes) {
-      for (const mode of modes) {
-        options.onProgress?.(`${content}/${size} ${mode}`)
-        await measureFixture(content, size, mode)
-      }
+  for (const target of options.targets) {
+    for (const content of options.contents) {
+      for (const size of options.sizes) {
+        for (const mode of target.modes()) {
+          options.onProgress?.(`${target.candidate}/${content}/${size} ${mode}`)
+          await measureFixture(content, size, target, mode)
+        }
 
-      // Replacement and resize are measured on the active (last) mode.
-      const previousSize = options.sizes[options.sizes.indexOf(size) - 1]
-      if (previousSize !== undefined) {
-        const replaceStarted = performance.now()
-        renderer.build(createFixture(content, previousSize))
-        const replaceDrawMs = renderer.draw()
-        const replaceBuildMs = performance.now() - replaceStarted - replaceDrawMs
-        const replaced = renderer.liveObjects()
+        // Replacement and resize are measured on the target's active mode.
+        const previousSize = options.sizes[options.sizes.indexOf(size) - 1]
+        if (previousSize !== undefined) {
+          const replaceStarted = performance.now()
+          target.build(createFixture(content, previousSize))
+          const replaceDrawMs = target.draw()
+          const replaceBuildMs = performance.now() - replaceStarted - replaceDrawMs
+          const replaced = target.liveObjects()
+          scenarios.push({
+            candidate: target.candidate,
+            scenario: 'replace',
+            detail: `${content}/${previousSize}<-${content}/${size}`,
+            renderMode: target.currentMode(),
+            buildMs: replaceBuildMs,
+            drawMs: replaceDrawMs,
+            interactionMs: 0,
+            presentedMs: 0,
+            uiInteractionMs: 0,
+            livePaths: replaced.paths ?? 0,
+            liveImages: replaced.images ?? 0,
+            liveParagraphs: replaced.paragraphs ?? 0,
+            livePictures: replaced.pictures ?? 0,
+            liveShapes: replaced.shapes ?? 0,
+            heapBytes: heapBytes(),
+          })
+          target.build(createFixture(content, size))
+        }
+
+        const resizeStarted = performance.now()
+        target.resize(1280, 860)
+        const resizeDrawMs = target.draw()
+        target.resize(1200, 800)
+        const resizeTotalMs = performance.now() - resizeStarted
+        const resized = target.liveObjects()
         scenarios.push({
-          scenario: 'replace',
-          detail: `${content}/${previousSize}<-${content}/${size}`,
-          renderMode: renderer.currentMode(),
-          buildMs: replaceBuildMs,
-          drawMs: replaceDrawMs,
+          candidate: target.candidate,
+          scenario: 'resize',
+          detail: `${content}/${size}`,
+          renderMode: target.currentMode(),
+          buildMs: resizeTotalMs - resizeDrawMs,
+          drawMs: resizeDrawMs,
           interactionMs: 0,
           presentedMs: 0,
           uiInteractionMs: 0,
-          livePaths: replaced.paths,
-          liveImages: replaced.images,
-          liveParagraphs: replaced.paragraphs,
-          livePictures: replaced.pictures,
+          livePaths: resized.paths ?? 0,
+          liveImages: resized.images ?? 0,
+          liveParagraphs: resized.paragraphs ?? 0,
+          livePictures: resized.pictures ?? 0,
+          liveShapes: resized.shapes ?? 0,
           heapBytes: heapBytes(),
         })
-        renderer.build(createFixture(content, size))
       }
+    }
+  }
 
-      const resizeStarted = performance.now()
-      renderer.resize(1280, 860)
-      const resizeDrawMs = renderer.draw()
-      renderer.resize(1200, 800)
-      const resizeTotalMs = performance.now() - resizeStarted
-      const resized = renderer.liveObjects()
+  for (const target of options.targets) {
+    for (const mode of target.modes()) {
+      target.setMode(mode)
+      const heapBefore = heapBytes()
+      for (let cycle = 0; cycle < cycles; cycle += 1) {
+        for (const content of options.contents) {
+          target.build(createFixture(content, 'representative'))
+          target.draw()
+        }
+        target.releaseScene()
+      }
+      const idle = target.liveObjects()
+      const heapAfter = heapBytes()
+      const heapDelta = heapBefore === null || heapAfter === null ? null : heapAfter - heapBefore
+      const retained = (idle.paths ?? 0) + (idle.images ?? 0) + (idle.paragraphs ?? 0) + (idle.pictures ?? 0) + (idle.shapes ?? 0)
+      notes.push(
+        `${target.candidate}/${mode}: after ${cycles} build/draw/release cycles retained=${retained} (paths=${idle.paths ?? 0} images=${idle.images ?? 0} paragraphs=${idle.paragraphs ?? 0} pictures=${idle.pictures ?? 0} shapes=${idle.shapes ?? 0})`,
+      )
+      if (retained !== 0) {
+        notes.push(`LEAK (${target.candidate}/${mode}): retained scene objects did not return to zero after release.`)
+      }
       scenarios.push({
-        scenario: 'resize',
-        detail: `${content}/${size}`,
-        renderMode: renderer.currentMode(),
-        buildMs: resizeTotalMs - resizeDrawMs,
-        drawMs: resizeDrawMs,
+        candidate: target.candidate,
+        scenario: 'unload',
+        detail: `${cycles} cycles`,
+        renderMode: mode,
+        buildMs: 0,
+        drawMs: 0,
         interactionMs: 0,
         presentedMs: 0,
         uiInteractionMs: 0,
-        livePaths: resized.paths,
-        liveImages: resized.images,
-        liveParagraphs: resized.paragraphs,
-        livePictures: resized.pictures,
-        heapBytes: heapBytes(),
+        livePaths: idle.paths ?? 0,
+        liveImages: idle.images ?? 0,
+        liveParagraphs: idle.paragraphs ?? 0,
+        livePictures: idle.pictures ?? 0,
+        liveShapes: idle.shapes ?? 0,
+        heapBytes: heapDelta,
       })
     }
   }
 
-  for (const mode of modes) {
-    renderer.setMode(mode)
-    const heapBefore = heapBytes()
-    for (let cycle = 0; cycle < cycles; cycle += 1) {
-      for (const content of options.contents) {
-        renderer.build(createFixture(content, 'representative'))
-        renderer.draw()
-      }
-      renderer.releaseScene()
-    }
-    const idle = renderer.liveObjects()
-    const heapAfter = heapBytes()
-    const heapDelta = heapBefore === null || heapAfter === null ? null : heapAfter - heapBefore
-    notes.push(
-      `${mode}: after ${cycles} build/draw/release cycles: paths=${idle.paths} images=${idle.images} paragraphs=${idle.paragraphs} pictures=${idle.pictures}`,
-    )
-    if (idle.paths !== 0 || idle.images !== 0 || idle.paragraphs !== 0 || idle.pictures !== 0) {
-      notes.push(`LEAK (${mode}): retained scene objects did not return to zero after release.`)
-    }
-    scenarios.push({
-      scenario: 'unload',
-      detail: `${cycles} cycles`,
-      renderMode: mode,
-      buildMs: 0,
-      drawMs: 0,
-      interactionMs: 0,
-      presentedMs: 0,
-      uiInteractionMs: 0,
-      livePaths: idle.paths,
-      liveImages: idle.images,
-      liveParagraphs: idle.paragraphs,
-      livePictures: idle.pictures,
-      heapBytes: heapDelta,
-    })
-  }
-
   return { scenarios, notes }
 }
-

@@ -26,7 +26,8 @@ import CanvasKitInit, {
 } from 'canvaskit-wasm'
 import wasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
 import fontUrl from '../assets/fonts/Inter-Variable.ttf?url'
-import { FIXTURE_PIXEL_SIZE, type Fixture, type FixtureNode } from './fixtures.ts'
+import { FIXTURE_PIXEL_SIZE, primitiveLocalPoints, type Fixture, type FixtureNode, type PrimitiveNode } from './fixtures.ts'
+import type { SceneTarget } from './target.ts'
 
 export type Viewport = { zoom: number; panX: number; panY: number }
 
@@ -101,7 +102,8 @@ const MAX_BUCKETS = 16
 /** Upper bound on cached paints; a larger palette evicts the batch instead of failing. */
 const MAX_PAINTS = 512
 
-export class SceneRenderer {
+export class SceneRenderer implements SceneTarget {
+  readonly candidate = 'canvaskit'
   private readonly paint: Paint
   private readonly fontManager: FontMgr | null
   private readonly colorCache = new Map<string, Color>()
@@ -179,11 +181,16 @@ export class SceneRenderer {
   }
 
   /** Switches the draw path; the caller rebuilds so the scene matches the mode. */
-  setMode(mode: RenderMode) {
-    this.mode = mode
+  setMode(mode: string) {
+    this.mode = mode as RenderMode
   }
 
-  currentMode(): RenderMode {
+  /** Draw paths this target measures: the slice 1 control and recorded replay. */
+  modes(): string[] {
+    return ['direct', 'picture']
+  }
+
+  currentMode(): string {
     return this.mode
   }
 
@@ -434,21 +441,11 @@ export class SceneRenderer {
    */
   private makePrimitivePath(width: number, height: number, segments: number, kind: 'rect' | 'ellipse') {
     const builder = new this.kit.PathBuilder()
-    if (kind === 'ellipse') {
-      const steps = Math.max(3, segments * 4)
-      const radiusX = width / 2
-      const radiusY = height / 2
-      builder.moveTo(radiusX, 0)
-      for (let step = 1; step <= steps; step += 1) {
-        const angle = (step / steps) * Math.PI * 2 - Math.PI / 2
-        builder.lineTo(radiusX + Math.cos(angle) * radiusX, radiusY + Math.sin(angle) * radiusY)
-      }
-    } else {
-      const steps = Math.max(3, segments)
-      builder.moveTo(0, 0)
-      for (let step = 1; step <= steps; step += 1) {
-        builder.lineTo((width * step) / steps, step % 2 === 0 ? 0 : height)
-      }
+    // Shared vertex list, so every renderer target draws identical geometry.
+    const points = primitiveLocalPoints({ kind, id: '', transform: { x: 0, y: 0, scale: 1 }, width, height, style: { fill: '#000000', stroke: null, strokeWidth: 0 }, segments })
+    builder.moveTo(points[0], points[1])
+    for (let index = 2; index < points.length; index += 2) {
+      builder.lineTo(points[index], points[index + 1])
     }
     builder.close()
     const path = builder.detach()

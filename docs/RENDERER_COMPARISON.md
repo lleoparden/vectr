@@ -90,6 +90,59 @@ as fixture A — identical placement, sizes, and segment counts mirrored from
 - Memory: process working set summed over all application processes, GPU process
   reported separately.
 - Evidence per candidate in `.ecc/benchmarks/renderer-comparison/<candidate>/`.
-- Full numbers and the decision are recorded in `docs/DECISIONS.md` as an explicit
-  amendment to the Phase 0 gate, and `PERF-01` stays open with a revisit trigger.
+## Results (measured on the frozen fixtures, five packaged runs each)
+
+Machine: AMD Ryzen 5 9600X · 15.16 GiB · Windows 11 Pro · Electron 35.7.5 / Chromium
+134 · packaged Windows release. Evidence:
+`.ecc/benchmarks/renderer-comparison/canvaskit/` and
+`.ecc/benchmarks/renderer-comparison/vello/`.
+
+| Fixture (criterion) | CanvasKit picture (A) | vello_cpu wasm, SIMD, 1 thread (C) |
+| --- | --- | --- |
+| primitives / 1,000 live layers (1) | **5.7 ms — pass** | **8.3 ms — pass** |
+| groups / 10,000-leaf nested (2) | **19.2 ms — pass** | 39.3 ms — fail |
+| primitives / 10,000 loose, ~255k segments (3) | 89.8 ms — **fail** | 125.6 ms — **fail** |
+| text / 10,000 nodes (informational) | 35.6 ms — miss | not measured |
+| images / 1,000 (informational) | 2.1 ms | not measured |
+| Leak check (4) | pass (retained objects → 0) | pass (wasm shapes → 0) |
+| Memory, criterion 5 | 861 MiB working set · 1035 MiB private · 271 MiB GPU · 4 procs | 727 MiB working set · 575 MiB private · 4 procs |
+
+CanvasKit context: the same protocol measured 82.2 ms (recorded, #23), 85.7 ms
+(machine re-check), and 89.8 ms here — 82–90 ms run-to-run variance on the
+10,000-primitive fixture.
+
+Reference (candidate E, not comparable — different fixture, resolution, and native
+multithreaded execution): VectorCraft's own bench on this machine produced
+`20000 objects, fit 2880x1800: 37.2 ms/frame (drawn 19923, culled 1078)`,
+`zoom 400%: 13.1 ms (drawn 1650, culled 19351)`, `thumb 400x300: 22.2 ms (drawn
+21001, culled 0)`. Their README quotes "about 27 ms"; this machine measured 37.2 ms
+for 20,000 **simpler** shapes (4–10 points each) at 2880×1800.
+
+## Candidates not measured in this pass
+
+| Candidate | Status | Reason |
+| --- | --- | --- |
+| B — `@resvg/resvg-wasm` 2.6.2 (tiny-skia CPU) | **not measured** | The dependency is installed and the interface exists, but the harness pass ended before its SVG-scene target was built and run. No number is claimed for it. |
+| D — CanvasKit WebGPU (Graphite-style) | **not attempted** | `canvaskit-wasm@0.42` exposes GPU-device and GPU-texture surface constructors, but presenting them requires an application-managed WebGPU device plus a texture presentation path in the harness — a renderer change of its own, not a measurement. Unverified in a packaged Electron `file://` app. |
+
+## Decision (applying the frozen criteria)
+
+- Criterion 1 passes for both measured candidates; criterion 2 passes only for
+  CanvasKit; **no measured candidate passes criterion 3** (10,000 loose
+  primitives). Criterion 4 passes for both. Criterion 5 is satisfied by both, with
+  CanvasKit 18% higher on working set.
+- **Recommendation: accept the recorded-picture CanvasKit path with the documented
+  limit** (the branch the criteria pre-committed to when nothing passes), and keep
+  `PERF-01` open with a revisit trigger. See `docs/DECISIONS.md` for the amendment.
+- The measured reason the VectorCraft-style CPU path does not close the gap here is
+  **threading, not the rasterizer**: their native bench uses worker threads
+  (`Renderer.threads` → `vello_cpu::RenderSettings { num_threads }`), and their
+  full-retina figure is 37.2 ms for a lighter fixture. Our wasm build runs one
+  thread because wasm threads need `SharedArrayBuffer` plus COOP/COEP isolation,
+  which this harness does not enable.
+- Revisit triggers for `PERF-01`: (a) a wasm-threads + COOP/COEP harness that
+  measures `vello_cpu` with 4–8 workers on the same fixtures; (b) viewport culling
+  and retained-region caching measured on a realistic document (Phase 4 profiling);
+  (c) any owner-approved revision of the 10,000-loose-primitive limit.
+
 

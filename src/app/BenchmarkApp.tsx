@@ -1,40 +1,48 @@
 /**
- * Benchmark shell for the Phase 1 renderer spike (issue #15).
+ * Benchmark shell for the renderer comparison (issues #15, #23, #25).
  *
- * This is deliberately a measurement surface, not the editor: it owns one canvas,
- * one SceneRenderer, and the run/report flow. The editor shell replaces it in the
- * next slice, reusing the renderer module unchanged.
+ * `?candidate=canvaskit` (default) runs the CanvasKit target with both draw paths;
+ * `?candidate=vello` runs the vello_cpu wasm candidate on the primitives and
+ * nested-group gate fixtures. One measurement implementation serves both.
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { runScenarioSuite, afterPaint } from '../bench/scenarios.ts'
 import { computeVerdict, type RunRecord, type ScenarioMetrics, type Verdict } from '../bench/report.ts'
 import { SceneRenderer, type RendererInfo } from '../bench/renderer.ts'
+import { VelloSceneTarget } from '../bench/candidateVello.ts'
+import type { SceneTarget } from '../bench/target.ts'
 import { FIXTURE_VERSION, type FixtureContent, type FixtureSize } from '../bench/fixtures.ts'
 
-const contents: FixtureContent[] = ['primitives', 'text', 'images', 'groups']
+const allContents: FixtureContent[] = ['primitives', 'text', 'images', 'groups']
 const sizes: FixtureSize[] = ['empty', 'representative', 'stress']
+
+const requestedCandidate = new URLSearchParams(window.location.search).get('candidate') ?? 'canvaskit'
+const isVello = requestedCandidate === 'vello'
+
+/** The vello candidate covers the gate fixtures; text and images are not measured. */
+const candidateContents: FixtureContent[] = isVello ? ['primitives', 'groups'] : allContents
 
 /** `?contents=primitives,text` narrows the run for quick validation checks. */
 function activeContents(): FixtureContent[] {
   const requested = new URLSearchParams(window.location.search).get('contents')
-  if (requested === null) return contents
+  if (requested === null) return candidateContents
   const wanted = requested.split(',')
-  const filtered = contents.filter((content) => wanted.includes(content))
-  return filtered.length > 0 ? filtered : contents
+  const filtered = candidateContents.filter((content) => wanted.includes(content))
+  return filtered.length > 0 ? filtered : candidateContents
 }
 
 type RunSummary = {
   verdict: Verdict
-  renderer: RendererInfo
+  info: string
   scenarios: ScenarioMetrics[]
   notes: string[]
 }
 
 export function BenchmarkApp() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rendererRef = useRef<SceneRenderer | null>(null)
-  const [rendererInfo, setRendererInfo] = useState<RendererInfo | null>(null)
+  const targetRef = useRef<SceneTarget | null>(null)
+  const [targetInfo, setTargetInfo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState('starting')
   const [summary, setSummary] = useState<RunSummary | null>(null)
@@ -44,25 +52,27 @@ export function BenchmarkApp() {
     let cancelled = false
     void (async () => {
       try {
-        const renderer = await SceneRenderer.create(canvasRef.current!)
+        const target = isVello
+          ? await VelloSceneTarget.create(canvasRef.current!)
+          : await SceneRenderer.create(canvasRef.current!)
         if (cancelled) {
-          renderer.dispose()
+          target.dispose()
           return
         }
-        rendererRef.current = renderer
-        setRendererInfo(renderer.info)
+        targetRef.current = target
+        setTargetInfo(target.candidate)
         setProgress('idle')
       } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'CanvasKit did not initialize.'
-        console.error(`renderer create failed: ${message}`)
+        const message = cause instanceof Error ? cause.message : 'The renderer target did not initialize.'
+        console.error(`target create failed: ${message}`)
         setError(message)
         setProgress('failed')
       }
     })()
     return () => {
       cancelled = true
-      rendererRef.current?.dispose()
-      rendererRef.current = null
+      targetRef.current?.dispose()
+      targetRef.current = null
     }
   }, [])
 
@@ -75,35 +85,45 @@ export function BenchmarkApp() {
   }
 
   async function runAll() {
-    const renderer = rendererRef.current
-    if (!renderer) return
+    const target = targetRef.current
+    if (!target) return
     setSummary(null)
     try {
-      const suite = await runScenarioSuite(renderer, {
+      const suite = await runScenarioSuite({
+        targets: [target],
         contents: activeContents(),
         sizes,
-        modes: ['direct', 'picture'],
         cycles: 10,
         samples: 5,
         measureUiInteraction,
         onProgress: setProgress,
       })
-      suite.notes.push(
-        'Modes: direct re-issues every node each frame (slice 1 control); picture replays recorded Skia pictures.',
-        'Spike scope: every fixture node is visible (no viewport culling), so per-item cost includes JS-to-WASM call overhead an editor optimization pass would reduce.',
-        'The gate decides on the picture path; the direct path is reported as a control.',
+      const verdict = computeVerdict(
+        suite.scenarios.filter(
+          (scenario) =>
+            (scenario.candidate ?? 'canvaskit') === target.candidate &&
+            (target.candidate === 'canvaskit' ? scenario.renderMode === 'picture' : true),
+        ),
       )
-      const verdict = computeVerdict(suite.scenarios)
+      const info: RendererInfo =
+        target.candidate === 'canvaskit'
+          ? (target as SceneRenderer).info
+          : {
+              backend: 'cpu-fallback',
+              webglAvailable: false,
+              fontLoaded: false,
+              wasmBytes: (target as VelloSceneTarget).details.wasmBytes,
+            }
       const record: RunRecord = {
         schemaVersion: 1,
         fixtureVersion: FIXTURE_VERSION,
         reportKind: 'phase-one-renderer-spike',
         capturedAt: new Date().toISOString(),
         renderer: {
-          backend: renderer.info.backend,
-          wasmBytes: renderer.info.wasmBytes ?? 0,
-          webglAvailable: renderer.info.webglAvailable,
-          fontLoaded: renderer.info.fontLoaded,
+          backend: info.backend,
+          wasmBytes: info.wasmBytes ?? 0,
+          webglAvailable: info.webglAvailable,
+          fontLoaded: info.fontLoaded,
         },
         environment: {
           platform: navigator.platform,
@@ -113,10 +133,10 @@ export function BenchmarkApp() {
           devicePixelRatio: window.devicePixelRatio,
         },
         scenarios: suite.scenarios,
-        notes: suite.notes,
+        notes: [...suite.notes, `candidate: ${target.candidate}`],
       }
       const memory = await window.vectrBenchmark.getMemory()
-      setSummary({ verdict, renderer: renderer.info, scenarios: suite.scenarios, notes: suite.notes })
+      setSummary({ verdict, info: target.candidate, scenarios: suite.scenarios, notes: suite.notes })
       setProgress('reported')
       await window.vectrBenchmark.reportResult({ record, memory })
     } catch (cause) {
@@ -138,12 +158,12 @@ export function BenchmarkApp() {
     <main className="grid gap-4 p-6">
       <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl">Vectr CanvasKit renderer spike</h1>
-          <p>GPU-first synthetic fixture benchmark. Not the editor.</p>
+          <h1 className="text-xl">Vectr renderer comparison</h1>
+          <p>Synthetic fixtures, one measurement implementation. Not the editor.</p>
         </div>
         <button
           className="rounded border border-neutral-600 px-3 py-1.5"
-          disabled={rendererInfo === null}
+          disabled={targetInfo === null}
           onClick={() => void runAll()}
         >
           Run benchmark
@@ -151,8 +171,7 @@ export function BenchmarkApp() {
       </header>
       <section className="flex flex-wrap items-center gap-6" aria-label="Run status">
         <output aria-live="polite">
-          backend: {rendererInfo?.backend ?? 'pending'} · font {rendererInfo ? String(rendererInfo.fontLoaded) : 'pending'} ·
-          progress: {progress} · zoom {Math.round(zoom * 100)}%
+          candidate: {targetInfo ?? 'pending'} · progress: {progress} · zoom {Math.round(zoom * 100)}%
         </output>
       </section>
       {error ? (
@@ -163,7 +182,7 @@ export function BenchmarkApp() {
           className="canvas"
           width="1200"
           height="800"
-          aria-label="CanvasKit renderer benchmark canvas"
+          aria-label="Renderer comparison canvas"
         />
       )}
       {summary && (

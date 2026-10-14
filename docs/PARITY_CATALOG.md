@@ -79,7 +79,7 @@ Platform coverage begins `Windows planned / macOS planned / Linux planned`.
 | UI-01 | Illustrator-familiar workspace: menus, tools, panels, contextual controls | planned | not applicable | Core workflows are discoverable without copying Adobe/VectorCraft branding. |
 | UI-02 | Shortcuts, command palette, workspaces, preferences, and localization | planned | not applicable | Keyboard paths and persisted preferences are documented and testable. |
 | A11Y-01 | Keyboard access, focus, contrast, screen-reader labels, and input devices | planned | not applicable | Core workflows have an accessible path and known gaps are recorded. |
-| PERF-01 | Large-document rendering, memory budgets, idle behavior, and recovery | blocked | not applicable | Phase 1 measured CanvasKit/Skia in a packaged build on all required scenarios including real unload cycles; the 33 ms stress interaction target is still missed, so the renderer choice needs an owner decision. See "Renderer evidence" below. |
+| PERF-01 | Large-document rendering, memory budgets, idle behavior, and recovery | building | not applicable | Candidate comparison (#25) measured CanvasKit recorded-picture and `vello_cpu` wasm on the frozen fixtures: no candidate meets 33 ms on 10,000 loose primitives, so the gate is amended rather than met. Accepted: CanvasKit recorded-picture with published limits (1,000 live layers 5.7 ms · 10,000-leaf nested groups 19.2 ms · 10,000 loose primitives 82–90 ms). Stays open with revisit triggers. See "Renderer evidence" below. |
 | AUTO-01 | Account-scoped MCP and audit trail using normal document commands | deferred | not applicable | Deferred until after the core application and compiler. |
 | COMP-01 | One readable React component per layer with stable names | deferred | supported | Deferred until core parity gate; supported layers export deterministic TSX. |
 | COMP-02 | Tailwind mapping, inline SVG, assets, and fidelity diagnostics | deferred | SVG adjunct | Deferred until core parity gate; unsupported mappings are explicit. |
@@ -166,10 +166,26 @@ definition. Five packaged runs are recorded in
   private bytes 1038 MiB, GPU process 274 MiB, 4 processes. Picture mode holds
   both retained objects and recordings, so it is slightly above slice 1.
 
-**Pending decision.** The approved Phase 1 plan pauses editor work after a failed
-spike. Slice 1b reduced the worst stress interaction by roughly 35% but did not
-close it, so the remaining options are recorded in `docs/PROGRESS.md` and need the
-owner's choice.
+**Amendment (2026-10-14, issue #25).** A candidate comparison ran end to end with
+criteria frozen before measurement (`docs/RENDERER_COMPARISON.md`), on the same
+fixtures, definition, and protocol, five packaged runs each:
+
+- CanvasKit recorded-picture: 1,000 live layers 5.7 ms; 10,000-leaf nested groups
+  19.2 ms; 10,000 loose primitives 89.8 ms; peak working set 861 MiB.
+- `vello_cpu` 0.3.0 (wasm32, SIMD128, single thread — VectorCraft's rasterizer):
+  1,000 live layers 8.3 ms; 10,000-leaf groups 39.3 ms; 10,000 loose primitives
+  125.6 ms; peak working set 727 MiB; leak-clean.
+- VectorCraft's native bench on this machine: 37.2 ms for 20,000 **simpler** shapes
+  at 2880×1800 with worker threads (their README claims ~27 ms).
+- Not measured, not claimed: resvg-wasm/tiny-skia and CanvasKit WebGPU.
+
+No measured candidate meets the 33 ms gate on 10,000 loose always-visible
+primitives, so the gate is **amended, not met**. Accepted renderer: CanvasKit
+recorded-picture, with the limits published here and in `docs/DECISIONS.md`.
+`PERF-01` stays **open** with revisit triggers (wasm threads with COOP/COEP,
+Phase 4 profiling with culling and retained regions, or an owner-approved limit
+revision). Editor slices 2–6 remain stopped until the owner merges the pull
+requests.
 
 ## Prioritization and updates
 

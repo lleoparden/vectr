@@ -5,6 +5,7 @@ import {
   FIXTURE_VERSION,
   createFixture,
   hslToHex,
+  primitiveLocalPoints,
   summarizeFixture,
 } from '../src/bench/fixtures.ts'
 import { computeVerdict, percentile, round, summarizeRuns } from '../src/bench/report.ts'
@@ -147,10 +148,65 @@ test('the picture path decides the gate while the direct path is only reported',
   })
   const summary = summarizeRuns([record('primitives/stress', 99.9, 12.5)])
   assert.equal(summary.decidingMode, 'picture')
+  assert.equal(summary.decidingCandidate, 'canvaskit')
   assert.equal(summary.pass, true)
   assert.equal(summary.worstInteractionMsP95, 12.5)
-  assert.equal(summary.verdicts.direct.pass, false)
-  assert.equal(summary.verdicts.direct.worstInteractionMs, 99.9)
-  assert.equal(summary.verdicts.picture.pass, true)
+  const direct = summary.verdicts.find((entry) => entry.candidate === 'canvaskit' && entry.mode === 'direct')
+  const picture = summary.verdicts.find((entry) => entry.candidate === 'canvaskit' && entry.mode === 'picture')
+  assert.equal(direct?.verdict.pass, false)
+  assert.equal(direct?.verdict.worstInteractionMs, 99.9)
+  assert.equal(picture?.verdict.pass, true)
   assert.equal(summary.entries.length, 2)
+})
+
+test('candidates are aggregated and judged separately from the CanvasKit baseline', () => {
+  const candidateRecord = (candidate, mode, interactionMs) => ({
+    schemaVersion: 1,
+    fixtureVersion: FIXTURE_VERSION,
+    reportKind: 'phase-one-renderer-spike',
+    capturedAt: '2026-10-14T00:00:00.000Z',
+    renderer: { backend: 'cpu-fallback', wasmBytes: 1, webglAvailable: false, fontLoaded: false },
+    environment: { platform: 'win32', arch: 'x64', electron: '35', chrome: '134', devicePixelRatio: 1 },
+    scenarios: [{ ...metric('primitives/stress', interactionMs), candidate, renderMode: mode }],
+    notes: [],
+  })
+  const summary = summarizeRuns([
+    candidateRecord('canvaskit', 'picture', 85.7),
+    candidateRecord('vello-wasm', 'per-item-transform', 20.1),
+  ])
+  const vello = summary.verdicts.find((entry) => entry.candidate === 'vello-wasm')
+  const canvaskit = summary.verdicts.find((entry) => entry.candidate === 'canvaskit' && entry.mode === 'picture')
+  assert.equal(vello?.verdict.pass, true)
+  assert.equal(canvaskit?.verdict.pass, false)
+  assert.equal(summary.decidingCandidate, 'canvaskit')
+  assert.equal(summary.entries.length, 2)
+  assert.equal(summary.entries[0].candidate === 'canvaskit' || summary.entries[1].candidate === 'canvaskit', true)
+})
+
+test('candidate geometry matches the baseline vertex list', () => {
+  const rect = primitiveLocalPoints({
+    kind: 'rect',
+    id: 'r',
+    transform: { x: 0, y: 0, scale: 1 },
+    width: 100,
+    height: 50,
+    style: { fill: '#000000', stroke: null, strokeWidth: 0 },
+    segments: 4,
+  })
+  assert.equal(rect.length / 2, 5)
+  assert.deepEqual(rect.slice(0, 2), [0, 0])
+  // Segment 4 is even, so the polyline closes along the bottom edge.
+  assert.deepEqual(rect.slice(-2), [100, 0])
+  const ellipse = primitiveLocalPoints({
+    kind: 'ellipse',
+    id: 'e',
+    transform: { x: 0, y: 0, scale: 1 },
+    width: 100,
+    height: 100,
+    style: { fill: '#000000', stroke: null, strokeWidth: 0 },
+    segments: 4,
+  })
+  assert.equal(ellipse.length / 2, 17)
+  assert.equal(ellipse[0], 50)
+  assert.equal(ellipse[1], 0)
 })

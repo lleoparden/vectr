@@ -1,0 +1,21 @@
+[package]
+name = "vello-raster-bench"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Vectr renderer-comparison harness: vello_cpu behind a raw C ABI for wasm32 (issue #25). Built only for measurement; not Vectr product code."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# VectorCraft's rasterizer (crates/render/src/lib.rs: "The backend is vello_cpu (SIMD, sparse strips)").
+# Multithreading is intentionally off: wasm threads need SharedArrayBuffer and COOP/COEP isolation,
+# which the packaged measurement harness does not enable. Recorded as a handicap in the comparison.
+vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "u8_pipeline"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

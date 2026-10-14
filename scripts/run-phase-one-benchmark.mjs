@@ -17,6 +17,8 @@ import { summarizeRuns } from '../src/bench/report.ts'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const directoryArgument = process.argv.find((argument) => argument.startsWith('--directory='))
 const evidenceDirectory = directoryArgument ? directoryArgument.slice('--directory='.length) : 'phase-one'
+const candidateArgument = process.argv.find((argument) => argument.startsWith('--candidate='))
+const candidateFlag = candidateArgument ? [candidateArgument] : []
 const outputDirectory = path.join(root, '.ecc', 'benchmarks', evidenceDirectory)
 const executable = path.join(root, 'release', 'win-unpacked', 'Vectr Phase Zero Benchmark.exe')
 const runCount = 5
@@ -29,16 +31,22 @@ if (!fs.existsSync(executable)) {
 
 fs.mkdirSync(outputDirectory, { recursive: true })
 
-for (let run = 1; run <= runCount; run += 1) {
-  const output = path.join(outputDirectory, `run-${run}.json`)
-  console.log(`phase-one run ${run}/${runCount}`)
-  const result = spawnSync(executable, ['--benchmark', `--output=${output}`], {
-    cwd: root,
-    stdio: 'inherit',
-  })
-  if (result.status !== 0) {
-    console.error(`run ${run} exited with status ${result.status}`)
-    process.exit(result.status ?? 1)
+// `--summarize-only` recomputes the summary from records already on disk, so a
+// failed summary step never forces five fresh packaged runs.
+const summarizeOnly = process.argv.includes('--summarize-only')
+
+if (!summarizeOnly) {
+  for (let run = 1; run <= runCount; run += 1) {
+    const output = path.join(outputDirectory, `run-${run}.json`)
+    console.log(`phase-one run ${run}/${runCount}`)
+    const result = spawnSync(executable, [...candidateFlag, '--benchmark', `--output=${output}`], {
+      cwd: root,
+      stdio: 'inherit',
+    })
+    if (result.status !== 0) {
+      console.error(`run ${run} exited with status ${result.status}`)
+      process.exit(result.status ?? 1)
+    }
   }
 }
 
@@ -95,12 +103,11 @@ const finalSummary = {
   memoryPeak,
   verdict: {
     renderer: summary.pass
-      ? `pass: worst interaction p95 ${summary.worstInteractionMsP95} ms is within ${summary.interactionTargetMs} ms (deciding mode: ${summary.decidingMode})`
-      : `fail: worst interaction p95 ${summary.worstInteractionMsP95} ms exceeds ${summary.interactionTargetMs} ms (deciding mode: ${summary.decidingMode})`,
-    perMode: {
-      direct: summary.verdicts.direct.summary,
-      picture: summary.verdicts.picture.summary,
-    },
+      ? `pass: worst interaction p95 ${summary.worstInteractionMsP95} ms is within ${summary.interactionTargetMs} ms (deciding: ${summary.decidingCandidate}/${summary.decidingMode})`
+      : `fail: worst interaction p95 ${summary.worstInteractionMsP95} ms exceeds ${summary.interactionTargetMs} ms (deciding: ${summary.decidingCandidate}/${summary.decidingMode})`,
+    perMode: Object.fromEntries(
+      summary.verdicts.map((entry) => [`${entry.candidate}|${entry.mode}`, entry.verdict.summary]),
+    ),
     leaks: records.some((record) => record.notes.some((note) => note.startsWith('LEAK')))
       ? 'fail: retained scene objects did not return to zero'
       : 'pass: retained scene objects returned to zero after release',

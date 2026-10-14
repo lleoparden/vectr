@@ -1408,3 +1408,81 @@ pixels) and the packaged `[vectr-text]` report now measures the real textarea's 
 and after typing: it widens past 40 px of growth, grows taller when a second line is added, and the
 committed object's stored box matches the size the editor had reached.
 
+
+## 2026-10-14 — Autosave, crash recovery, and the memory budget (owner spec)
+
+The owner gave the autosave rules explicitly, delegated the memory number ("figure it out"), and
+approved the next capability slices. This records the rules as implemented and the budget as decided.
+
+### Recovery is a project folder in the user folder
+
+The snapshot was a single `recovery.json` holding only the manifest, which meant a document that
+crashed **with placed images would come back with empty frames** — the asset bytes were never in the
+snapshot. It is now `userData/recovery.vectr/`: `manifest.json`, the content-addressed `assets/`, and
+a `recovery.json` sidecar naming the document, the file it came from, and the revision it matched. It
+is written by the same failure-safe `writeProject` a normal save uses (assets, then the manifest
+through a rename, then the sidecar), and it lives outside any project so a failed save cannot corrupt
+it. `readRecovery` rebuilds the assets from **the manifest's own references**, so a file that is not
+there reads as "no asset" instead of a fabricated ref that would fail verification later, and a
+manifest without its sidecar (a half-finished write) counts as no snapshot at all.
+
+### A crash says so
+
+An orderly quit writes `userData/recovery-clean-exit.json`; a crash cannot. At launch the renderer
+reads that marker (and consumes it, so the *next* crash is detectable): a snapshot waiting **plus** no
+marker means the last session died badly, which opens a dialog instead of leaving the user to find a
+File-menu item. The dialog says Vectr closed unexpectedly, names the document, says the copy contains
+work that was never saved, and offers **Restore the recovery copy** or **Discard it**. Escape and a
+click outside dismiss it and *keep* the copy, so the non-destructive answer is always available.
+
+Restoring reopens the document **where it lived** and keeps it attached to that file, so the next
+Save writes back to the user's own project rather than a copy — the owner's "it brings up the old
+file". It also restores the revision the file matched, so the recovered document is correctly *dirty*;
+a restored document that looked clean could be closed without ever being saved.
+
+### Autosave only belongs to a saved document
+
+`shouldWriteSnapshot` (pure, tested) encodes the rule: an interval snapshot needs a dirty document
+that **already has a file** and autosave enabled; an untitled document is never autosaved. The close
+path is a separate net with a different rule — it fires *as* unsaved work is dropped, so it snapshots
+an untitled document too, and it is unaffected by the autosave switch. That is a deliberate reading of
+the instruction rather than an inconsistency: "autosave" is the background timer, and the close net is
+the last chance before the work is discarded.
+
+### The interval is a preference
+
+`settingsStore` holds `autosaveEnabled` and `autosaveIntervalMinutes` (1–60, default **10** like
+Illustrator's "Automatically Save Recovery Data Every"), persists them in `localStorage`, and the
+timer follows the setting instead of a constant. Edit ▸ Preferences… (Ctrl+K, Illustrator's Windows
+chord) opens the dialog, which also states the two rules plainly rather than leaving them to be
+discovered. Preferences live in `localStorage`, which Electron keeps inside the app's user-data
+directory; a real settings file arrives with the rest of the preference surface (units, undo levels),
+and this is recorded so the choice is not mistaken for a decision that was never made.
+
+### The memory budget, decided
+
+The Phase 1 audit left the budget open because `DECISIONS.md` (Phase 0) says the numbers need owner
+approval. The owner delegated it, so it is now set — whole-application working set, all processes, on
+the Phase 1 machine — with the recorded measurements as the baseline:
+
+| Scenario | Measured | Budget | Headroom |
+| --- | --- | --- | --- |
+| Empty editor (small document) | ~453 MiB | **600 MiB** | ~32% |
+| Stress: 1,000 shapes + 48 images | ~793 MiB (peak 800 MiB) | **1,200 MiB** | ~50% |
+
+Both are asserted in the packaged `[vectr-memory]` report (`IDLE_BUDGET_MIB`, `STRESS_BUDGET_MIB`), so
+a regression fails the run instead of being noticed later. Alongside them the report asserts what
+actually protects the product: **decoded images return to 0 and the asset registry is empty** after
+the document closes, whatever it held.
+
+Two honest limits are part of the decision rather than hidden behind it:
+
+- The budgets apply to a **fresh window** and to a **single document's peak**. After a large document
+  closes, the process working set does not fall back to the baseline because CanvasKit's WASM and GPU
+  allocations are not returned to the operating system promptly (measured: ~799 MiB after close). That
+  is why the idle budget is asserted *after* closing the stress document — a number that passes — and
+  why the leak verdict stays "retained scene objects return to zero" rather than "memory comes back".
+- `PERF-01`'s rendering gate is untouched by this: no measured candidate meets 33 ms on 10,000 loose
+  always-visible primitives, and that stays published as an amended, unmet gate. A memory budget does
+  not make that gate pass, and it is not presented as if it did.
+

@@ -58,6 +58,8 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'type.alignRight', chord: { key: 'r', ctrl: true, shift: true }, illustratorDefault: true },
 
   // Edit.
+  // Edit (Illustrator's Preferences chord on Windows is Ctrl+K).
+  { id: 'edit.preferences', chord: { key: 'k', ctrl: true }, illustratorDefault: true },
   { id: 'edit.undo', chord: { key: 'z', ctrl: true }, illustratorDefault: true },
   { id: 'edit.redo', chord: { key: 'z', ctrl: true, shift: true }, illustratorDefault: true },
   { id: 'edit.clear', chord: { key: 'delete' }, illustratorDefault: true },

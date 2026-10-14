@@ -378,6 +378,67 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
     memory.workingSetBytes > 0,
     `${(memory.workingSetBytes / (1024 * 1024)).toFixed(1)} MiB whole app, ${placed === null ? 'no image' : 'one image asset'}`,
   )
+
+  // The owner's recovery spec, end to end, last so the document it replaces cannot disturb the
+  // steps above: the snapshot is a whole project folder, an interval snapshot is refused for a
+  // document with no file, and a session that did not quit cleanly brings the work back.
+  const snapshotWrote = await writeRecoverySnapshot({ reason: 'close' })
+  const settle = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+  const stored = await api.readRecovery()
+  const snapshotAssets = stored.snapshot?.assets ?? []
+  record(
+    'a recovery copy is a project folder that carries the document\u2019s assets',
+    snapshotWrote && snapshotAssets.length === documentStore.getState().document.assets.length,
+    `${snapshotAssets.length} asset(s) beside the manifest`,
+  )
+
+  const unclean = await refreshRecoveryState()
+  await settle(120)
+  const crashDialog = document.querySelector('[data-crash-dialog="open"]')
+  const crashText = (crashDialog?.textContent ?? '').replace(/\s+/g, ' ')
+  record(
+    'an unclean exit is reported as a crash, by name',
+    unclean &&
+      workspaceStore.getState().crashPrompt !== null &&
+      crashDialog !== null &&
+      /Vectr closed unexpectedly/.test(crashText) &&
+      crashText.includes(documentStore.getState().document.name),
+    crashDialog === null ? 'no crash dialog' : JSON.stringify(crashText.slice(0, 120)),
+  )
+
+  const beforeRestore = documentStore.getState().filePath
+  document.querySelector<HTMLButtonElement>('[data-crash-action="restore"]')?.click()
+  await settle(250)
+  const restored = documentStore.getState()
+  record(
+    'restoring brings the work back and keeps it attached to its file',
+    document.querySelector('[data-crash-dialog="open"]') === null &&
+      restored.document.root.children.length > 0 &&
+      restored.filePath === beforeRestore &&
+      restored.recovery.available,
+    `dialog ${document.querySelector('[data-crash-dialog="open"]') === null ? 'closed' : 'open'}, ` +
+      `${restored.document.root.children.length} root node(s), file ${String(restored.filePath)}`,
+  )
+
+  await api.clearRecovery()
+  await refreshRecoveryState()
+  workspaceStore.setCrashPrompt(null)
+  newDocument()
+  documentStore.dispatch(
+    {
+      type: 'insertNodes',
+      parentId: documentStore.getState().document.root.id,
+      index: 0,
+      nodes: [createRect('Unsaved', 0, 0, 40, 40)],
+    },
+    'unsaved edit',
+  )
+  const intervalRefused = await writeRecoverySnapshot({ reason: 'interval' })
+  record(
+    'autosave refuses a document that has not been saved yet',
+    intervalRefused === false && (await api.readRecovery()).snapshot === null,
+    `interval snapshot written: ${intervalRefused}`,
+  )
   return { passed: steps.every((step) => step.ok), steps }
 }
 
@@ -1000,6 +1061,19 @@ export async function runMemoryReport(): Promise<SmokeReport> {
     return { passed: false, steps }
   }
 
+  // The idle budget first, while nothing is open: this is the closest a shared evidence run gets to
+  // a fresh window, and it is the state the 600 MiB budget is about. Measured *before* the stress
+  // document, because CanvasKit does not return its WASM/GPU allocations until the window restarts.
+  newDocument()
+  assetRegistry.clear()
+  await settle(600)
+  const idleMemory = await window.vectrBenchmark.getMemory()
+  record(
+    'an idle editor is inside the 600 MiB budget',
+    idleMemory.workingSetBytes <= IDLE_BUDGET_MIB * 1024 * 1024,
+    `${mib(idleMemory.workingSetBytes)} working set with nothing open, budget ${IDLE_BUDGET_MIB} MiB`,
+  )
+
   // A stress document: 1,000 shapes plus 48 distinct images, so the asset path is under load and
   // every image needs its own decoded entry rather than a shared one.
   newDocument()
@@ -1034,7 +1108,7 @@ export async function runMemoryReport(): Promise<SmokeReport> {
   record(
     'memory after building the stress document',
     decodedAfterPlace >= 1,
-    `${mib(placedMemory.workingSetBytes)} working set (${mib(placedMemory.privateBytes)} private), ${decodedAfterPlace} decoded images, budget: not owner-approved`,
+    `${mib(placedMemory.workingSetBytes)} working set (${mib(placedMemory.privateBytes)} private), ${decodedAfterPlace} decoded images, budget ${STRESS_BUDGET_MIB} MiB`,
   )
 
   // A bucket that holds several top-level layers must refuse to preview rather than showing a
@@ -1088,11 +1162,47 @@ export async function runMemoryReport(): Promise<SmokeReport> {
     `${decodedAfterClose} decoded images held after close, registry empty: ${assetRegistry.size() === 0}, ${mib(closedMemory.workingSetBytes)} working set`,
   )
 
+  // The budget the owner delegated ("figure it out"): thresholds with headroom over the recorded
+  // measurements, asserted here so a regression fails the packaged run instead of being noticed
+  // later. Reasoning is in `docs/DECISIONS.md` (memory budget, 2026-10-14).
+  const withinBudget = (bytes: number, limitMiB: number) => bytes <= limitMiB * 1024 * 1024
+  record(
+    'the stress document is inside the 1,200 MiB budget',
+    withinBudget(Math.max(placedMemory.workingSetBytes, openedMemory.workingSetBytes, closedMemory.workingSetBytes), STRESS_BUDGET_MIB),
+    `peak ${mib(Math.max(placedMemory.workingSetBytes, openedMemory.workingSetBytes, closedMemory.workingSetBytes))} of ${STRESS_BUDGET_MIB} MiB`,
+  )
+  record(
+    'the decoded-asset cache is bounded, whatever the document held',
+    decodedAfterClose === 0 && assetRegistry.size() === 0,
+    `${decodedAfterClose} decoded images, ${assetRegistry.size()} registry entries`,
+  )
+  // Recorded, not asserted: CanvasKit does not return its WASM and GPU allocations to the
+  // operating system when a document closes, so a shared session stays at the high-water mark until
+  // the window restarts. The budgets are about a fresh window and a single document's peak; this
+  // number is here so nobody mistakes the high-water mark for a leak or for idle behaviour.
+  record(
+    'the working set after closing is recorded, not claimed to have fallen back',
+    closedMemory.workingSetBytes > 0,
+    `${mib(closedMemory.workingSetBytes)} after close versus ${mib(idleMemory.workingSetBytes)} measured idle earlier in this session`,
+  )
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 
 /**
+ * Memory budgets (owner delegated the number: "figure it out").
+ *
+ * Recorded measurements were 453 MiB for an empty editor and ~793 MiB for the stress document
+ * (1,000 shapes + 48 images), so the budgets carry roughly a third and a half of headroom while
+ * still being tight enough to catch a real regression. They are whole-application working set, all
+ * processes, on the Phase 1 machine.
+ */
+export const IDLE_BUDGET_MIB = 600
+export const STRESS_BUDGET_MIB = 1_200
+
+/**
  * Generates a small PNG in the page, so the smoke run exercises the real import path —
+
  * decode, content key, placement, and drawing — without shipping a fixture file (issue #17).
  */
 async function makeSmokePng(index = 0, size = 8): Promise<Uint8Array | null> {

@@ -49,6 +49,8 @@ export const MENU_BAR: MenuSpec[] = [
       { kind: 'command', id: 'edit.redo', label: 'Redo' },
       { kind: 'separator' },
       { kind: 'command', id: 'edit.clear', label: 'Clear' },
+      { kind: 'separator' },
+      { kind: 'command', id: 'edit.preferences', label: 'Preferences…' },
     ],
   },
   {

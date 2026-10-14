@@ -10,9 +10,13 @@
 
 import { useEffect } from 'react'
 import { AboutDialog } from './shell/AboutDialog.tsx'
+import { CrashRecoveryDialog } from './shell/CrashRecoveryDialog.tsx'
+import { PreferencesDialog } from './shell/PreferencesDialog.tsx'
 import { UnsavedChangesDialog } from './shell/UnsavedChangesDialog.tsx'
 import { CanvasView } from './canvas/CanvasView.tsx'
-import { handleBeforeClose, RECOVERY_INTERVAL_MS, refreshRecoveryState, writeRecoverySnapshot } from './files/fileActions.ts'
+import { handleBeforeClose, refreshRecoveryState, writeRecoverySnapshot } from './files/fileActions.ts'
+import { intervalMilliseconds } from './files/autosavePolicy.ts'
+import { useSettings } from '../state/useSettings.ts'
 import { MenuBar } from './shell/MenuBar.tsx'
 import { StatusBar } from './shell/StatusBar.tsx'
 import { ToolOptionsBar } from './shell/ToolOptionsBar.tsx'
@@ -22,26 +26,34 @@ import { useEditorShortcuts } from './menus/useEditorShortcuts.ts'
 
 export function App() {
   useEditorShortcuts()
+  const settings = useSettings()
 
   useEffect(() => {
-    // Recovery (issue #19): offer a snapshot from a previous session, keep one rolling snapshot
-    // while the document is dirty, and take a last one before the window unloads.
+    // Recovery (issue #19): if the last session died with a copy waiting, say so and offer it back;
+    // otherwise keep one rolling snapshot of a **saved** document on the user's interval, plus a
+    // last one before the window unloads.
     void refreshRecoveryState()
     const api = window.vectrFiles
     api?.onBeforeClose(() => {
       void handleBeforeClose()
     })
+  }, [])
+
+  useEffect(() => {
+    // The interval is a preference, so the timer follows the setting instead of a constant.
+    if (!settings.autosaveEnabled) return
     const timer = window.setInterval(() => {
-      void writeRecoverySnapshot()
-    }, RECOVERY_INTERVAL_MS)
+      void writeRecoverySnapshot({ reason: 'interval' })
+    }, intervalMilliseconds(settings.autosaveIntervalMinutes))
+    return () => window.clearInterval(timer)
+  }, [settings.autosaveEnabled, settings.autosaveIntervalMinutes])
+
+  useEffect(() => {
     const onUnload = () => {
-      void writeRecoverySnapshot()
+      void writeRecoverySnapshot({ reason: 'close' })
     }
     window.addEventListener('beforeunload', onUnload)
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('beforeunload', onUnload)
-    }
+    return () => window.removeEventListener('beforeunload', onUnload)
   }, [])
 
   return (
@@ -58,6 +70,8 @@ export function App() {
       </div>
       <AboutDialog />
       <UnsavedChangesDialog />
+      <CrashRecoveryDialog />
+      <PreferencesDialog />
     </>
   )
 }

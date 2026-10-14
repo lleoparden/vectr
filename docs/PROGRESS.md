@@ -1,6 +1,53 @@
 # Progress
 
 
+## Autosave, crash recovery, preferences, and the memory budget (2026-10-14, owner spec)
+
+The owner set the autosave rules, delegated the memory number, and approved the next capability
+slices. This is the first of them (`feat/recovery-preferences`, issue #56).
+
+**The rules, as implemented**
+
+| Owner's rule | What it means here |
+| --- | --- |
+| "should save as .vectr folder in the user folder for recovery" | The snapshot is `userData/recovery.vectr/`: `manifest.json` + the content-addressed `assets/` + a `recovery.json` sidecar. Written with the same failure-safe write a normal save uses, outside any project. |
+| "if vectr crashes it brings up the old file saying it closed in a wrong way" | An orderly quit writes a clean-exit marker; a crash cannot. At launch, a snapshot with no marker opens a dialog: "Vectr closed unexpectedly", the document's name, when the copy was taken, and Restore / Discard. Restoring reopens the document **at its own path**, so Save goes back to the user's file, and restores the revision the file matched so the recovered work is correctly dirty. |
+| "auto save should only work when a file is already saved" | `shouldWriteSnapshot`: an interval snapshot needs a dirty document that already has a file. An untitled document is never autosaved. The close path is a different net — it fires as unsaved work is dropped, so it covers an untitled document too. |
+| "the user can change the interval on the settings" | `settingsStore` persists `autosaveEnabled` and `autosaveIntervalMinutes` (1–60, default 10 minutes like Illustrator) in `localStorage`; Edit ▸ Preferences… (Ctrl+K) edits them; the timer follows the setting. |
+
+**Why the folder matters, not just the shape of it:** the old snapshot held only the manifest, so a
+crashed document with placed images would have come back with empty frames. The snapshot now carries
+the bytes, and restoring refills the asset registry from the manifest's own references.
+
+**The memory budget is decided (the owner delegated it).** Whole-app working set, all processes:
+**600 MiB** for an idle editor (measured **369.1 MiB** with nothing open in this run; ~453 MiB in the
+Phase 1 audit) and **1,200 MiB** for 1,000 shapes + 48 images (measured **703.5 MiB** peak, 0 decoded
+images after close). Both are asserted in the packaged `[vectr-memory]` report, alongside "decoded
+images back to 0 and registry empty after close". The reasoning and the two honest limits — budgets
+apply to a fresh window and a single peak, and CanvasKit does not return its WASM/GPU memory promptly
+(703.4 MiB after close in the same session) — are in `docs/DECISIONS.md`. **The idle budget was
+originally asserted in the wrong place** (after a stress document, where it read 680 MiB and failed);
+the run's own failure caught that, and it is now measured where "idle" means something.
+
+**Evidence**
+
+- **143/143 unit tests**, including a new `tests/autosave.test.ts`: the autosave rule (saved vs
+  untitled, dirty, enabled, close-vs-interval), the interval range and clamping, settings persistence
+  and foreign-data refusal, and the crash copy (it says it closed unexpectedly, names the document and
+  the file, and admits an unusable timestamp rather than faking one). The recovery suite now proves a
+  folder snapshot carries asset bytes, that what the manifest references is what comes back, and that
+  a manifest without a sidecar, a corrupt sidecar, or a missing manifest all count as **no** snapshot.
+- **`[vectr-file]` grew to 19 steps** with four new ones, all passing in the packaged app: the
+  snapshot is a project folder carrying the document's assets; an unclean exit is reported as a crash
+  *by name* (the dialog is real DOM, `data-crash-dialog`); restoring brings the work back **and keeps
+  it attached to its file**; and an interval snapshot is refused for a document that has not been
+  saved yet.
+- **`[vectr-memory]` grew to 11 steps**: the idle budget, the stress budget, the bounded decoded-asset
+  cache, and an explicit record of the post-close working set so the high-water mark is neither
+  presented as idle behavior nor mistaken for a leak.
+- Packaged totals: **87 steps across seven reports**, all passing.
+
+
 ## The inline text editor now grows as you type (2026-10-14, owner report)
 
 "I told you the text box that appears when you click for the first time [should] expand when you

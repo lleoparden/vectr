@@ -1,5 +1,70 @@
 # Progress
 
+## Phase 1 — complete
+
+**Product statement, demonstrated on the packaged Windows build: a user can create, edit, save,
+reopen, and recover a layered document.**
+
+All six approved slices are merged to `main` — editable shapes (#18), layers and groups (#20),
+plain text (#16), images (#17), durable local documents (#19) — on top of the renderer spike (#15,
+optimized in #23) and the workspace shell (#28), with the aggregate-inverse command work (#34) that
+makes a composed gesture one undo step and a UI conformance pass (#36).
+
+Exit evidence, all produced in this session on `main`:
+
+- `npm run typecheck` clean, `npm run build` clean, `npm test` **119/119**.
+- `electron . --smoke=stress` on the production bundle passes **37/37** recorded steps across three
+  reports:
+  - `[vectr-smoke]` **18/18** — create, select, drag as one history entry, undo/redo, marquee, a
+    rejected command, delete with selection pruning, group as one entry, undo-ungroups, text
+    creation and one-entry editing, an invalid text style rejected, and a missing font retired.
+  - `[vectr-file]` **11/11** — save, dirty-state clearing, an edit after save, reopen restoring the
+    layer tree, geometry, text and the image, a byte-identical resave (3208 bytes), a clean
+    reopened document, recovery snapshot written, recovery restoring unsaved work, recovery
+    cleared, and a memory record of **453.5 MiB whole app** with one image asset.
+  - `[vectr-stress]` **8/8** — a real PNG imported and drawn from its asset, undo/redo of the
+    placement, an unavailable font reported rather than silently drawn, and **1,004 shapes in 16
+    buckets at render p95 1.0–1.3 ms over 60 frames** against the 33 ms interaction target.
+
+Exit criteria from the epic, with where each is proven:
+
+| Criterion | Evidence |
+| --- | --- |
+| One authoritative versioned document with stable ids and an ordered tree | `DOC-01`; 119 tests; manifest round trip |
+| One validated, serializable, undoable command path for every mutation | `DOC-03`; every rejection has a code; `batch`/transaction history |
+| Bounded transactional undo/redo, a drag or text edit as one entry | `DOC-03`; the smoke's one-entry steps |
+| Layer list, multi-selection, reorder, group/ungroup, nesting, paint order | `DOC-02`/`SEL-03`; the smoke's group steps; paint-order tests |
+| Plain text with content, position, size, color, multiline, missing-font behavior | `TYPE-01`; the substitution report in the smoke |
+| Images into content-addressed assets that join selection, movement, ordering, history | `IMAGE-01`; the smoke's import/undo/redo/draw steps |
+| New/open/save/save-as, manifest plus asset directory, validation, dirty state, failure-safe writes | `DOC-04`; the `[vectr-file]` report and the file tests |
+| Crash recovery offered explicitly, discarding the only lossy path | `DOC-04`; one rolling snapshot, tested |
+| No JSON-embedded base64 assets and no whole-document undo snapshots | Asserted by test; history stores inverses |
+| Memory recorded for a stress document after save, reopen, and close | `[vectr-file]` record above; renderer caches bounded and disposed |
+
+Recorded gaps and limitations, so Phase 2 starts from an honest baseline:
+
+- **Platform coverage is Windows only.** macOS and Linux build and launch are still unverified, which
+  is why the catalog entries stay `building` rather than `verified`.
+- **No GUI automation.** Drag, the inline text editor's overlay, the native dialogs, and the window
+  close guard are verified by their pure logic, by the store-level steps, and by construction — not
+  by driving the real window.
+- Fourteen documented divergences from Illustrator remain (`docs/DECISIONS.md`), all of them
+  features Vectr does not have yet: read-only geometry/stroke fields, no rulers/guides/workspaces,
+  no isolation mode, no duplicate/copy-paste, no image cropping or relinking, no area text or
+  character styles, and Layers thumbnails.
+- One editor window and one document at a time; no tabs or multiple documents.
+- The recovery snapshot keeps one rolling copy with no merge, so a crash after a long unsaved
+  session can lose the state from before that session's last snapshot.
+- **The renderer gate is not fully closed.** `PERF-01` stays open with the recorded numbers: the
+  frozen 1,000-shape stress document renders at p95 1.0–1.3 ms, but the #25 comparison's
+  **10,000 loose primitives** case still misses the 33 ms target at 89.8 ms for CanvasKit
+  (and 125.6 ms for the Vello candidate). That is a Phase 2 decision with revisit triggers
+  (wasm threads with COOP/COEP, a retained-scene renderer, or a different runtime), not something
+  this phase resolved.
+
+Phase 2 inherits a versioned document with stable ids, a single validated command path, a measured
+renderer, a working layer tree, and a project format the compiler can read.
+
 ## Done
 
 - Documentation-only repository setup.
@@ -213,6 +278,14 @@
   asset); 119 unit tests pass (12 new) with clean typecheck and build.
 
 ## Next
+
+- **Phase 1 is complete** (see the section at the top of this file). The next approved work is
+  Phase 2 — core vector illustration (pen and anchor editing, path editing, transform tools,
+  align/distribute, rulers and guides). It must open with the owner's plan approval, because
+  Phase 2's slice list has not been approved yet. The one carry-over decision is the renderer:
+  `PERF-01` stays open for the 10,000-loose-primitives case recorded in issue #25.
+
+### Older next-step notes, kept for context
 
 - **Renderer gate amended by measurement (issue #25).** A candidate comparison ran
   end to end with criteria frozen before measurement, five packaged runs per

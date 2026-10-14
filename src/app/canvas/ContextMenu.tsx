@@ -7,9 +7,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { ACTION_LABELS, canRunAction, runEditorAction, type EditorActionId } from './actions.ts'
-import { shortcutLabel } from './shortcuts.ts'
-import { useEditorState } from '../state/useEditorState.ts'
+import { ACTION_LABELS, canRunAction, runEditorAction, type EditorActionId } from '../actions.ts'
+import { shortcutLabel } from '../menus/shortcuts.ts'
+import { useEditorState } from '../../state/useEditorState.ts'
 
 export type ContextMenuItem =
   | { kind: 'command'; id: EditorActionId }

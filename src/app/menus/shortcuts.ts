@@ -13,7 +13,7 @@
  * the menus print the same chords and a test asserts the whole map is consistent.
  */
 
-import type { EditorActionId } from './actions.ts'
+import type { EditorActionId } from '../actions.ts'
 
 export type KeyChord = {
   /** Lower-case `KeyboardEvent.key`, with two accepted spellings: `delete`/`backspace`. */

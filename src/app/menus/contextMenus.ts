@@ -5,9 +5,9 @@
  * right-click, in Illustrator's grouping and order, so the two menus cannot drift apart.
  */
 
-import { isLocked } from '../doc/commands.ts'
-import { documentStore } from '../state/documentStore.ts'
-import type { ContextMenuItem } from './ContextMenu.tsx'
+import { isLocked } from '../../doc/commands.ts'
+import { documentStore } from '../../state/documentStore.ts'
+import type { ContextMenuItem } from '../canvas/ContextMenu.tsx'
 
 /** Rearrange, group, hide, lock, and delete — the canvas right-click menu. */
 export function objectContextItems(): ContextMenuItem[] {

@@ -202,3 +202,9 @@ groups get computed"), each folder has one kind of thing in it, and no module is
 moved, so the diff stays mechanical and verifiable by typecheck, the test suite, the build, and the
 packaged smoke run. Imports outside `src/app` change in `src/main.tsx`, `src/dev/smoke.ts`, and six
 test files; `src/app/actions.ts` keeps its path so the hub import stays stable.
+
+**Outcome:** both pull requests are merged — hygiene as #43 (`48915fd`) and the code layout as the
+follow-up branch `chore/src-app-structure`. The move rewrote 99 import specifiers across 27 files
+with `git mv` preserving history, and it changed nothing but paths: typecheck clean, 119/119 tests,
+an identical production bundle hash, and 37/37 packaged smoke steps. The layout is recorded in
+`docs/DECISIONS.md`.

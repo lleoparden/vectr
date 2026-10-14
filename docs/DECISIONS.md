@@ -974,6 +974,41 @@ the user's Documents folder.
   work`, `recovery clears after it is consumed`, and a memory record of **453.5 MiB whole app**
   after save and reopen with one image asset.
 
+## 2026-10-14 — Repository layout (owner-requested structure cleanup)
+
+The owner reported the folder structure had become a mess. Two changes, in the order they were
+made, each independently revertable:
+
+**Hygiene (`chore/repo-hygiene`, PR #43).** The 60 KB Phase 0 proposal page moved from the
+repository root to `docs/proposal/`, and the wordmark — which was an *untracked* file at the root —
+was tracked as `docs/assets/vectr-wordmark.png` rather than deleted. Generated build logs were
+removed and the scratch that kept appearing in `git status` (`.ecc/tmp/`, `.ecc/issues/`,
+`tools/vello-raster/target/`, `*.err.txt`) is now ignored: those issue and pull-request bodies are
+working copies whose authoritative record is GitHub. The repository had **no README at all**, which
+is why one now exists, with the real commands, a structure map, and where the project record lives;
+`docs/README.md` gives each of the six documents one job.
+
+**Code layout (`chore/src-app-structure`).** `src/app/` had 22 flat files — components, the action
+table, pure editing logic, file glue, icons, and theme side by side — with `panels/` the only
+subfolder, so the folder followed no rule at all. It is now grouped by role: `shell/`, `canvas/`,
+`menus/`, `panels/`, `editing/`, `files/`, and `ui/`, with the benchmark window moved next to the
+harness it belongs to in `src/bench/`.
+
+Two things deliberately stayed where they were:
+
+- **`src/app/actions.ts`** is the action table every surface calls (menu bar, panels, shortcut hook,
+  canvas, tests). Moving it would have churned importers for no structural gain, so it remains the
+  hub at the root of `src/app/`, next to `App.tsx`, which composes the shell.
+- **Nothing was renamed**, only moved. The grouping rule is "one kind of thing per folder", and a
+  reader looking for "where is the menu built" or "where do groups get computed" now has one answer
+  each: `shell/`, `menus/`, and `editing/`.
+
+The move was done with `git mv` so history follows, and the 99 relative import specifiers were
+rewritten by a script that resolved each one against the file's old location and re-emitted it from
+the new one. Evidence that it changed nothing but paths: typecheck clean, **119/119 tests**,
+identical production bundle hash before and after (`index-5DFkgqNk.js`, 480.32 kB), and the packaged
+smoke run passing all three reports (18 + 11 + 8 = 37 steps).
+
 ## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
 
 The owner went offline and gave standing permission to merge whatever an agent judges

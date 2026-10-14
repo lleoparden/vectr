@@ -14,7 +14,7 @@ import { createEllipse, createGroup, createRect, createText, findNode } from '..
 import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
-import { planGroup } from '../app/arrange.ts'
+import { planGroup } from '../app/editing/arrange.ts'
 import { placeImage, runEditorAction } from '../app/actions.ts'
 import {
   newDocument,
@@ -23,7 +23,7 @@ import {
   refreshRecoveryState,
   saveDocument,
   writeRecoverySnapshot,
-} from '../app/fileActions.ts'
+} from '../app/files/fileActions.ts'
 import { serializeDocument } from '../file/serialize.ts'
 import { documentStore } from '../state/documentStore.ts'
 import type { DocumentStore } from '../state/documentStore.ts'

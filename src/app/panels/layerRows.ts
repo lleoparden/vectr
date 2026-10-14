@@ -7,7 +7,7 @@
  * or hidden too.
  */
 
-import { isGroup, type LayerNode, type NodeId } from '../doc/types.ts'
+import { isGroup, type LayerNode, type NodeId } from '../../doc/types.ts'
 
 export type LayerRow = {
   id: NodeId

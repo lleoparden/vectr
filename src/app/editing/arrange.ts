@@ -12,9 +12,9 @@
  * browser.
  */
 
-import { applyCommand, type Command } from '../doc/commands.ts'
-import { childIndex, createGroup, findNode, findParent, paintOrder } from '../doc/document.ts'
-import { isGroup, type Document, type LayerNode, type NodeId } from '../doc/types.ts'
+import { applyCommand, type Command } from '../../doc/commands.ts'
+import { childIndex, createGroup, findNode, findParent, paintOrder } from '../../doc/document.ts'
+import { isGroup, type Document, type LayerNode, type NodeId } from '../../doc/types.ts'
 
 export type ArrangeWhere = 'front' | 'forward' | 'backward' | 'back'
 

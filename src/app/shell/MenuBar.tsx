@@ -12,10 +12,10 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { canRunAction, runEditorAction } from './actions.ts'
-import { MENU_BAR, menuForMnemonic, type CommandItem, type MenuItem, type MenuSpec } from './menuModel.ts'
-import { shortcutLabel } from './shortcuts.ts'
-import { useEditorState } from '../state/useEditorState.ts'
+import { canRunAction, runEditorAction } from '../actions.ts'
+import { MENU_BAR, menuForMnemonic, type CommandItem, type MenuItem, type MenuSpec } from '../menus/menuModel.ts'
+import { shortcutLabel } from '../menus/shortcuts.ts'
+import { useEditorState } from '../../state/useEditorState.ts'
 
 type Interactive = CommandItem | Extract<MenuItem, { kind: 'submenu' }>
 

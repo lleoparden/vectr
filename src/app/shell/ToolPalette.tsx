@@ -7,11 +7,11 @@
  * for tools Vectr has not built.
  */
 
-import { runEditorAction, type EditorActionId } from './actions.ts'
-import { IconEllipse, IconRect, IconSelect, IconType } from './icons.tsx'
-import { shortcutLabel } from './shortcuts.ts'
-import { PALETTE_WIDTH, TOOL_BUTTON_SIZE } from './theme.ts'
-import { useEditorState } from '../state/useEditorState.ts'
+import { runEditorAction, type EditorActionId } from '../actions.ts'
+import { IconEllipse, IconRect, IconSelect, IconType } from '../ui/icons.tsx'
+import { shortcutLabel } from '../menus/shortcuts.ts'
+import { PALETTE_WIDTH, TOOL_BUTTON_SIZE } from '../ui/theme.ts'
+import { useEditorState } from '../../state/useEditorState.ts'
 
 type PaletteTool = {
   action: EditorActionId

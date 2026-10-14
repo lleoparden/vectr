@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useRef } from 'react'
-import { workspaceStore } from '../state/workspaceStore.ts'
-import { useWorkspaceState } from '../state/useWorkspaceState.ts'
+import { workspaceStore } from '../../state/workspaceStore.ts'
+import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 
 export function AboutDialog() {
   const workspace = useWorkspaceState()

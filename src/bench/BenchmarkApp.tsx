@@ -7,12 +7,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { runScenarioSuite, afterPaint } from '../bench/scenarios.ts'
-import { computeVerdict, type RunRecord, type ScenarioMetrics, type Verdict } from '../bench/report.ts'
-import { SceneRenderer, type RendererInfo } from '../bench/renderer.ts'
-import { VelloSceneTarget } from '../bench/candidateVello.ts'
-import type { SceneTarget } from '../bench/target.ts'
-import { FIXTURE_VERSION, type FixtureContent, type FixtureSize } from '../bench/fixtures.ts'
+import { runScenarioSuite, afterPaint } from './scenarios.ts'
+import { computeVerdict, type RunRecord, type ScenarioMetrics, type Verdict } from './report.ts'
+import { SceneRenderer, type RendererInfo } from './renderer.ts'
+import { VelloSceneTarget } from './candidateVello.ts'
+import type { SceneTarget } from './target.ts'
+import { FIXTURE_VERSION, type FixtureContent, type FixtureSize } from './fixtures.ts'
 
 const allContents: FixtureContent[] = ['primitives', 'text', 'images', 'groups']
 const sizes: FixtureSize[] = ['empty', 'representative', 'stress']

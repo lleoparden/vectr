@@ -8,9 +8,9 @@
  * code already use.
  */
 
-import type { Artboard } from '../doc/types.ts'
-import type { Viewport } from '../state/documentStore.ts'
-import { FIT_PADDING, ZOOM_MAX, ZOOM_MIN, ZOOM_STEPS } from './theme.ts'
+import type { Artboard } from '../../doc/types.ts'
+import type { Viewport } from '../../state/documentStore.ts'
+import { FIT_PADDING, ZOOM_MAX, ZOOM_MIN, ZOOM_STEPS } from '../ui/theme.ts'
 
 export type Anchor = { x: number; y: number }
 export type CanvasSize = { width: number; height: number }

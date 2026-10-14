@@ -19,6 +19,8 @@ export type ValidationCode =
   | 'non-finite'
   | 'non-positive-size'
   | 'unsupported-version'
+  /** The node, or an ancestor of it, is locked (issue #20; replaces the #18 wart). */
+  | 'locked'
 
 export type ValidationIssue = { code: ValidationCode; message: string; nodeId?: NodeId }
 

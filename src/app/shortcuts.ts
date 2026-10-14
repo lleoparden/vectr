@@ -49,6 +49,12 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'select.deselect', chord: { key: 'a', ctrl: true, shift: true }, illustratorDefault: true },
 
   // Object.
+  { id: 'object.group', chord: { key: 'g', ctrl: true }, illustratorDefault: true },
+  { id: 'object.ungroup', chord: { key: 'g', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'object.arrangeFront', chord: { key: ']', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'object.arrangeForward', chord: { key: ']', ctrl: true }, illustratorDefault: true },
+  { id: 'object.arrangeBackward', chord: { key: '[', ctrl: true }, illustratorDefault: true },
+  { id: 'object.arrangeBack', chord: { key: '[', ctrl: true, shift: true }, illustratorDefault: true },
   { id: 'object.hideSelection', chord: { key: '3', ctrl: true }, illustratorDefault: true },
   { id: 'object.showAll', chord: { key: '3', ctrl: true, alt: true }, illustratorDefault: true },
   { id: 'object.lockSelection', chord: { key: '2', ctrl: true }, illustratorDefault: true },
@@ -91,7 +97,14 @@ export function chordLabel(chord: KeyChord): string {
   return parts.join('+')
 }
 
-/** Normalizes a keyboard event into a chord; modifiers that are absent stay absent. */
+/**
+ * Normalizes a keyboard event into a chord; modifiers that are absent stay absent.
+ *
+ * Brackets are folded to their unshifted spelling because a browser reports `}` and `{` while
+ * Shift is held, and Illustrator's own chords are written Ctrl+Shift+].
+ */
+const SHIFTED_KEYS: Record<string, string> = { '}': ']', '{': '[', '+': '=', _: '-' }
+
 export function chordFromEvent(event: {
   key: string
   ctrlKey?: boolean
@@ -99,7 +112,8 @@ export function chordFromEvent(event: {
   shiftKey?: boolean
   altKey?: boolean
 }): KeyChord {
-  const chord: KeyChord = { key: event.key.toLowerCase() }
+  const raw = event.key.toLowerCase()
+  const chord: KeyChord = { key: SHIFTED_KEYS[raw] ?? raw }
   if (event.ctrlKey === true || event.metaKey === true) chord.ctrl = true
   if (event.shiftKey === true) chord.shift = true
   if (event.altKey === true) chord.alt = true

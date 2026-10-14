@@ -151,6 +151,22 @@
   object commands), the tool palette's invented corner letter and the status bar's revision
   counter are gone, and panel tabs are sentence case. Sixteen divergences remain live, all of
   them features Vectr does not have yet rather than styling chosen differently.
+- Phase 1 slice 3, layers, groups, and ordering (issue #20, branch `feat/layers-groups`,
+  PR #37): Group, Ungroup, the four Arrange commands, and Layers-panel drags are plans
+  composed from `insertNodes`/`moveNode`/`removeNodes` (`src/app/arrange.ts`,
+  `src/app/layerDrag.ts`), so no document command was added and each gesture is one undo step
+  through the #34 aggregate inverse. The Layers panel became interactive (drag reorder and
+  drop-into-group with Illustrator's before/inside/after targets, Shift range selection,
+  double-click/F2 rename, Delete, arrow-key navigation) and both the canvas and a layer row
+  gained Illustrator's right-click object menu (`src/app/ContextMenu.tsx`,
+  `contextMenus.ts`). Object and Type menus gained a real submenu (Object > Arrange). The
+  deferred `locked` validation code now exists and is inherited from ancestors, so a locked
+  layer refuses transform, style, move, delete, and drops into it; `isLocked` replaces the
+  `invalid-parent` wart recorded in #18.
+- Slice 3 evidence: `electron . --smoke=stress` passes 13/13 steps including `group is one
+  entry` (4 → 5 history depth, two top-level layers become one), `group selected and nested`,
+  and `undo ungroups in one step`, with 1,002 shapes in 16 buckets at render p95 1.20 ms over
+  60 frames; 88 unit tests pass (12 new for this slice) with clean typecheck and build.
 
 ## Next
 
@@ -226,14 +242,11 @@
   it is non-blocking and the temporary harness sits outside the repo.
 - `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
   remain untracked working files.
-- The shell now follows the UI direction, with sixteen live divergences from Illustrator
+- The shell now follows the UI direction, with fourteen live divergences from Illustrator
   (`docs/DECISIONS.md`, UI shell alignment). The load-bearing ones: Properties, Appearance,
-  and Color are read-only because style and transform commands do not exist yet; the Layers
-  panel is read-only beyond selection, hide, lock, and disclosure (issue #20 owns the
-  interactive tree, renaming, and thumbnails); the File menu is absent until #19 adds
-  documents; and there are no context menus, rulers, guides, or saved workspaces. Three
-  divergences were resolved after #28 — the per-node undo aggregation (#34), Escape
-  deselecting, and the missing Alt menu mnemonics — and two more were narrowed by the
-  conformance pass (panel flyout menus, and the status bar no longer showing the document
-  revision). That pass also removed Electron's default application menu, which had been
-  putting a second menu bar in the window.
+  and Color are read-only because style and transform commands do not exist yet; the File menu
+  is absent until #19 adds documents; there are no rulers, guides, or saved workspaces; panel
+  thumbnails, the target/locate column, and dragging a layer into another layer are unbuilt.
+  Five divergences have been closed since #28: the per-node undo aggregation (#34), Escape
+  deselecting, the missing Alt menu mnemonics, the read-only layer tree (#20), and the missing
+  context menus (#20).

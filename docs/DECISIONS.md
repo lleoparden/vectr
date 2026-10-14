@@ -440,10 +440,11 @@ including the layer list.
    are not built. Each group now carries Illustrator's flyout menu at its top right; the
    Layers flyout runs Hide Selection, Show All, Lock Selection, and Unlock All, and the
    style group's flyout is absent rather than empty because it has no commands yet.
-10. **The Layers panel is read-only apart from selection, hide, lock, and disclosure.**
-    No drag reorder, group/ungroup, rename, duplicate, target/locate column, or
-    thumbnails; the thumbnail slot is reserved and empty. Issue #20 owns the
-    interactive tree.
+10. **RESOLVED in issue #20** — the Layers panel was read-only beyond selection, hide, lock, and
+    disclosure. It is now interactive: drag to reorder or drop into a group, Shift-click for a
+    range, double-click or F2 to rename, right-click for the object menu, Delete and arrow keys.
+    Thumbnails (the slot is reserved), the target/locate column, and dragging a layer into
+    another layer remain unbuilt.
 11. **RESOLVED in issue #34** — Hide/Lock/Show All/Unlock All used to record one history
     entry per node, where Illustrator aggregates them into a single undo step, because a
     transaction kept only the first inverse of a gesture. The aggregate inverse described
@@ -454,8 +455,11 @@ including the layer list.
     controls that silently do nothing.
 13. **No rulers, guides, grids, snapping, artboard tool, or multiple artboards on
     screen.** Phase 2.
-14. **No context menus.** Illustrator's right-click menus are extensive; Vectr has none
-    yet.
+14. **RESOLVED for object commands in issue #20** — the canvas and a layer row open Illustrator's
+    right-click menu (Arrange, Group, Ungroup, Delete, Hide, Lock), and right-clicking an
+    unselected object on the canvas selects it first. Context menus for text, transform, and
+    paste-related commands arrive with those features, so the menu is still smaller than
+    Illustrator's.
 15. **The menu bar carries the document name** at its right edge. Illustrator relies on
     the operating system's window title; Vectr draws its own single-window chrome.
 16. **Zoom and Hand are not tools.** Pan is middle-drag (or two-point drag on a
@@ -620,6 +624,87 @@ things an aggregate already expresses.
   restores both layers.
 - `electron . --smoke=stress`: 9/9 command-path steps, drag still one entry, 1,001 shapes in
   16 buckets at render p95 1.00 ms over 60 frames (scene build 3.5 ms).
+
+## 2026-10-14 — Layers, groups, ordering, and the interactive Layers panel (issue #20)
+
+### Composed commands, not new ones
+
+Group, Ungroup, the four Arrange commands, and a Layers-panel drag are **plans** built from
+the commands that already exist — `insertNodes`, `moveNode`, `removeNodes` — and executed in
+one transaction, so each gesture is one history entry through the aggregate inverse from
+issue #34. No command was added to the document model for #20, and `src/app/arrange.ts` plus
+`src/app/layerDrag.ts` hold the planning as pure, tested functions.
+
+- **Group** inserts one group at the stacking position of the *topmost* selected node and then
+  moves the members in, in paint order, so the group lands where the topmost member was and
+  the members keep their relative order. The new group is selected afterwards, which is what
+  makes a following Ungroup or Arrange act on it.
+- **Ungroup** moves each child out to the group's own position (so the children end up exactly
+  where the group sat, in order) and then removes the empty group. One level per press, like
+  Illustrator: a nested group inside stays a group.
+- **Arrange** moves every selected node: Bring to Front / Send to Back take the extreme,
+  Bring Forward / Send Backward move each node by one position. The selection's relative order
+  is preserved by walking it bottom-up for Front and Backward and top-down for Back and
+  Forward, which is the detail that stops a two-node Bring Forward from swapping its own
+  members. It is unavailable when the selection spans parents or when every sibling is
+  selected, so the menu items grey out instead of doing nothing.
+- **A drag** resolves against the row under the pointer: the upper quarter drops before the
+  row, the lower quarter after it, and the middle half of a *group* row drops inside the group
+  (Illustrator's target behavior). A node cannot be dropped on itself, into its own subtree, or
+  back where it already is, and those are refused in planning rather than by a failing command.
+- **Atomicity.** Every plan is simulated on a local document with the real command path before
+  anything is dispatched, so a plan that would be rejected never starts; and if a step fails
+  anyway, the applied steps are rolled back and the transaction is dropped, leaving the
+  document as it was.
+
+### The `locked` validation code
+
+Issue #18 recorded a wart: a locked node's transform was rejected with `invalid-parent`
+because no dedicated code existed, and the decision said a later slice should add one. #20 is
+that slice: `ValidationCode` now includes **`locked`**, `isLocked()` checks the node and every
+ancestor (Illustrator's lock is inherited), and the code is used by `setTransform`, `setStyle`,
+`moveNode`, `removeNodes`, and by the planners, so a locked layer cannot be moved, restyled,
+reordered, deleted, or used as a drop target. `setFlags` deliberately does **not** check lock,
+because Unlock All and Show All have to reach locked nodes.
+
+### Ordering semantics kept from the command model
+
+`moveNode`'s `index` is the position "as if the node were still in place" (the command adjusts
+it down when the node left the same parent before the insertion point). That is subtle enough
+to be worth restating here: every planner computes indices against a simulated document for
+exactly this reason, and both the unit tests and the drag tests pin the resulting orders.
+
+### Layers panel behavior
+
+Drag to reorder or drop into a group, Shift-click for a range selection, double-click or F2 to
+rename in place (Enter commits, Escape cancels), right-click for the object menu, Delete and
+the arrow keys for navigation and disclosure. Row layout stays Illustrator's: disclosure
+triangle, eye, lock, thumbnail slot, name.
+
+### Context menus
+
+The canvas and a layer row both open a right-click menu, which closes divergence 14 for object
+commands: Arrange, Group, Ungroup, Delete, Hide, Lock. On the canvas, right-clicking an object
+that is not selected selects it first, the way Illustrator does. Text, transform, and
+paste-related context menus arrive with those features.
+
+### Selection is still not history state
+
+Undoing a group leaves the selection empty, because the selected node no longer exists and
+selection is pruned rather than restored (recorded for #18 and asserted in the #20 tests).
+Grouping across parents is refused rather than silently reparenting, which differs from
+Illustrator: it groups objects from different layers into the topmost object's layer.
+
+### Evidence
+
+- 88 unit tests, 12 of them new for this slice: plan ordering for all four Arrange commands,
+  group placement, ungroup with a nested group, drop resolution (before/inside/after, self,
+  subtree, no-op), inherited locking across five command types, one-undo-step behavior for
+  group/arrange/ungroup through the store, and paint order equal to tree order after grouping
+  and arranging.
+- `electron . --smoke=stress`: 13/13 steps, including `group is one entry` (depth 4 → 5, two
+  top-level layers become one), `group selected and nested`, and `undo ungroups in one step`;
+  1,002 shapes in 16 buckets at render p95 1.20 ms over 60 frames.
 
 ## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
 

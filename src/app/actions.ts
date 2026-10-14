@@ -14,7 +14,18 @@ import { findNode, paintOrder } from '../doc/document.ts'
 import type { LayerNode, NodeId } from '../doc/types.ts'
 import { documentStore, type EditorState } from '../state/documentStore.ts'
 import { workspaceStore, type PanelId } from '../state/workspaceStore.ts'
+import {
+  planArrange,
+  planGroup,
+  planUngroup,
+  stepCommand,
+  type ArrangeWhere,
+  type PlanStep,
+} from './arrange.ts'
+import { planDrop } from './layerDrag.ts'
+import type { LayerRow } from './layerRows.ts'
 import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './viewportOps.ts'
+import type { Command } from '../doc/commands.ts'
 
 export const ACTION_IDS = [
   'tool.select',
@@ -29,6 +40,12 @@ export const ACTION_IDS = [
   'object.showAll',
   'object.lockSelection',
   'object.unlockAll',
+  'object.group',
+  'object.ungroup',
+  'object.arrangeFront',
+  'object.arrangeForward',
+  'object.arrangeBackward',
+  'object.arrangeBack',
   'view.zoomIn',
   'view.zoomOut',
   'view.fitArtboard',
@@ -55,6 +72,12 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'object.showAll': 'Show All',
   'object.lockSelection': 'Lock Selection',
   'object.unlockAll': 'Unlock All',
+  'object.group': 'Group',
+  'object.ungroup': 'Ungroup',
+  'object.arrangeFront': 'Bring to Front',
+  'object.arrangeForward': 'Bring Forward',
+  'object.arrangeBackward': 'Send Backward',
+  'object.arrangeBack': 'Send to Back',
   'view.zoomIn': 'Zoom In',
   'view.zoomOut': 'Zoom Out',
   'view.fitArtboard': 'Fit Artboard in Window',
@@ -139,6 +162,41 @@ function selectedIds(): NodeId[] {
   return documentStore.getState().selection
 }
 
+/**
+ * Runs a planned gesture: every step goes through `dispatch` inside one transaction, so the
+ * whole gesture is one history entry (the aggregate inverse from #34). A step that fails
+ * anyway rolls the applied steps back before the transaction is dropped, so a refused plan
+ * leaves the document exactly as it was rather than half-applied.
+ */
+function runPlan(steps: PlanStep[] | null, label: string) {
+  if (steps === null || steps.length === 0) return
+  documentStore.beginTransaction(label)
+  const applied: Command[] = []
+  for (const step of steps) {
+    const result = documentStore.dispatch(stepCommand(step))
+    if (!result.ok) {
+      for (const inverse of [...applied].reverse()) documentStore.dispatch(inverse)
+      documentStore.abortTransaction()
+      return
+    }
+    applied.push(result.inverse)
+  }
+  documentStore.commitTransaction()
+}
+
+const ARRANGE_WHERE: Partial<Record<EditorActionId, ArrangeWhere>> = {
+  'object.arrangeFront': 'front',
+  'object.arrangeForward': 'forward',
+  'object.arrangeBackward': 'backward',
+  'object.arrangeBack': 'back',
+}
+
+/** Runs a Layers-panel drop; exported so the panel shares the planning with the store. */
+export function runLayerDrop(rows: LayerRow[], dragging: NodeId[], targetRowId: NodeId, ratio: number) {
+  const document = documentStore.getState().document
+  runPlan(planDrop(document, rows, dragging, targetRowId, ratio), 'reorder layers')
+}
+
 /** Whether an action can do anything right now; menus disable what cannot run. */
 export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
   switch (id) {
@@ -154,6 +212,17 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return anyNode((node) => node.hidden)
     case 'object.unlockAll':
       return anyNode((node) => node.locked)
+    case 'object.group':
+      return planGroup(editor.document, editor.selection) !== null
+    case 'object.ungroup':
+      return planUngroup(editor.document, editor.selection) !== null
+    case 'object.arrangeFront':
+    case 'object.arrangeForward':
+    case 'object.arrangeBackward':
+    case 'object.arrangeBack': {
+      const where = ARRANGE_WHERE[id]
+      return where !== undefined && planArrange(editor.document, editor.selection, where).length > 0
+    }
     default:
       return true
   }
@@ -205,6 +274,36 @@ export function runEditorAction(id: EditorActionId): void {
     case 'object.unlockAll':
       applyFlags(allNodeIds(), (node) => (node.locked ? { locked: false, hidden: node.hidden } : null), 'unlock all')
       return
+    case 'object.group': {
+      const selection = selectedIds()
+      const plan = planGroup(editor.document, selection)
+      if (plan === null) return
+      const created = plan[0]
+      runPlan(plan, 'group')
+      // Illustrator leaves the new group selected, which is what makes a following Ungroup
+      // and the Arrange commands act on it.
+      if (created.kind === 'insert' && created.nodes.length > 0 && documentStore.getState().document.root !== null) {
+        documentStore.setSelection([created.nodes[0].id])
+      }
+      return
+    }
+    case 'object.ungroup': {
+      const plan = planUngroup(editor.document, selectedIds())
+      if (plan === null) return
+      const released = plan.filter((step) => step.kind === 'move').map((step) => step.nodeId)
+      runPlan(plan, 'ungroup')
+      if (released.length > 0) documentStore.setSelection(released)
+      return
+    }
+    case 'object.arrangeFront':
+    case 'object.arrangeForward':
+    case 'object.arrangeBackward':
+    case 'object.arrangeBack': {
+      const where = ARRANGE_WHERE[id]
+      if (where === undefined) return
+      runPlan(planArrange(editor.document, selectedIds(), where), `arrange: ${where}`)
+      return
+    }
     case 'view.zoomIn':
       documentStore.setViewport(zoomByStep(editor.viewport, 1, workspace.canvas))
       return

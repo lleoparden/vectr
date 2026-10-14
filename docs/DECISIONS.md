@@ -174,3 +174,41 @@
 - Owner review/testing is the final handoff, not a substitute for unfinished
   agent work. The only exception is a genuine need for new authority, a safety
   decision, or an external blocker that prevents meaningful progress.
+## 2026-10-14 — Issue, epic, and pull-request workflow
+
+- Every phase in `docs/MASTER_PLAN.md` owns one epic issue, and all phase epics
+  are created up front so the whole delivery path is visible. Phase 0 is recorded
+  as a completed epic with its evidence.
+- Sub-issues are generated only when a phase starts: one per approved slice, each
+  carrying the full plan plus every file, module, type, command, asset, and
+  boundary the slice creates or changes.
+- Agents choose the pull-request strategy for each phase and record it in that
+  phase's epic. The owner reviews and tests pull requests and makes every merge
+  decision; agents never merge or push to `main`.
+- Phase 1 pull-request strategy: one stacked branch and pull request per slice,
+  each based on the previous slice, merged by the owner in order.
+- Labels `type: epic`, `type: task`, `area: renderer`, and `area: documents` were
+  added to `.github/labels.yml` and created on the remote repository, together
+  with the previously declared label set.
+
+## 2026-10-14 — Phase 1 approvals and agent choices
+
+- Tailwind is approved for installation now (`tailwindcss` and
+  `@tailwindcss/vite`), matching the approved desktop baseline.
+- The Phase 0 benchmark harness is repurposed into the Vectr application
+  identity: `package.json` name/product name, Electron `appId`, and window
+  metadata move from the Phase Zero benchmark naming to `vectr`. The frozen
+  fixtures and measurement code are kept as the regression harness.
+- Text rendering requires a bundled font: `canvaskit-wasm@0.42` exposes only
+  `FontMgr.FromData(...buffers)` and no system font manager, verified in
+  `node_modules/canvaskit-wasm/types/index.d.ts`, so a portable editor cannot
+  rely on operating-system fonts. Decision: bundle Inter (SIL OFL 1.1) via
+  `@fontsource/inter`, ship its license text, and use it as the default editor
+  and spike typeface. CanvasKit cannot parse WOFF2, so the TTF/OTF face is loaded
+  through `FontMgr.FromData` while the WOFF2 face may style the UI. Missing-font
+  behavior later inherits this rule: fall back to the bundled face and report the
+  substitution instead of failing silently.
+- The informal CanvasKit smoke evidence at `.ecc/tmp/canvaskit-smoke.json` is
+  retained as an open item. It is not acceptance evidence; the recorded five-run
+  spike evidence replaces it.
+

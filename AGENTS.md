@@ -66,13 +66,30 @@ owner approves a feature plan.
 
 ## GitHub workflow
 
-- Use the issue and pull-request templates in `.github/`.
-- Apply labels from `.github/labels.yml`; create them on GitHub only after a
-  remote exists and the owner authorizes that change.
-- Issues need problem, scope, acceptance criteria, and risk notes.
-- Pull requests need summary, linked issue, user impact, and known risks.
+- Every phase in `docs/MASTER_PLAN.md` owns one **epic issue**, created up front
+  so the whole program is visible. The epic states the goal, why the phase
+  exists, its dependencies, deliverables, the catalog IDs it changes, exit
+  criteria, explicit non-goals, risks, and the validation it must produce.
+- When a phase starts, create one **sub-issue per approved slice** before writing
+  code, and link each one to its epic (GitHub sub-issue plus the epic's task
+  list). Sub-issues are not created speculatively for phases that have not
+  started.
+- A sub-issue is descriptive and thorough: the problem, the exact plan, every
+  file, module, data structure, command, or asset it creates or changes, the
+  document/persistence/compiler boundaries it touches, acceptance criteria,
+  evidence to record, risks, and rollback.
+- Agents choose the pull-request strategy for the phase and record it in the
+  epic. One branch serves one work item; every branch, commit, and pull request
+  references the issue it belongs to.
+- The owner reviews and tests pull requests and makes every merge decision.
+  Agents never merge, push to `main`, or close an epic without explicit
+  approval.
+- Use the issue and pull-request templates in `.github/` and apply labels from
+  `.github/labels.yml`.
 - Add `agent-ready` only when an issue has an approved plan, clear boundaries,
   acceptance criteria, and no unresolved blocking decision.
+- The parity catalog and `docs/PROGRESS.md` updates for a capability change ship
+  in the same pull request as the change.
 
 ## Progress is a primary deliverable
 

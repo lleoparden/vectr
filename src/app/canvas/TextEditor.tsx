@@ -37,6 +37,10 @@ export function TextEditor({
 }) {
   const [value, setValue] = useState(initialText)
   const ref = useRef<HTMLTextAreaElement>(null)
+  /** Whether the user has actually touched the text, as opposed to merely opening the editor. */
+  const interacted = useRef(false)
+  /** A stray blur is recovered from once; after that a blur means the user has left for good. */
+  const recovered = useRef(false)
 
   useEffect(() => {
     ref.current?.focus()
@@ -60,8 +64,12 @@ export function TextEditor({
         color,
         textAlign: align,
       }}
-      onChange={(event) => setValue(event.target.value)}
+      onChange={(event) => {
+        interacted.current = true
+        setValue(event.target.value)
+      }}
       onKeyDown={(event) => {
+        interacted.current = true
         if (event.key === 'Escape') {
           event.preventDefault()
           event.stopPropagation()
@@ -75,7 +83,18 @@ export function TextEditor({
         }
         if (event.key === 'Tab') event.preventDefault()
       }}
-      onBlur={() => onCommit(value)}
+      onBlur={() => {
+        // A blur that arrives before the user has typed anything is the click that opened this
+        // editor taking focus away, or some other stray focus change — not the user leaving. Taking
+        // it as a commit would delete the object they were about to type into, so recover once and
+        // keep the editor open.
+        if (!interacted.current && value.trim() === '' && !recovered.current) {
+          recovered.current = true
+          ref.current?.focus()
+          return
+        }
+        onCommit(value)
+      }}
       onPointerDown={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.stopPropagation()}
     />

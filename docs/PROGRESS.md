@@ -36,10 +36,9 @@
 - Benchmark harness started on `chore/renderer-memory-benchmark`: source test
   and UI production build pass. An initial Electron Builder runtime-packaging
   stall was repaired before the packaged Windows evidence run.
-- Packaging was repaired and the five-run packaged Windows benchmark completed.
-  SVG fails the stress performance target; Electron remains unapproved pending
-  the same benchmark on Tauri because its empty working set exceeds the
-  proposed memory target.
+- Packaging was repaired and five packaged Windows synthetic-renderer runs
+  completed. They show full-document SVG misses the stress interaction target;
+  they do not verify real edited-document save/reopen, undo/redo, or recovery.
 - Tauri comparison setup reached Rust, WebView2, Vite, and Cargo dependency
   compilation. It cannot yet produce an executable because the benchmark
   machine has no MSVC `link.exe`; two approved Build Tools installation attempts
@@ -51,10 +50,8 @@
 
 ## Next
 
-- Write and approve the CanvasKit/Skia renderer-spike plan, then measure it
-  against the frozen fixtures before editor features.
-- Write and approve the first core foundation feature plan from the parity
-  catalog.
+- Execute Phase 1 Slice 1: CanvasKit/Skia renderer spike and its memory/lifecycle
+  acceptance evidence.
 
 ## Known issues
 

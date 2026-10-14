@@ -68,11 +68,46 @@ the bounded spike above. Tauri remains a deferred comparison, not a stack gate.
 
 ## Phase 1 — Core application foundation
 
-- [ ] Run and decide the bounded CanvasKit/Skia renderer spike.
-- [ ] Create, select, reorder, and group layers.
-- [ ] Support text, shapes, images, and nested groups.
-- [ ] Save and reopen projects.
-- [ ] Establish the desktop document/editor foundation before cloud features.
+### Approved execution plan
+
+1. **Renderer spike (`PERF-01`).** Add CanvasKit/Skia only if its smallest
+   official package set can render frozen primitive, text, image, and nested
+   group fixtures. Measure total-process, JavaScript, WASM, and GPU memory;
+   redraw timing; resize; zoom; replacement; and repeated load/unload. The
+   stress interaction target is 33 ms. A failed spike pauses editor work for a
+   documented renderer decision.
+2. **Editable shapes (`DOC-01`, `DOC-03`, `PATH-01`, `SEL-01`).** Establish
+   one versioned document with stable IDs, ordered children, local transforms,
+   rectangle/ellipse nodes, and serializable create/select/move commands with
+   bounded transactional undo/redo.
+3. **Layers and groups (`DOC-02`, `SEL-03`).** Add the layer list,
+   multi-selection, sibling reorder, group/ungroup, and nested groups. Reject
+   cycles, absent IDs, and invalid parents. Canvas paint order and tree order
+   must agree.
+4. **Plain text (`TYPE-01`).** Add accessible plain-text editing with content,
+   position, size, color, multiline support, and defined missing-font behavior.
+   Advanced typography is deferred.
+5. **Images (`IMAGE-01`).** Import PNG/JPEG into content-addressed local asset
+   storage. Image nodes reference shared bytes and participate in selection,
+   movement, grouping, ordering, and history; invalid or excessive images fail
+   without altering the document.
+6. **Durable local documents (`DOC-04`).** Add new/open/save/save-as, a
+   versioned manifest plus asset directory, validation, dirty-state handling,
+   and failure-safe open/save. Do not use JSON-embedded base64 assets or
+   full-document undo snapshots.
+
+### Cross-slice constraints
+
+- One editor window. React renders controls and the visible layer list; the
+  renderer owns drawing objects.
+- Commands store inverse data or changed fields, not whole documents. A drag or
+  text edit is one bounded history transaction; a fresh command clears redo.
+- Renderer and decoded-asset caches are derived, bounded, and explicitly
+  disposed. No idle animation or document-wide IPC on pointer movement.
+- Cloud, authentication, Supabase, MCP, built-in agents, compiler output,
+  collaboration, advanced paths, and the IDE are out of scope.
+- Each slice uses its own fresh branch, reviewer assessment, focused checks,
+  and catalog/progress update before the next slice.
 
 ## Later phases
 

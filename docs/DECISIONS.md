@@ -121,6 +121,10 @@
 
 - Five packaged Windows runs on an AMD Ryzen 5 9600X / 15.16 GiB Windows 11
   machine are recorded in `.ecc/benchmarks/phase-zero/`.
+- These are synthetic SVG fixture measurements: the harness loaded fixtures,
+  selected a layer, and serialized regenerated fixture data. It did not verify
+  zoom application, edited-document save/reopen, undo/redo, or close/reopen
+  recovery; those remain Phase 1 acceptance work.
 - Electron + SVG reached 303.90 MiB maximum whole-app working set on the empty
   fixture and 410.00 MiB on the 10,000-layer/100,000-segment stress fixture.
 - SVG is rejected as the production renderer candidate: the stress fixture had

@@ -304,7 +304,7 @@ renderer, a working layer tree, and a project format the compiler can read.
     accepted with published limits and `PERF-01` stays open with revisit triggers.
     Evidence: `.ecc/benchmarks/renderer-comparison/`.
 
-## Next
+### Superseded next-step notes (everything listed here shipped during Phase 1)
 
 - **Owner action: review and merge the aggregate-inverse pull request** (issue #34):
   a transaction may now contain many commands and undo/redo as one entry, and

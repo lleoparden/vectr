@@ -163,3 +163,42 @@ See `PROGRESS.md` for the exit evidence and the recorded gaps.
 
 Before any feature larger than a small documentation update, replace the
 relevant checklist item with an implementation plan and wait for approval.
+
+## Repository structure cleanup (owner request, 2026-10-14)
+
+The owner reported that the folder and file structure had become a mess and asked for it to be
+cleaned up. The audit found five problems, and the work is split into two pull requests so either
+half can be reverted on its own.
+
+**Found:**
+
+1. Root clutter: a 60 KB proposal page (`vectr.html`) and the wordmark PNG sat next to
+   `index.html`, and the repository had no `README.md` at all.
+2. `src/app/` was flat: 22 files mixing React components, the action table, pure editing logic,
+   file glue, icons, and theme, with `panels/` the only subfolder — an inconsistent rule.
+3. Scratch that kept appearing in `git status`: `.ecc/tmp/` smoke logs, `.ecc/issues/` body drafts,
+   `tools/vello-raster/build.err.txt` and its build logs, and a full Rust `target/` tree on disk.
+4. `docs/` had six documents with overlapping names (PLAN, MASTER_PLAN, PROGRESS) and no index, and
+   `PROGRESS.md` carried two `## Next` sections, one of them stale.
+5. The benchmark window (`src/app/BenchmarkApp.tsx`) lived away from the harness it belongs to
+   (`src/bench/`).
+
+**Approved direction (this is the plan the cleanup follows):**
+
+- 1 — `chore/repo-hygiene`: move the proposal to `docs/proposal/` and the wordmark to
+  `docs/assets/`, delete generated logs, ignore `.ecc/tmp/`, `.ecc/issues/`, and `tools` build
+  output, add the missing root `README.md` and a `docs/README.md` index, add an `npm run smoke`
+  script so the evidence command is discoverable, and retitle the stale `PROGRESS.md` section.
+- 2 — `chore/src-app-structure`: group `src/app/` by role — `shell/` (menu bar, status bar, tool
+  palette, about dialog, panel flyout), `canvas/` (canvas view, text editor, context menu,
+  viewport math), `menus/` (menu model, shortcuts, context-menu contents), `panels/` (unchanged
+  plus the dock and the layer row model), `editing/` (arrange and drag planning), `files/` (file
+  and image actions), `ui/` (theme tokens and icons) — keeping `App.tsx` and `actions.ts` at the
+  root of `src/app/` because they are the shell entry point and the action hub. The benchmark
+  window moves to `src/bench/`.
+
+**Why this shape:** the groups follow what a reader asks for ("where is the menu built", "where do
+groups get computed"), each folder has one kind of thing in it, and no module is renamed — only
+moved, so the diff stays mechanical and verifiable by typecheck, the test suite, the build, and the
+packaged smoke run. Imports outside `src/app` change in `src/main.tsx`, `src/dev/smoke.ts`, and six
+test files; `src/app/actions.ts` keeps its path so the hub import stays stable.

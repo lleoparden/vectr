@@ -12,3 +12,12 @@ node_modules/
 dist/
 release/
 .ecc/benchmarks/*.log
+
+# Local scratch: smoke-run logs and the issue/pull-request bodies before they are posted.
+# The authoritative records live on GitHub; these files are working copies.
+.ecc/tmp/
+.ecc/issues/
+
+# Rust helper build output and logs (tools/vello-raster has its own rules as well)
+tools/vello-raster/target/
+*.err.txt

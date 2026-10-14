@@ -7,6 +7,7 @@
   "scripts": {
     "build": "vite build",
     "start": "npm run build && electron .",
+    "smoke": "npm run build && electron . --smoke=stress",
     "typecheck": "tsc --noEmit",
     "package:benchmark": "npm run build && electron-builder --dir",
     "benchmark": "npm run package:benchmark && node scripts/run-phase-one-benchmark.mjs",

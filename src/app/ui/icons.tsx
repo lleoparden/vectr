@@ -136,3 +136,35 @@ export function IconFlyout(props: IconProps) {
     </Icon>
   )
 }
+
+/** New Layer: a layer with a plus, the control Illustrator puts at the panel's foot. */
+export function IconNewLayer(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.5}>
+      <path d="M2.5 3.5 H9.5 V12.5 H2.5 Z" />
+      <path d="M12 6.5 V12.5" />
+      <path d="M9 9.5 H15" />
+    </Icon>
+  )
+}
+
+/** Duplicate: two offset copies, which is what the action makes. */
+export function IconDuplicate(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.5}>
+      <path d="M5.5 2.5 H13.5 V10.5" />
+      <path d="M2.5 5.5 H10.5 V13.5 H2.5 Z" />
+    </Icon>
+  )
+}
+
+/** Delete Selection: the trash can Illustrator uses. */
+export function IconDelete(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.5}>
+      <path d="M3.5 5 H12.5" />
+      <path d="M6.5 5 V3.5 H9.5 V5" />
+      <path d="M4.5 5 L5.2 13 H10.8 L11.5 5" />
+    </Icon>
+  )
+}

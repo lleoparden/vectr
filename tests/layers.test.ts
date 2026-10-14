@@ -12,17 +12,22 @@ import { applyCommand, isLocked } from '../src/doc/commands.ts'
 import {
   createDocument,
   createGroup,
+  createImage,
   createRect,
+  createText,
+  duplicateSubtree,
   findNode,
   findParent,
   paintOrder,
 } from '../src/doc/document.ts'
 import { buildScene } from '../src/render/scene.ts'
 import { documentStore } from '../src/state/documentStore.ts'
-import { runEditorAction } from '../src/app/actions.ts'
+import { runEditorAction, deleteUnlockedSelection } from '../src/app/actions.ts'
 import {
   canArrange,
+  duplicatedIds,
   planArrange,
+  planDuplicate,
   planGroup,
   planUngroup,
   selectionInPaintOrder,
@@ -239,6 +244,100 @@ test('a drag plan reorders the tree and moves nodes into a group', () => {
     assert.deepEqual(names(moved), ['A', 'Group'])
     assert.deepEqual(names(moved, groupRow), ['Inner', 'Z'])
   }
+})
+
+test('a duplicate is a new subtree with the same shape, and shares nothing but the asset', () => {
+  const original = createText('Label', 5, 6, 'Copy me', { fontSize: 18, align: 'right' })
+  const copy = duplicateSubtree(original)
+  assert.notEqual(copy.id, original.id, 'ids are how history and selection refer to things')
+  assert.equal(copy.type, 'text')
+  assert.deepEqual({ ...copy, id: 'x' }, { ...original, id: 'x' }, 'everything else is identical')
+
+  const group = createGroup('Group 1')
+  const child = createRect('Child', 0, 0, 10, 10)
+  const nested = { ...group, children: [child] }
+  const nestedCopy = duplicateSubtree(nested)
+  assert.equal(nestedCopy.type, 'group')
+  if (nestedCopy.type !== 'group') return
+  assert.notEqual(nestedCopy.id, nested.id)
+  assert.equal(nestedCopy.children.length, 1)
+  assert.notEqual(nestedCopy.children[0].id, child.id, 'children get fresh ids too')
+
+  const image = createImage('photo.png', 0, 0, 'sha256-abc', 8, 8)
+  const imageCopy = duplicateSubtree(image)
+  assert.equal(imageCopy.type === 'image' && imageCopy.assetId, 'sha256-abc', 'the asset is shared, not copied')
+})
+
+test('Duplicate places the copies above the original and selects them, as one entry', () => {
+  const { document, ids } = fourSiblings()
+  const plan = planDuplicate(document, [ids[1]])
+  assert.notEqual(plan, null)
+  if (plan === null) return
+  const created = duplicatedIds(plan)
+  const duplicated = applyPlan(document, plan)
+  assert.equal(duplicated.root.children.length, 5)
+  assert.equal(duplicated.root.children[2].id, created[0], 'the copy sits directly above its original')
+  assert.equal(duplicated.root.children[1].id, ids[1], 'the original stays where it was')
+
+  // Everything the user sees is copied.
+  const copy = duplicated.root.children[2]
+  assert.equal(copy.name, 'B')
+  assert.deepEqual({ ...copy, id: 'x' }, { ...document.root.children[1], id: 'x' })
+})
+
+test('duplicating through the store is one entry, selects the copy, and multi-duplicates in order', () => {
+  const { document, ids } = fourSiblings()
+  documentStore.replaceDocument(document)
+  documentStore.setSelection([ids[0], ids[2]])
+  const before = documentStore.getState().undoDepth
+
+  runEditorAction('object.duplicate')
+  const after = documentStore.getState().document.root.children
+  assert.equal(after.length, 6, 'two originals, two copies')
+  assert.equal(documentStore.getState().undoDepth, before + 1, 'duplicating is one entry')
+  const created = documentStore.getState().selection
+  assert.equal(created.length, 2, 'the copies are selected')
+  assert.equal(created[0], after[3].id, 'copies keep the originals order, above the topmost original')
+  assert.equal(created[1], after[4].id)
+
+  documentStore.undo()
+  assert.equal(documentStore.getState().document.root.children.length, 4, 'one undo removes both copies')
+  assert.equal(documentStore.getState().undoDepth, before)
+})
+
+test('New Layer adds an empty layer on top and selects it, as one entry', () => {
+  const { document } = fourSiblings()
+  documentStore.replaceDocument(document)
+  const before = documentStore.getState().undoDepth
+
+  runEditorAction('layer.new')
+  const children = documentStore.getState().document.root.children
+  const top = children[children.length - 1]
+  assert.equal(children.length, 5)
+  assert.equal(top.type, 'group')
+  assert.equal(top.type === 'group' && top.children.length, 0, 'a new layer starts empty')
+  assert.equal(documentStore.getState().selection[0], top.id, 'the new layer is selected')
+  assert.equal(documentStore.getState().undoDepth, before + 1)
+
+  documentStore.undo()
+  assert.equal(documentStore.getState().document.root.children.length, 4)
+})
+
+test('deleting the selection skips a locked layer instead of failing', () => {
+  const { document, ids } = fourSiblings()
+  const locked = applyCommand(document, { type: 'setFlags', nodeId: ids[0], locked: true, hidden: false })
+  assert.equal(locked.ok, true)
+  if (!locked.ok) return
+  documentStore.replaceDocument(locked.document)
+  documentStore.setSelection([ids[0], ids[1]])
+
+  assert.equal(deleteUnlockedSelection(), 1, 'only the unlocked node goes')
+  const remaining = documentStore.getState().document.root.children.map((node) => node.id)
+  assert.deepEqual(remaining, [ids[0], ids[2], ids[3]])
+  assert.equal(documentStore.getState().selection.length, 0)
+
+  documentStore.undo()
+  assert.equal(documentStore.getState().document.root.children.length, 4, 'and it is one entry')
 })
 
 test('grouping, arranging, and ungrouping are each one undo step through the store', () => {

@@ -1009,6 +1009,53 @@ the new one. Evidence that it changed nothing but paths: typecheck clean, **119/
 identical production bundle hash before and after (`index-5DFkgqNk.js`, 480.32 kB), and the packaged
 smoke run passing all three reports (18 + 11 + 8 = 37 steps).
 
+## 2026-10-14 — Layers panel actions: Duplicate and New Layer
+
+The Layers panel had no foot. Illustrator's has New Layer, New Sublayer, Collect in New Layer,
+Make/Release Clipping Mask, and Delete Selection along the bottom, and its panel menu offers the
+same commands. Vectr now has the three that make sense without clipping masks or sublibraries:
+
+- **New Layer** (`layer.new`) inserts an empty group at the top of the layer list and selects it —
+  Illustrator's "new layer appears above the current one".
+- **Duplicate** (`object.duplicate`) copies the selection directly above the topmost selected node,
+  keeping the copies in their originals' order, and leaves the copies selected so a drag right after
+  duplicating moves them.
+- **Delete Selection** reuses one shared policy (`deleteUnlockedSelection`), so the panel foot, the
+  row context menu, and the keyboard now cannot disagree: a locked layer is skipped rather than
+  failing the whole delete.
+
+All three are reachable from the panel foot, the Layers flyout menu, and the row's context menu,
+which is where Illustrator puts them.
+
+### Duplicate semantics, recorded deliberately
+
+`duplicateSubtree` in `src/doc/document.ts` deep-copies with **fresh ids** and nothing else changed:
+same order, geometry, styles, text, and leading. A duplicated image keeps pointing at the same
+content-addressed asset, so duplicating a photograph costs one more node rather than one more copy
+of the pixels — the asset model from #17 doing exactly what it was built for. Fresh ids are not
+cosmetic: ids are how selection, history, and the manifest refer to nodes, so a copy that shared an
+id would corrupt undo.
+
+No keyboard chord is bound. Illustrator's Ctrl+D is "transform again", not duplicate, and its Layers
+panel Duplicate has no default chord either, so binding one would be a divergence dressed as a
+convenience.
+
+### Still open in the Layers panel
+
+Thumbnails. The row's thumbnail slot is still an empty box (recorded as a divergence since #28):
+making it show a real preview means rendering a subtree offscreen and encoding it, with a bounded
+cache invalidated per subtree — a piece of work worth doing on its own rather than smuggling into
+this one.
+
+### Evidence
+
+- 126 unit tests, five new: `duplicateSubtree` (fresh ids at every level, identical otherwise, and a
+  shared asset id), the duplicate plan's placement, duplication through the store as one entry with
+  the copies selected, New Layer as one entry, and the locked-layer delete policy.
+- `electron . --smoke=stress` — **48 packaged steps** across four reports, all passing, including two
+  new ones in `[vectr-smoke]`: `duplicate is one entry above the original` (with `undo removes the
+  duplicate`) and `new layer lands on top and is selected`.
+
 ## 2026-10-14 — Vectr's own unsaved-changes dialog, and a data-loss bug it exposed
 
 ### The dialog is Vectr's, not the operating system's

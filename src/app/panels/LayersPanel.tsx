@@ -17,17 +17,20 @@ import type { NodeId } from '../../doc/types.ts'
 import { ContextMenu, type ContextMenuState } from '../canvas/ContextMenu.tsx'
 import { layerRowContextItems } from '../menus/contextMenus.ts'
 import {
+  IconDelete,
   IconDisclosureClosed,
   IconDisclosureOpen,
+  IconDuplicate,
   IconEye,
   IconEyeOff,
   IconLock,
+  IconNewLayer,
   IconUnlock,
 } from '../ui/icons.tsx'
 import { expandedGroupIds, layerRows, rowDescription, type LayerRow } from './layerRows.ts'
 import { placementFor } from '../editing/layerDrag.ts'
 import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../ui/theme.ts'
-import { runLayerDrop } from '../actions.ts'
+import { canRunAction, deleteUnlockedSelection, runEditorAction, runLayerDrop } from '../actions.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 
@@ -210,9 +213,42 @@ export function LayersPanel() {
           ))}
         </ul>
       )}
-      <div className="flex items-center justify-between border-t border-hairline px-2 py-1 text-ui-xs text-ink-faint">
-        <span>{layers.length} at top level</span>
-        <span>{state.selection.length} selected</span>
+      <div className="flex items-center justify-between gap-2 border-t border-hairline px-2 py-1">
+        <span className="truncate text-ui-xs text-ink-faint">
+          {layers.length} at top level · {state.selection.length} selected
+        </span>
+        {/* Illustrator's Layers panel foot: New Layer, Duplicate Selection, Delete Selection. */}
+        <span className="flex shrink-0 items-center gap-[2px]">
+          <button
+            type="button"
+            title="New Layer"
+            aria-label="New Layer"
+            className="flex h-5 w-5 items-center justify-center rounded-ui text-ink-muted hover:bg-chrome-active hover:text-ink"
+            onClick={() => runEditorAction('layer.new')}
+          >
+            <IconNewLayer size={13} />
+          </button>
+          <button
+            type="button"
+            title="Duplicate Selection"
+            aria-label="Duplicate Selection"
+            disabled={!canRunAction('object.duplicate', state)}
+            className="flex h-5 w-5 items-center justify-center rounded-ui text-ink-muted hover:bg-chrome-active hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+            onClick={() => runEditorAction('object.duplicate')}
+          >
+            <IconDuplicate size={13} />
+          </button>
+          <button
+            type="button"
+            title="Delete Selection"
+            aria-label="Delete Selection"
+            disabled={state.selection.length === 0}
+            className="flex h-5 w-5 items-center justify-center rounded-ui text-ink-muted hover:bg-chrome-active hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+            onClick={() => deleteUnlockedSelection()}
+          >
+            <IconDelete size={13} />
+          </button>
+        </span>
       </div>
 
       <ContextMenu menu={menu} onClose={() => setMenu(null)} />

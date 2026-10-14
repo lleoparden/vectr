@@ -13,7 +13,7 @@
  */
 
 import { applyCommand, type Command } from '../../doc/commands.ts'
-import { childIndex, createGroup, findNode, findParent, paintOrder } from '../../doc/document.ts'
+import { childIndex, createGroup, duplicateSubtree, findNode, findParent, paintOrder } from '../../doc/document.ts'
 import { isGroup, type Document, type LayerNode, type NodeId } from '../../doc/types.ts'
 
 export type ArrangeWhere = 'front' | 'forward' | 'backward' | 'back'
@@ -122,6 +122,47 @@ export function planArrange(document: Document, selection: NodeId[], where: Arra
 /** Whether an Arrange press could move anything, used to grey the menu items out. */
 export function canArrange(document: Document, selection: NodeId[], where: ArrangeWhere): boolean {
   return planArrange(document, selection, where).length > 0
+}
+
+/**
+ * Duplicate: a copy of every selected node goes directly above the topmost selected node, keeping
+ * the copies' relative order. The copies get fresh ids, so the originals and their duplicates are
+ * independent from the moment they exist; a duplicated image shares its asset, not its pixels.
+ */
+export function planDuplicate(document: Document, selection: NodeId[]): PlanStep[] | null {
+  const parentId = sharedParent(document, selection)
+  if (parentId === null) return null
+  const ordered = selectionInPaintOrder(document, selection)
+  if (ordered.length === 0) return null
+
+  const parent = findNode(document, parentId)
+  if (parent === null || !isGroup(parent)) return null
+
+  const copies: Array<{ original: NodeId; copy: LayerNode }> = []
+  for (const id of ordered) {
+    const node = findNode(document, id)
+    if (node === null) return null
+    copies.push({ original: id, copy: duplicateSubtree(node) })
+  }
+
+  const topIndex = Math.max(...ordered.map((id) => childIndex(parent, id)))
+  const steps: PlanStep[] = [
+    { kind: 'insert', parentId, index: topIndex + 1, nodes: copies.map((entry) => entry.copy) },
+  ]
+
+  // Validate the whole plan before anything is dispatched, like every other plan here.
+  let current = document
+  for (const step of steps) {
+    const result = applyCommand(current, stepCommand(step))
+    if (!result.ok) return null
+    current = result.document
+  }
+  return steps
+}
+
+/** The ids a duplicate plan created, so the caller can select them. */
+export function duplicatedIds(steps: PlanStep[]): NodeId[] {
+  return steps.flatMap((step) => (step.kind === 'insert' ? step.nodes.map((node) => node.id) : []))
 }
 
 /**

@@ -162,6 +162,22 @@ export function createImage(
   }
 }
 
+/**
+ * Deep-copies a subtree with fresh ids (issue: Layers panel actions).
+ *
+ * A duplicate must be a genuinely new set of nodes: same order, geometry, styles, text, and asset
+ * references, but new ids, because ids are how selection, history, and the manifest refer to
+ * things. Images keep pointing at the same content-addressed asset, so duplicating a photograph
+ * costs one more node, not one more copy of the pixels.
+ */
+export function duplicateSubtree(node: LayerNode): LayerNode {
+  const copy: LayerNode = { ...node, id: newId(node.type === 'group' ? 'group' : node.type) }
+  if (copy.type === 'group' && node.type === 'group') {
+    copy.children = node.children.map((child) => duplicateSubtree(child))
+  }
+  return copy
+}
+
 export function createGroup(name: string): GroupNode {
   return {
     id: newId('group'),

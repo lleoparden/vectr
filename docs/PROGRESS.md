@@ -88,7 +88,7 @@
 - The workflow and renderer stack merged into `main`: #21 (workflow), #22 (slice 1,
   `8c8f72c`), #24 (slice 1b, `325508e`), #26 (slice 1c comparison, `601c32e`), and
   #27 (small-vs-big merge policy plus mandatory self-review, `c0613de`).
-- Phase 1 slice 2 delivered (issue #18, branch `feat/document-command-core`):
+- Phase 1 slice 2 delivered (issue #18, PR #30, branch `feat/document-command-core`):
   versioned document model with structural sharing (`src/doc/types.ts`,
   `document.ts`), stable rejection codes (`validate.ts`), one validated command
   path with inverse commands (`commands.ts`), bounded history with single-entry
@@ -110,7 +110,7 @@
   TypeScript parameter property that Node strip-only mode rejects; a locked group
   did not lock its subtree in hit testing; and a PowerShell rewrite of
   `package.json` added a UTF-8 BOM that broke the Vite build.
-- Phase 1 slice 2b, the UI shell alignment (issue #28, branch
+- Phase 1 slice 2b, the UI shell alignment (issue #28, PR #33, branch
   `feat/ui-shell-alignment`, stacked on #18): the shell is now a modern Illustrator
   rather than a placeholder — menu bar with Illustrator's menu structure
   (`src/app/MenuBar.tsx`, `menuModel.ts`), docked left tool palette with V/M/L and

@@ -60,6 +60,15 @@ sub-issue carries the full slice plan:
   of non-test change, or when the agent cannot honestly judge it.
 - Agents never squash, rebase, force-push, or delete a branch, and never push
   directly to `main`. Every change reaches `main` through a pull request.
+- **The UI direction is a review criterion.** Vectr's interface is a modern
+  Illustrator (`AGENTS.md`, Product identity, and `docs/DECISIONS.md`, 2026-10-14):
+  the same workspace logic, panel set, terminology, and shortcut conventions an
+  Illustrator user expects, with Vectr's own original icons, type, colors, and copy.
+  A pull request that changes the interface states its Illustrator mapping — what
+  matches, what deliberately differs, and what is not built yet — and records every
+  deliberate divergence in `docs/DECISIONS.md`. An interface change that quietly
+  invents a different layout, terminology, or shortcut does not merge, and neither
+  does one carrying Adobe or VectorCraft assets, screenshots, or branding.
 
 # Agent-ready issue workflow
 
@@ -69,7 +78,10 @@ An issue may receive the `agent-ready` label only when it contains:
 - clear scope boundaries;
 - testable acceptance criteria;
 - relevant risks and dependencies;
-- an approved implementation plan; and
+- an approved implementation plan;
+- for a slice with a user interface, its Illustrator mapping (what matches
+  Illustrator, what deliberately differs with a recorded reason, and what is not
+  built yet), per the UI direction in `AGENTS.md` and `docs/DECISIONS.md`; and
 - no unresolved product or platform decision.
 
 Remove `agent-ready` when a requirement becomes ambiguous or blocked.

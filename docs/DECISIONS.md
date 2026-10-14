@@ -174,3 +174,40 @@
 - Owner review/testing is the final handoff, not a substitute for unfinished
   agent work. The only exception is a genuine need for new authority, a safety
   decision, or an external blocker that prevents meaningful progress.
+
+## 2026-10-14 — CanvasKit renderer spike evidence (PERF-01)
+
+- Phase 1 slice 1 (issue #15) measured CanvasKit/Skia 0.42 in a packaged Windows
+  build across five runs on the same AMD Ryzen 5 9600X / 15.16 GiB Windows 11 Pro
+  machine used for Phase 0. Records: `.ecc/benchmarks/phase-one/`.
+- The gate metric is defined as one viewport change plus draw submission and
+  flush, excluding fixture build work, React rendering, and the vsync wait.
+  Presented and React-driven variants are recorded but do not decide the gate.
+  Phase 0's number included a two-frame wait and is not directly comparable.
+- Verdict: the 33 ms stress interaction target is not met. Worst stress
+  interaction p95 was 99.9 ms (primitives), with text at 60.7 ms and nested groups
+  at 34.8 ms; draw submission alone was 74.6 ms, above the target independent of
+  the timing definition. The 1,000-layer, image, and nested-group fixtures stayed
+  inside the target.
+- CanvasKit is materially faster than the rejected full-document SVG renderer, but
+  it is not proven at the stress scale. The diagnosis is per-item JS-to-WASM call
+  and state overhead, because every fixture node is drawn each frame with no
+  viewport culling and no retained layer cache.
+- Resource evidence from the same runs: retained paths, images, and paragraphs
+  returned to zero after 10 build/draw/release cycles; peak whole-app working set
+  817 MiB with a 280 MiB GPU process across four processes.
+- Because the approved plan pauses editor work after a failed spike, the renderer
+  options in `docs/PROGRESS.md` require an owner decision before Phase 1 slices
+  2–6 proceed.
+- Fixtures are document-shaped (stable ids, local transforms, styles, geometry)
+  and versioned at `FIXTURE_VERSION = 1` so the editor's renderer and the compiler
+  can reuse them instead of a second synthetic harness.
+- Primitive geometry is generated programmatically with the fixture's segment
+  budget; the Phase 0 SVG-string parse is deliberately not reproduced, so parse
+  cost cannot be mistaken for draw or interaction cost.
+- A bundled Inter face (SIL OFL 1.1, license shipped) is loaded through
+  `FontMgr.FromData`, and a missing font is reported instead of silently
+  substituted, because `canvaskit-wasm@0.42` exposes no system font manager.
+- Tailwind is installed now (`tailwindcss`, `@tailwindcss/vite`) and used by the
+  app shell; `npm run typecheck` was added so type regressions fail a check instead
+  of reaching review.

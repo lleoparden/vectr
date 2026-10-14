@@ -1,0 +1,580 @@
+{
+  "capturedAt": "2026-10-14T12:24:52.632Z",
+  "electron": "35.7.5",
+  "chrome": "134.0.6998.205",
+  "platform": "win32",
+  "arch": "x64",
+  "applicationProcesses": [
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 0.246749,
+        "percentCPUUsage": 1.616758048643329,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 16276,
+      "type": "Browser",
+      "creationTime": 1791980687473.583,
+      "memory": {
+        "workingSetSize": 91708,
+        "peakWorkingSetSize": 91708,
+        "privateBytes": 70880
+      },
+      "integrityLevel": "medium",
+      "sandboxed": false
+    },
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 1.556318,
+        "percentCPUUsage": 5.454868514570006,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 11064,
+      "type": "GPU",
+      "creationTime": 1791980687588.243,
+      "serviceName": "GPU",
+      "memory": {
+        "workingSetSize": 277616,
+        "peakWorkingSetSize": 277616,
+        "privateBytes": 554780
+      },
+      "integrityLevel": "low",
+      "sandboxed": true
+    },
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 0.045606,
+        "percentCPUUsage": 0,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 20260,
+      "type": "Utility",
+      "creationTime": 1791980687600.638,
+      "serviceName": "network.mojom.NetworkService",
+      "name": "Network Service",
+      "memory": {
+        "workingSetSize": 46336,
+        "peakWorkingSetSize": 46336,
+        "privateBytes": 13684
+      },
+      "integrityLevel": "medium",
+      "sandboxed": false
+    },
+    {
+      "cpu": {
+        "cumulativeCPUUsage": 5.226502,
+        "percentCPUUsage": 29.37750142938822,
+        "idleWakeupsPerSecond": 0
+      },
+      "pid": 30164,
+      "type": "Tab",
+      "creationTime": 1791980687631.551,
+      "memory": {
+        "workingSetSize": 409468,
+        "peakWorkingSetSize": 410584,
+        "privateBytes": 375364
+      },
+      "integrityLevel": "untrusted",
+      "sandboxed": true
+    }
+  ],
+  "rendererResult": {
+    "record": {
+      "schemaVersion": 1,
+      "fixtureVersion": 1,
+      "reportKind": "phase-one-renderer-spike",
+      "capturedAt": "2026-10-14T12:24:52.629Z",
+      "renderer": {
+        "backend": "webgl",
+        "wasmBytes": 7317345,
+        "webglAvailable": true,
+        "fontLoaded": true
+      },
+      "environment": {
+        "platform": "Win32",
+        "arch": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) vectr-phase-zero-benchmark/0.0.0 Chrome/134.0.6998.205 Electron/35.7.5 Safari/537.36",
+        "electron": "n/a",
+        "chrome": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) vectr-phase-zero-benchmark/0.0.0 Chrome/134.0.6998.205 Electron/35.7.5 Safari/537.36",
+        "devicePixelRatio": 1
+      },
+      "scenarios": [
+        {
+          "scenario": "fixture",
+          "detail": "primitives/empty",
+          "buildMs": 0,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0.19999999925494194,
+          "uiInteractionMs": 5.400000000372529,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "primitives/empty",
+          "buildMs": 0.8999999994412065,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "primitives/representative",
+          "buildMs": 7.699999999254942,
+          "drawMs": 8.200000000186265,
+          "interactionMs": 7.5,
+          "presentedMs": 7.2999999998137355,
+          "uiInteractionMs": 7.400000000372529,
+          "livePaths": 1000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "primitives/empty<-primitives/representative",
+          "buildMs": 0.30000000074505806,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "primitives/representative",
+          "buildMs": 1.599999999627471,
+          "drawMs": 6.6000000005587935,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 1000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "primitives/stress",
+          "buildMs": 53,
+          "drawMs": 74.6000000005588,
+          "interactionMs": 97.5,
+          "presentedMs": 92.5,
+          "uiInteractionMs": 18.399999999441206,
+          "livePaths": 10000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "primitives/representative<-primitives/stress",
+          "buildMs": 4.1000000005587935,
+          "drawMs": 5.8999999994412065,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 1000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "primitives/stress",
+          "buildMs": 14.599999999627471,
+          "drawMs": 72,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 10000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "text/empty",
+          "buildMs": 0.8999999994412065,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0.8999999994412065,
+          "uiInteractionMs": 6.6000000005587935,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "primitives/stress<-text/empty",
+          "buildMs": 48.90000000037253,
+          "drawMs": 72.5,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 10000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "text/empty",
+          "buildMs": 12.299999999813735,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "text/representative",
+          "buildMs": 44.200000000186265,
+          "drawMs": 1.7999999998137355,
+          "interactionMs": 32.200000000186265,
+          "presentedMs": 2.7999999998137355,
+          "uiInteractionMs": 7.5,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 1000,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "text/empty<-text/representative",
+          "buildMs": 3.400000000372529,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "text/representative",
+          "buildMs": 0.900000000372529,
+          "drawMs": 14.599999999627471,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 1000,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "text/stress",
+          "buildMs": 198.1000000005588,
+          "drawMs": 32.200000000186265,
+          "interactionMs": 60.700000000186265,
+          "presentedMs": 28.699999999254942,
+          "uiInteractionMs": 6.800000000745058,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 10000,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "text/representative<-text/stress",
+          "buildMs": 43.5,
+          "drawMs": 5,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 1000,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "text/stress",
+          "buildMs": 2.0000000009313226,
+          "drawMs": 37.89999999944121,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 10000,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "images/empty",
+          "buildMs": 23.799999999813735,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0.39999999944120646,
+          "uiInteractionMs": 4.400000000372529,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "text/stress<-images/empty",
+          "buildMs": 158.5,
+          "drawMs": 38.799999999813735,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 10000,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "images/empty",
+          "buildMs": 2,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "images/representative",
+          "buildMs": 1.599999999627471,
+          "drawMs": 0.5,
+          "interactionMs": 0.40000000037252903,
+          "presentedMs": 0.6000000005587935,
+          "uiInteractionMs": 4.599999999627471,
+          "livePaths": 0,
+          "liveImages": 8,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "images/empty<-images/representative",
+          "buildMs": 0.19999999925494194,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "images/representative",
+          "buildMs": 0.5,
+          "drawMs": 0.5,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 8,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "images/stress",
+          "buildMs": 0.5,
+          "drawMs": 6.2999999998137355,
+          "interactionMs": 3.5,
+          "presentedMs": 3.7999999998137355,
+          "uiInteractionMs": 6.7000000001862645,
+          "livePaths": 0,
+          "liveImages": 8,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "images/representative<-images/stress",
+          "buildMs": 0.5,
+          "drawMs": 0.2999999998137355,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 8,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "images/stress",
+          "buildMs": 1.7999999998137355,
+          "drawMs": 5.800000000745058,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 8,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "groups/empty",
+          "buildMs": 0.10000000055879354,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0.2999999998137355,
+          "uiInteractionMs": 4.5,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "images/stress<-groups/empty",
+          "buildMs": 0.5,
+          "drawMs": 5.900000000372529,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 8,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "groups/empty",
+          "buildMs": 1.1000000005587935,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "groups/representative",
+          "buildMs": 3.7999999998137355,
+          "drawMs": 4,
+          "interactionMs": 4.2999999998137355,
+          "presentedMs": 4.400000000372529,
+          "uiInteractionMs": 7.3999999994412065,
+          "livePaths": 1000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "groups/empty<-groups/representative",
+          "buildMs": 0.20000000018626451,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "groups/representative",
+          "buildMs": 2.900000000372529,
+          "drawMs": 4.400000000372529,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 1000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "fixture",
+          "detail": "groups/stress",
+          "buildMs": 31.100000000558794,
+          "drawMs": 31.59999999962747,
+          "interactionMs": 34.69999999925494,
+          "presentedMs": 33.299999999813735,
+          "uiInteractionMs": 5.7999999998137355,
+          "livePaths": 10000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "replace",
+          "detail": "groups/representative<-groups/stress",
+          "buildMs": 3.7000000001862645,
+          "drawMs": 4.1000000005587935,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 1000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "resize",
+          "detail": "groups/stress",
+          "buildMs": 7.000000000931323,
+          "drawMs": 36.69999999925494,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 10000,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 157000000
+        },
+        {
+          "scenario": "unload",
+          "detail": "10 cycles",
+          "buildMs": 0,
+          "drawMs": 0,
+          "interactionMs": 0,
+          "presentedMs": 0,
+          "uiInteractionMs": 0,
+          "livePaths": 0,
+          "liveImages": 0,
+          "liveParagraphs": 0,
+          "heapBytes": 0
+        }
+      ],
+      "notes": [
+        "after 10 build/draw/release cycles: paths=0 images=0 paragraphs=0",
+        "Spike scope: every fixture node is visible (no viewport culling, no retained layer cache),",
+        "so per-item draw cost includes JS-to-WASM call overhead that an editor optimization pass would reduce."
+      ]
+    },
+    "memory": {
+      "privateBytes": 1038946304,
+      "workingSetBytes": 844754944
+    }
+  }
+}

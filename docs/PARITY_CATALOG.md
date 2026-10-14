@@ -79,10 +79,56 @@ Platform coverage begins `Windows planned / macOS planned / Linux planned`.
 | UI-01 | Illustrator-familiar workspace: menus, tools, panels, contextual controls | planned | not applicable | Core workflows are discoverable without copying Adobe/VectorCraft branding. |
 | UI-02 | Shortcuts, command palette, workspaces, preferences, and localization | planned | not applicable | Keyboard paths and persisted preferences are documented and testable. |
 | A11Y-01 | Keyboard access, focus, contrast, screen-reader labels, and input devices | planned | not applicable | Core workflows have an accessible path and known gaps are recorded. |
-| PERF-01 | Large-document rendering, memory budgets, idle behavior, and recovery | designed | not applicable | Phase 0 records synthetic Electron/SVG fixture evidence only; Phase 1 must validate CanvasKit/Skia with total-process memory, stress interaction, repeated unload, and real document lifecycle fixtures. |
+| PERF-01 | Large-document rendering, memory budgets, idle behavior, and recovery | blocked | not applicable | Phase 1 measured CanvasKit/Skia in a packaged build on all required scenarios including real unload cycles; the 33 ms stress interaction target is still missed, so the renderer choice needs an owner decision. See "Renderer evidence" below. |
 | AUTO-01 | Account-scoped MCP and audit trail using normal document commands | deferred | not applicable | Deferred until after the core application and compiler. |
 | COMP-01 | One readable React component per layer with stable names | deferred | supported | Deferred until core parity gate; supported layers export deterministic TSX. |
 | COMP-02 | Tailwind mapping, inline SVG, assets, and fidelity diagnostics | deferred | SVG adjunct | Deferred until core parity gate; unsupported mappings are explicit. |
+
+## Renderer evidence (PERF-01)
+
+Phase 1 slice 1 (issue #15, branch `feat/canvaskit-renderer-spike`) measured
+CanvasKit/Skia 0.42 in a packaged Windows build over five runs on an AMD Ryzen 5
+9600X / 15.16 GiB Windows 11 Pro machine. Raw records and the aggregate are in
+`.ecc/benchmarks/phase-one/`; the run method is
+`npm run benchmark`.
+
+**Gate definition.** `interactionMs` is one viewport change plus draw submission
+and flush, excluding one-time fixture build work, React rendering, and the vsync
+wait. `presentedMs` (with one presented frame) and `uiInteractionMs`
+(React-driven) are recorded beside it. Phase 0's interaction number included a
+two-frame wait, so the two definitions are not directly comparable, and the
+current report states its own definition.
+
+| Scenario (p95 across five runs) | build | draw | interaction (gate) | presented | React-driven |
+| --- | --- | --- | --- | --- | --- |
+| primitives / representative (1,000 layers) | 8 ms | 10.2 ms | 7.5 ms | 7.6 ms | 8.1 ms |
+| primitives / stress (10,000 layers, 100,000 segments) | 54 ms | 74.6 ms | **99.9 ms** | 93.4 ms | 18.4 ms |
+| text / representative (1,000 text nodes) | 48 ms | 1.8 ms | 32.2 ms | 3.5 ms | 7.5 ms |
+| text / stress (10,000 text nodes) | 202 ms | 32.6 ms | **60.7 ms** | 37.2 ms | 7.9 ms |
+| images / representative (100 images) | 2 ms | 0.7 ms | 0.5 ms | 1.1 ms | 7.1 ms |
+| images / stress (1,000 images) | 1 ms | 6.5 ms | 3.6 ms | 4.0 ms | 8.2 ms |
+| groups / representative (nested, 1,000 leaves) | 4 ms | 4.2 ms | 4.6 ms | 4.5 ms | 8.0 ms |
+| groups / stress (nested, 10,000 leaves) | 32 ms | 31.7 ms | **34.8 ms** | 33.3 ms | 7.4 ms |
+
+**Result:** the 33 ms stress interaction target is not met. Draw submission alone
+(74.6 ms) already exceeds the target regardless of the timing definition.
+Backend: WebGL. Bundled font loaded: yes. CanvasKit payload: 7,317,345 bytes.
+Repeated load/unload: pass — retained paths, images, and paragraphs returned to
+zero after 10 build/draw/release cycles.
+
+**Memory (peak across five runs, all application processes):** working set
+817 MiB, private bytes 995 MiB, GPU process 280 MiB, 4 processes. CanvasKit does
+not lower the empty footprint relative to the Phase 0 packaged SVG baseline.
+
+**Diagnosis.** Every fixture node is drawn on every frame with no viewport
+culling and no retained layer cache, and each item costs roughly ten JS-to-WASM
+calls (state changes plus one or two draws). The miss is per-item call and state
+overhead rather than GPU fill rate, which is why 1,000 layers stay well inside the
+target while 10,000 layers do not.
+
+**Pending decision.** The approved Phase 1 plan states that a failed spike pauses
+editor work for a documented renderer decision; the options are recorded in
+`docs/PROGRESS.md`.
 
 ## Prioritization and updates
 

@@ -440,11 +440,13 @@ including the layer list.
    are not built. Each group now carries Illustrator's flyout menu at its top right; the
    Layers flyout runs Hide Selection, Show All, Lock Selection, and Unlock All, and the
    style group's flyout is absent rather than empty because it has no commands yet.
-10. **RESOLVED in issue #20** — the Layers panel was read-only beyond selection, hide, lock, and
-    disclosure. It is now interactive: drag to reorder or drop into a group, Shift-click for a
-    range, double-click or F2 to rename, right-click for the object menu, Delete and arrow keys.
-    Thumbnails (the slot is reserved), the target/locate column, and dragging a layer into
-    another layer remain unbuilt.
+10. **RESOLVED in issue #20, extended since** — the Layers panel was read-only beyond selection, hide,
+    lock, and disclosure. It is now interactive (drag reorder, drop into a group, Shift range,
+    double-click or F2 rename, right-click menu, Delete and arrow keys), it carries Illustrator's
+    panel foot (New Layer, Duplicate Selection, Delete Selection), and its rows show **live
+    thumbnails for top-level layers** (the first 12; nested rows keep the slot, and a layer in a
+    shared bucket is refused rather than previewed misleadingly). The target/locate column and
+    dragging a layer into another layer remain unbuilt.
 11. **RESOLVED in issue #34** — Hide/Lock/Show All/Unlock All used to record one history
     entry per node, where Illustrator aggregates them into a single undo step, because a
     transaction kept only the first inverse of a gesture. The aggregate inverse described
@@ -1008,6 +1010,43 @@ rewritten by a script that resolved each one against the file's old location and
 the new one. Evidence that it changed nothing but paths: typecheck clean, **119/119 tests**,
 identical production bundle hash before and after (`index-5DFkgqNk.js`, 480.32 kB), and the packaged
 smoke run passing all three reports (18 + 11 + 8 = 37 steps).
+
+## 2026-10-14 — Layer thumbnails, made real rather than decorative
+
+The Layers panel's thumbnail slot had been an empty box since #28, recorded as a divergence. It now
+shows a real preview of the layer — the actual renderer output, not a hand-drawn approximation, which
+matters because an approximation would be a picture of what the panel thinks the layer looks like
+rather than what the canvas draws.
+
+### How it works, and why it is cheap
+
+`EditorRenderer.renderThumbnail(rootId, size, bounds)` reuses the bucket's **already-recorded
+picture**: it draws that picture into a small offscreen surface scaled to the layer's bounds and
+encodes one PNG, which the panel shows as a data URL. No scene rebuild, no second code path, and the
+thumbnail cannot disagree with the canvas because it is the same recording.
+
+### The three limits, all deliberate and all asserted
+
+1. **Top-level layers only.** A nested row keeps its slot. Previewing a nested node would mean
+   drawing a subtree out of a picture that also contains its siblings and its parent's background.
+2. **The first 12 layers.** That is a panel's worth of rows, and it bounds the cost of a thumbnail
+   pass to roughly a dozen draws plus encodes per document change.
+3. **Refused when the bucket is shared.** The renderer keeps at most 16 buckets, so a document with
+   more than 16 top-level layers gets buckets that hold several of them. A preview from such a bucket
+   would silently show a layer's *neighbours*, so `renderThumbnail` returns null instead and the row
+   keeps its placeholder. The packaged run asserts this refusal, so the limitation cannot rot into a
+   lie later.
+
+The panel caches thumbnails per document revision and retries once a second until the renderer exists
+(it is created a moment after launch), so nothing renders before there is something to render with.
+
+### Evidence
+
+- `electron . --smoke=stress` — **51 packaged steps** across four reports, all passing. Two new in
+  `[vectr-file]`: `layer thumbnail renders a real preview` (144 bytes of PNG for a rect layer) and
+  `the thumbnail decodes as a 28×28 image`, which proves the data URL is a real image rather than a
+  well-formed stub. One new in `[vectr-memory]`: `a chunked bucket refuses a misleading thumbnail`,
+  asserted against the 1,048-layer stress document.
 
 ## 2026-10-14 — Layers panel actions: Duplicate and New Layer
 

@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { findNode } from '../../doc/document.ts'
+import { findNode, worldBounds } from '../../doc/document.ts'
 import type { NodeId } from '../../doc/types.ts'
 import { ContextMenu, type ContextMenuState } from '../canvas/ContextMenu.tsx'
 import { layerRowContextItems } from '../menus/contextMenus.ts'
@@ -33,6 +33,7 @@ import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../ui/theme.ts'
 import { canRunAction, deleteUnlockedSelection, runEditorAction, runLayerDrop } from '../actions.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
+import { getActiveRenderer } from '../../render/activeRenderer.ts'
 
 type DragState = {
   /** Rows being dragged, in the order they sit in the tree. */
@@ -41,6 +42,10 @@ type DragState = {
   over: { rowId: NodeId; ratio: number } | null
 }
 
+/** Thumbnail size in CSS pixels, and how many rows are previewed (a panel's worth). */
+const THUMBNAIL_SIZE = 28
+const THUMBNAIL_LIMIT = 12
+
 export function LayersPanel() {
   const state = useEditorState()
   const layers = state.document.root.children
@@ -48,9 +53,41 @@ export function LayersPanel() {
   const [renaming, setRenaming] = useState<NodeId | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
+  const [thumbnails, setThumbnails] = useState<Map<NodeId, string>>(() => new Map())
+  const [thumbnailTick, setThumbnailTick] = useState(0)
   const lastClicked = useRef<NodeId | null>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const renderedThumbnails = useRef<{ revision: number; map: Map<NodeId, string> }>({ revision: -1, map: new Map() })
   const rows = useMemo(() => layerRows(layers, expanded), [layers, expanded])
+
+  // Thumbnails are real renders, not placeholders: the renderer draws the layer's recorded picture
+  // into a small surface and hands back a PNG, which is why they only appear for top-level layers
+  // and only for the first `THUMBNAIL_LIMIT` of them. A one-second tick retries until they exist,
+  // because the renderer arrives a moment after launch.
+  useEffect(() => {
+    const timer = window.setInterval(() => setThumbnailTick((value) => value + 1), 1_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const renderer = getActiveRenderer()
+    if (renderer === null) return
+    const current = renderedThumbnails.current
+    const wanted = layers.slice(0, THUMBNAIL_LIMIT)
+    const upToDate =
+      current.revision === state.document.revision && wanted.every((node) => current.map.has(node.id) || node.type === 'group' && node.children.length === 0)
+    if (upToDate) return
+
+    const next = new Map<NodeId, string>()
+    for (const node of wanted) {
+      const bounds = worldBounds(state.document, node.id)
+      if (bounds === null) continue
+      const dataUrl = renderer.renderThumbnail(node.id, THUMBNAIL_SIZE, bounds)
+      if (dataUrl !== null) next.set(node.id, dataUrl)
+    }
+    renderedThumbnails.current = { revision: state.document.revision, map: next }
+    setThumbnails(next)
+  }, [state.document.revision, thumbnailTick, layers])
 
   function toggleExpanded(id: NodeId) {
     setExpanded((previous) => {
@@ -192,6 +229,7 @@ export function LayersPanel() {
               dragging={drag !== null && drag.ids.includes(row.id)}
               dropHint={drag?.over?.rowId === row.id ? placementFor(drag.over.ratio, row) : null}
               renaming={renaming === row.id}
+              thumbnail={thumbnails.get(row.id) ?? null}
               onSelect={selectRow}
               onToggleExpanded={toggleExpanded}
               onToggleFlag={flagDispatch}
@@ -263,6 +301,7 @@ type RowItemProps = {
   dragging: boolean
   dropHint: 'before' | 'inside' | 'after' | null
   renaming: boolean
+  thumbnail: string | null
   onSelect: (id: NodeId, event: { shiftKey: boolean; metaKey?: boolean; ctrlKey?: boolean }) => void
   onToggleExpanded: (id: NodeId) => void
   onToggleFlag: (id: NodeId, locked: boolean, hidden: boolean, label: string) => void
@@ -281,6 +320,7 @@ function LayerRowItem({
   dragging,
   dropHint,
   renaming,
+  thumbnail,
   onSelect,
   onToggleExpanded,
   onToggleFlag,
@@ -353,12 +393,20 @@ function LayerRowItem({
       </button>
       <span
         aria-hidden="true"
-        title="Thumbnails arrive with the render work in a later slice"
-        className={`shrink-0 rounded-ui border border-hairline ${
+        title={
+          row.depth === 0
+            ? 'A live preview of this layer'
+            : 'Previews render for top-level layers; a nested row keeps its slot'
+        }
+        className={`shrink-0 overflow-hidden rounded-ui border border-hairline ${
           row.node.type === 'group' ? 'bg-chrome-raised' : 'bg-chrome-sunken'
         }`}
         style={{ width: 14, height: 14 }}
-      />
+      >
+        {row.depth === 0 && thumbnail !== null && (
+          <img src={thumbnail} alt="" className="h-full w-full object-contain" />
+        )}
+      </span>
       {renaming ? (
         <input
           autoFocus

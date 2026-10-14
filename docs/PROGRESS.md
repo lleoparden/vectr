@@ -298,6 +298,13 @@ renderer, a working layer tree, and a project format the compiler can read.
   imported` (8×8 pixels, 89 bytes, content key `sha256-ab57fee…`), `image undo removes node and
   asset`, `image redo restores both`, and `image drawn from its asset`, with 1,004 shapes at
   render p95 1.30 ms; 107 unit tests pass (10 new) with clean typecheck and build.
+- UI enhancement, owner-requested, after Phase 1 (branch `feat/layers-thumbnails`): Layers rows now
+  show **live thumbnails** rendered by the real renderer from its recorded picture (no approximation,
+  so a preview cannot disagree with the canvas). Deliberate limits, each asserted in the packaged run:
+  top-level layers only, the first 12 rows, and a refusal when a bucket holds several roots rather
+  than a preview that would show a layer's neighbours. Evidence: 51 packaged smoke steps across four
+  reports, including `layer thumbnail renders a real preview` (144 bytes of PNG), `the thumbnail
+  decodes as a 28×28 image`, and `a chunked bucket refuses a misleading thumbnail`.
 - UI enhancement, owner-requested, after Phase 1 (branch `feat/layers-panel-actions`): the Layers
   panel gained the foot Illustrator has — New Layer, Duplicate Selection, and Delete Selection —
   reachable from the panel foot, the Layers flyout, and the row context menu. `duplicateSubtree`

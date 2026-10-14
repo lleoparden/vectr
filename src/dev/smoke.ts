@@ -10,7 +10,7 @@
  * `tests/doc.test.ts` and `tests/editor.test.ts`.
  */
 
-import { createEllipse, createGroup, createRect, createText, findNode } from '../doc/document.ts'
+import { createEllipse, createGroup, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
 import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
@@ -303,6 +303,37 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
   )
   record('reopened document is clean', documentStore.isDirty() === false, 'clean')
 
+  // Layers panel thumbnails: the preview must be a real render of the layer, not a placeholder.
+  const thumbnailRenderer = getActiveRenderer()
+  const thumbnailLayer = documentStore.getState().document.root.children[0]
+  const thumbnailBounds = worldBounds(documentStore.getState().document, thumbnailLayer.id)
+  const thumbnail =
+    thumbnailRenderer === null || thumbnailBounds === null
+      ? null
+      : thumbnailRenderer.renderThumbnail(thumbnailLayer.id, 28, thumbnailBounds)
+  record(
+    'layer thumbnail renders a real preview',
+    thumbnail !== null && thumbnail.startsWith('data:image/png;base64,') && thumbnail.length > 200,
+    thumbnail === null
+      ? 'no preview was produced'
+      : `${Math.round(((thumbnail.length - 'data:image/png;base64,'.length) * 3) / 4)} bytes of PNG for "${thumbnailLayer.name}"`,
+  )
+  // A data URL that is merely well-formed could still be blank, so decode it and check its size.
+  const decodedThumbnail =
+    thumbnail === null
+      ? null
+      : await new Promise<{ width: number; height: number } | null>((resolve) => {
+          const probe = new Image()
+          probe.onload = () => resolve({ width: probe.naturalWidth, height: probe.naturalHeight })
+          probe.onerror = () => resolve(null)
+          probe.src = thumbnail
+        })
+  record(
+    'the thumbnail decodes as a 28x28 image',
+    decodedThumbnail?.width === 28 && decodedThumbnail?.height === 28,
+    decodedThumbnail === null ? 'the data URL did not decode' : `${decodedThumbnail.width}×${decodedThumbnail.height}`,
+  )
+
   // Recovery: unsaved work is snapshotted, offered, and comes back.
   documentStore.dispatch({ type: 'renameNode', nodeId: rect.id, name: 'Unsaved work' }, 'rename')
   const wrote = await writeRecoverySnapshot()
@@ -413,6 +444,18 @@ export async function runMemoryReport(): Promise<SmokeReport> {
     'memory after building the stress document',
     decodedAfterPlace >= 1,
     `${mib(placedMemory.workingSetBytes)} working set (${mib(placedMemory.privateBytes)} private), ${decodedAfterPlace} decoded images, budget: not owner-approved`,
+  )
+
+  // A bucket that holds several top-level layers must refuse to preview rather than showing a
+  // layer's neighbours (the documented thumbnail limitation on very large documents).
+  const crowdedLayer = documentStore.getState().document.root.children[0]
+  const crowdedBounds = worldBounds(documentStore.getState().document, crowdedLayer.id)
+  const crowdedThumbnail =
+    crowdedBounds === null ? null : renderer.renderThumbnail(crowdedLayer.id, 28, crowdedBounds)
+  record(
+    'a chunked bucket refuses a misleading thumbnail',
+    crowdedThumbnail === null,
+    crowdedThumbnail === null ? 'no preview offered for a shared bucket' : 'produced a misleading preview',
   )
 
   // Zoom evidence (criterion 5): the same scene drawn at four zoom levels.

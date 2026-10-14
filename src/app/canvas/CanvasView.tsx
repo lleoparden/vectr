@@ -329,15 +329,20 @@ export function CanvasView() {
     if (result.ok) documentStore.setSelection([node.id])
   }
 
-  // Hand the renderer the bytes for every asset the document carries. Decoding happens once
-  // per asset id inside the renderer, so registering the same set again is free (issue #17).
+  // Hand the renderer the bytes for every asset the document carries, then release any decoded
+  // image the document no longer needs. Decoding happens once per asset id inside the renderer,
+  // so registering the same set again is free (issue #17); `retainAssets` is what keeps the
+  // decoded cache bounded when documents are swapped (issue #19's cache constraint).
   useEffect(() => {
     const renderer = rendererRef.current
     if (!ready || renderer === null) return
+    const wanted = new Set<string>()
     for (const asset of state.document.assets) {
+      wanted.add(asset.id)
       const record = assetRegistry.get(asset.id)
       if (record !== undefined) renderer.putAsset(asset.id, record.bytes)
     }
+    renderer.retainAssets(wanted)
   }, [ready, state.document.assets])
 
   // Wheel zoom needs a non-passive listener, so it is attached directly.

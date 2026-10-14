@@ -37,11 +37,29 @@ sub-issue carries the full slice plan:
 - One branch serves one work item; the branch name uses a purpose prefix.
 - Every commit and pull request references its issue; the pull request uses the
   template in `.github/PULL_REQUEST_TEMPLATE.md`.
-- The owner reviews and tests each pull request and makes every merge decision.
-  Agents never merge or push to `main` without explicit approval.
-- A pull request is not ready for review until its scope is complete, its
-  self-review is done, its checks were actually run, and its catalog/progress
-  updates are included.
+- A pull request is not ready to merge until its scope is complete, its
+  catalog/progress updates are included, and the checks below were actually run on
+  the branch head.
+- **Required self-review before any merge.** The agent re-reads the full diff as a
+  reviewer — including a pull request it wrote moments earlier — and posts the
+  conclusion on the pull request: what the diff actually changes, any counter-
+  argument or risk it found, what it verified, and any residual doubt. A pull
+  request whose self-review finds an unresolved doubt does not merge.
+- **Agents may merge a small pull request themselves** when all of these hold:
+  the diff is confined to one approved slice or one small work item; it does not
+  touch a decision surface listed below; `npm run typecheck`, `npm test`, and
+  `npm run build` pass on the branch head; documentation, catalog, and progress
+  updates are included; and the self-review found no unresolved doubt. The merge
+  uses a merge commit.
+- **Big or important pull requests need the owner's review and merge decision.**
+  A pull request is big or important when it changes any decision surface: the
+  document format or persisted data, the command/undo model, persistence or file
+  I/O, the renderer path or published performance limits, dependencies, the stack,
+  security, permissions, or accounts, or any public interface later slices build
+  on. It is also big when it spans more than one slice, exceeds a few hundred lines
+  of non-test change, or when the agent cannot honestly judge it.
+- Agents never squash, rebase, force-push, or delete a branch, and never push
+  directly to `main`. Every change reaches `main` through a pull request.
 
 # Agent-ready issue workflow
 

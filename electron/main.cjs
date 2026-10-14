@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -71,6 +71,25 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
 
   ipcMain.handle('benchmark:memory', getMemory)
+
+  /**
+   * Image import (issue #17): the file dialog and the read belong in the main process, so the
+   * renderer never needs filesystem access. The bytes travel as a typed array over IPC.
+   */
+  ipcMain.handle('image:open', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Place an image',
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    const filePath = result.filePaths[0]
+    const name = path.basename(filePath)
+    const lower = name.toLowerCase()
+    const mimeType = lower.endsWith('.png') ? 'image/png' : 'image/jpeg'
+    const bytes = fs.readFileSync(filePath)
+    return { name, mimeType, byteLength: bytes.byteLength, bytes: new Uint8Array(bytes) }
+  })
 
   ipcMain.handle('benchmark:result', async (_event, result) => {
     const metrics = await app.getAppMetrics()

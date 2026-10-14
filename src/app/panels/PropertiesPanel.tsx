@@ -8,10 +8,11 @@
  */
 
 import { findNode, worldBounds } from '../../doc/document.ts'
-import { isGroup, isText, nodeSize } from '../../doc/types.ts'
+import { isGroup, isImage, isText, nodeSize } from '../../doc/types.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
+import { formatByteLength } from '../../doc/assets.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -94,6 +95,23 @@ export function PropertiesPanel() {
           )}
         </>
       )}
+      {isImage(node) &&
+        (() => {
+          const asset = state.document.assets.find((entry) => entry.id === node.assetId) ?? null
+          return (
+            <>
+              <Row label="Asset" value={asset === null ? node.assetId : asset.id.slice(0, 23) + '…'} />
+              <Row label="Type" value={asset?.mimeType ?? 'missing'} />
+              <Row label="File size" value={asset === null ? '—' : formatByteLength(asset.byteLength)} />
+              <Row label="Pixels" value={asset === null ? '—' : `${asset.width} × ${asset.height}`} />
+              {asset === null && (
+                <p role="status" className="px-2 pt-1 text-ui-xs text-danger">
+                  This image is not linked to an asset in the document.
+                </p>
+              )}
+            </>
+          )
+        })()}
       <Row label="Flags" value={`${node.hidden ? 'hidden ' : ''}${node.locked ? 'locked' : ''}`.trim() || 'none'} />
       {state.selection.length > 1 && <Row label="Also selected" value={`${state.selection.length - 1} more`} />}
     </div>

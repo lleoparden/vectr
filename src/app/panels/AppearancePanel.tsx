@@ -7,7 +7,7 @@
  */
 
 import { findNode } from '../../doc/document.ts'
-import { isLeaf, isText } from '../../doc/types.ts'
+import { isImage, isLeaf, isText } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 
 function Swatch({ color }: { color: string }) {
@@ -28,7 +28,16 @@ export function AppearancePanel() {
   if (node === null || !isLeaf(node)) {
     return (
       <p className="px-3 py-4 text-ui-xs text-ink-faint">
-        Select a shape or a text object to inspect its fill, stroke, and opacity. Groups do not carry appearance yet.
+        Select a shape, text object, or image to inspect it. Groups do not carry appearance yet.
+      </p>
+    )
+  }
+
+  if (isImage(node)) {
+    // An image's appearance is its pixels, so there is nothing to fill or stroke here.
+    return (
+      <p className="px-3 py-4 text-ui-xs text-ink-faint">
+        An image has no fill or stroke. Its asset, size, and opacity are in the Properties panel.
       </p>
     )
   }

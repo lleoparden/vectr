@@ -24,6 +24,15 @@ declare global {
       reportResult: (payload: BenchmarkPayload) => Promise<unknown>
       getMemory: () => Promise<MemorySample>
     }
+    /** Image import bridge (issue #17); absent in a plain browser build. */
+    vectrFiles?: {
+      openImage: () => Promise<{
+        name: string
+        mimeType: string
+        byteLength: number
+        bytes: Uint8Array
+      } | null>
+    }
   }
 }
 

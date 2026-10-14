@@ -15,7 +15,7 @@ import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/arrange.ts'
-import { runEditorAction } from '../app/actions.ts'
+import { placeImage, runEditorAction } from '../app/actions.ts'
 import type { DocumentStore } from '../state/documentStore.ts'
 
 export type SmokeStep = { name: string; ok: boolean; detail: string }
@@ -185,11 +185,63 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
 }
 
 /**
+ * Generates a small PNG in the page, so the smoke run exercises the real import path —
+ * decode, content key, placement, and drawing — without shipping a fixture file (issue #17).
+ */
+async function makeSmokePng(): Promise<Uint8Array | null> {
+  const canvas = document.createElement('canvas')
+  canvas.width = 8
+  canvas.height = 8
+  const context = canvas.getContext('2d')
+  if (context === null) return null
+  context.fillStyle = '#4f7cff'
+  context.fillRect(0, 0, 8, 8)
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((value) => resolve(value), 'image/png'))
+  return blob === null ? null : new Uint8Array(await blob.arrayBuffer())
+}
+
+/**
  * Adds 1,000 shapes and measures the renderer's own frame time, so the slice's
  * interaction criterion is recorded with numbers instead of an assumption.
  */
 export async function runEditorStress(store: DocumentStore): Promise<SmokeReport> {
   const steps: SmokeStep[] = []
+
+  // Issue #17: a generated PNG runs the whole image path, including the renderer drawing the
+  // asset instead of its placeholder frame.
+  let placedAssetId: string | null = null
+  const png = await makeSmokePng()
+  if (png === null) {
+    steps.push({ name: 'image imported', ok: false, detail: 'the page could not encode a PNG' })
+  } else {
+    const placed = await placeImage('smoke.png', 'image/png', png)
+    const placedDocument = store.getState().document
+    const asset = placedDocument.assets[0]
+    placedAssetId = asset?.id ?? null
+    steps.push({
+      name: 'image imported',
+      ok: placed !== null && placedDocument.assets.length === 1,
+      detail:
+        placed === null
+          ? (store.getState().lastError?.message ?? 'no node placed')
+          : `${asset.width}x${asset.height} pixels, ${asset.byteLength} bytes, asset ${asset.id.slice(0, 14)}`,
+    })
+
+    const depthBeforeUndo = store.getState().undoDepth
+    store.undo()
+    steps.push({
+      name: 'image undo removes node and asset',
+      ok: store.getState().document.assets.length === 0 && store.getState().undoDepth === depthBeforeUndo - 1,
+      detail: `${store.getState().document.assets.length} assets after undo`,
+    })
+    store.redo()
+    steps.push({
+      name: 'image redo restores both',
+      ok: store.getState().document.assets.length === 1,
+      detail: `${store.getState().document.assets.length} assets after redo`,
+    })
+  }
+
   const nodes = Array.from({ length: 1_000 }, (_, index) =>
     createRect(`Stress ${index}`, (index * 17) % 1200, (index * 29) % 800, 40, 30),
   )
@@ -227,6 +279,12 @@ export async function runEditorStress(store: DocumentStore): Promise<SmokeReport
     name: 'font substitution reported',
     ok: stats.substitutedFonts.includes('Comic Sans MS'),
     detail: stats.substitutedFonts.join(', ') || 'none reported',
+  })
+  // Issue #17: the placed image must have been drawn from its asset, not as a placeholder.
+  steps.push({
+    name: 'image drawn from its asset',
+    ok: placedAssetId !== null && !stats.missingAssets.includes(placedAssetId),
+    detail: stats.missingAssets.length === 0 ? 'no missing assets' : stats.missingAssets.join(', '),
   })
   return { passed: steps.every((step) => step.ok), steps }
 }

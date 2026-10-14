@@ -10,11 +10,14 @@ import { useEffect, useRef, useState } from 'react'
 import { createEllipse, createRect, createText, estimateTextSize, findNode, worldTransform } from '../doc/document.ts'
 import { hitTest, marqueeHitTest, type Point } from '../doc/hitTest.ts'
 import { isText, type NodeId, type Transform } from '../doc/types.ts'
+import { mimeTypeForName } from '../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from './contextMenus.ts'
+import { placeImage } from './actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { EditorRenderer, type RenderStats } from '../render/EditorRenderer.ts'
 import { getActiveRenderer, setActiveRenderer } from '../render/activeRenderer.ts'
+import { assetRegistry } from '../state/assetRegistry.ts'
 import { buildScene, type SceneShape } from '../render/scene.ts'
 import { documentStore, type Viewport } from '../state/documentStore.ts'
 import { useEditorState } from '../state/useEditorState.ts'
@@ -326,6 +329,17 @@ export function CanvasView() {
     if (result.ok) documentStore.setSelection([node.id])
   }
 
+  // Hand the renderer the bytes for every asset the document carries. Decoding happens once
+  // per asset id inside the renderer, so registering the same set again is free (issue #17).
+  useEffect(() => {
+    const renderer = rendererRef.current
+    if (!ready || renderer === null) return
+    for (const asset of state.document.assets) {
+      const record = assetRegistry.get(asset.id)
+      if (record !== undefined) renderer.putAsset(asset.id, record.bytes)
+    }
+  }, [ready, state.document.assets])
+
   // Wheel zoom needs a non-passive listener, so it is attached directly.
   useEffect(() => {
     const canvas = canvasRef.current
@@ -368,6 +382,24 @@ export function CanvasView() {
           if (hit !== null && !documentStore.getState().selection.includes(hit)) documentStore.setSelection([hit])
           setMenu({ x: event.clientX, y: event.clientY, items: canvasContextItems() })
         }}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes('Files')) event.preventDefault()
+        }}
+        onDrop={(event) => {
+          // Dropping an image file onto the canvas places it, as Illustrator does.
+          const files = Array.from(event.dataTransfer.files).filter(
+            (file) => file.type === 'image/png' || file.type === 'image/jpeg' || mimeTypeForName(file.name) !== null,
+          )
+          if (files.length === 0) return
+          event.preventDefault()
+          void (async () => {
+            for (const file of files) {
+              const bytes = new Uint8Array(await file.arrayBuffer())
+              const mimeType = file.type !== '' ? file.type : (mimeTypeForName(file.name) ?? '')
+              await placeImage(file.name, mimeType, bytes)
+            }
+          })()
+        }}
       />
       {overlay !== null && (
         <div
@@ -392,6 +424,14 @@ export function CanvasView() {
         <p role="alert" className="absolute left-2 right-2 top-2 rounded bg-red-900/80 px-2 py-1 text-xs text-red-100">
           {error}
         </p>
+      )}
+      {stats !== null && stats.missingAssets.length > 0 && (
+        <div
+          role="status"
+          className="pointer-events-none absolute bottom-14 left-2 rounded bg-amber-900/80 px-2 py-1 text-[10px] text-amber-100"
+        >
+          Image link missing, drawn as a frame: {stats.missingAssets.length}
+        </div>
       )}
       {state.lastError !== null && (
         <p

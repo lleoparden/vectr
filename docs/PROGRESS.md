@@ -176,10 +176,22 @@
   textarea; double-clicking a text object edits it; the Type menu (align L/C/R, size up/down),
   the Properties font-size field, and clickable Color swatches that apply a fill to shapes and
   text all ship with it.
-- Slice 4 evidence: `electron . --smoke=stress` passes **21/21** steps including `text created`,
-  `text edit is one entry`, `text undo restores content`, `invalid text style rejected`,
-  `missing font is recorded, not refused`, and `font substitution reported`, with 1,003 shapes at
-  render p95 1.20 ms; 97 unit tests pass (9 new) with clean typecheck and build.
+- Phase 1 slice 5, images (issue #17, branch `feat/images`, PR #39): an `ImageNode` holds only
+  a content-addressed `assetId` and its box; the bytes live in a runtime asset registry
+  (`src/state/assetRegistry.ts`) keyed by `sha256-<hex>`, and the document carries an `AssetRef`
+  in its existing `assets` list. Import rules (PNG/JPEG, ≤ 20 MiB, ≤ 40 MP, ≤ 512 assets) run
+  before anything is decoded or dispatched and report a reason through a new
+  `documentStore.reportError`. `placeImage` inserts the node and registers the asset in one
+  undoable step whose inverse removes both as a batch (and leaves a shared asset alone);
+  `addAsset`/`removeAsset` cover the other direction and `removeAsset` refuses an asset an image
+  still uses. The scene carries the asset id, the renderer decodes once per asset, draws with
+  `drawImageRect`, and reports an asset it never received through `RenderStats.missingAssets`.
+  `File > Place…` (Ctrl+Shift+P) opens the platform dialog through the preload bridge — the main
+  process reads the file — and dropping image files on the canvas places them too.
+- Slice 5 evidence: `electron . --smoke=stress` passes **25/25** steps, including `image
+  imported` (8×8 pixels, 89 bytes, content key `sha256-ab57fee…`), `image undo removes node and
+  asset`, `image redo restores both`, and `image drawn from its asset`, with 1,004 shapes at
+  render p95 1.30 ms; 107 unit tests pass (10 new) with clean typecheck and build.
 
 ## Next
 

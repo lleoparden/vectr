@@ -24,6 +24,9 @@ import {
 } from './arrange.ts'
 import { planDrop } from './layerDrag.ts'
 import type { LayerRow } from './layerRows.ts'
+import { importImageBytes, pickImageFile } from './imageImport.ts'
+import { assetRegistry } from '../state/assetRegistry.ts'
+import { createImage } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './viewportOps.ts'
 import type { Command } from '../doc/commands.ts'
 
@@ -32,6 +35,7 @@ export const ACTION_IDS = [
   'tool.rect',
   'tool.ellipse',
   'tool.text',
+  'file.place',
   'type.sizeUp',
   'type.sizeDown',
   'type.alignLeft',
@@ -70,6 +74,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.rect': 'Rectangle Tool',
   'tool.ellipse': 'Ellipse Tool',
   'tool.text': 'Type Tool',
+  'file.place': 'Place…',
   'type.sizeUp': 'Increase Size',
   'type.sizeDown': 'Decrease Size',
   'type.alignLeft': 'Horizontal Align Left',
@@ -258,6 +263,60 @@ export function runLayerDrop(rows: LayerRow[], dragging: NodeId[], targetRowId: 
   runPlan(planDrop(document, rows, dragging, targetRowId, ratio), 'reorder layers')
 }
 
+/**
+ * Places an image from picked or dropped bytes (issue #17): limits and decode first, then one
+ * `placeImage` command that inserts the node and registers the asset together, so undo removes
+ * both. Any failure is reported through the store's error path and leaves the document alone.
+ */
+export async function placeImage(
+  name: string,
+  mimeType: string,
+  bytes: Uint8Array,
+): Promise<NodeId | null> {
+  const document = documentStore.getState().document
+  const imported = await importImageBytes(name, mimeType, bytes, document.assets.length)
+  if (!imported.ok) {
+    documentStore.reportError(imported.code, imported.message)
+    return null
+  }
+  const { ref } = imported.asset
+  const artboard = document.artboards[0]
+  const node = createImage(
+    name,
+    Math.max(0, (artboard.width - ref.width) / 2),
+    Math.max(0, (artboard.height - ref.height) / 2),
+    ref.id,
+    ref.width,
+    ref.height,
+  )
+  const result = documentStore.dispatch(
+    {
+      type: 'placeImage',
+      parentId: document.root.id,
+      index: document.root.children.length,
+      node,
+      asset: ref,
+    },
+    'place image',
+  )
+  if (!result.ok) {
+    documentStore.reportError(result.code, result.message)
+    return null
+  }
+  // The bytes are remembered only after the document accepted the asset, so a rejected import
+  // cannot leave an orphan in memory.
+  assetRegistry.put({ ref, bytes: imported.asset.bytes, name: imported.asset.name })
+  documentStore.setSelection([node.id])
+  return node.id
+}
+
+/** Opens the platform file dialog and places whatever the user picks. */
+export async function placeImageFromDialog(): Promise<void> {
+  const picked = await pickImageFile()
+  if (picked === null) return
+  await placeImage(picked.name, picked.mimeType, picked.bytes)
+}
+
 /** Whether an action can do anything right now; menus disable what cannot run. */
 export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
   switch (id) {
@@ -315,6 +374,11 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'tool.text':
       documentStore.setTool('text')
+      return
+    case 'file.place':
+      // Importing is asynchronous (dialog, decode, hashing); failures surface through the
+      // store's error path, which the canvas already renders.
+      void placeImageFromDialog()
       return
     case 'type.sizeUp':
       applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, 1) }), 'increase size')

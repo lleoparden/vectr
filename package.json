@@ -7,13 +7,17 @@
   "scripts": {
     "build": "vite build",
     "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
     "package:benchmark": "npm run build && electron-builder --dir",
-    "benchmark": "npm run package:benchmark && node scripts/run-benchmark.cjs",
-    "test": "node --test tests/package.test.cjs"
+    "benchmark": "npm run package:benchmark && node scripts/run-phase-one-benchmark.mjs",
+    "test": "node --test tests/bench.test.ts tests/package.test.cjs"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "canvaskit-wasm": "^0.42.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

@@ -4,14 +4,19 @@ const path = require('node:path')
 
 const isBenchmark = process.argv.includes('--benchmark')
 const outputArgument = process.argv.find((argument) => argument.startsWith('--output='))
+/** The benchmark must never hang a run: quit with a failure after five minutes. */
+const benchmarkWatchdogMs = 300_000
 let mainWindow
 
 async function getMemory() {
   const processes = await app.getAppMetrics()
-  return processes.reduce((total, process) => ({
-    privateBytes: total.privateBytes + process.memory.privateBytes * 1024,
-    workingSetBytes: total.workingSetBytes + process.memory.workingSetSize * 1024,
-  }), { privateBytes: 0, workingSetBytes: 0 })
+  return processes.reduce(
+    (total, process) => ({
+      privateBytes: total.privateBytes + process.memory.privateBytes * 1024,
+      workingSetBytes: total.workingSetBytes + process.memory.workingSetSize * 1024,
+    }),
+    { privateBytes: 0, workingSetBytes: 0 },
+  )
 }
 
 function createWindow() {
@@ -49,7 +54,7 @@ app.whenReady().then(() => {
     if (isBenchmark) {
       const outputPath = outputArgument
         ? path.resolve(outputArgument.slice('--output='.length))
-        : path.join(app.getPath('userData'), 'phase-zero-benchmark.json')
+        : path.join(app.getPath('userData'), 'phase-one-renderer-spike.json')
       fs.mkdirSync(path.dirname(outputPath), { recursive: true })
       fs.writeFileSync(outputPath, JSON.stringify(payload, null, 2))
       app.quit()
@@ -57,9 +62,18 @@ app.whenReady().then(() => {
     return payload
   })
 
+  if (isBenchmark) {
+    const watchdog = setTimeout(() => {
+      console.error(`Benchmark did not report within ${benchmarkWatchdogMs} ms.`)
+      app.exit(1)
+    }, benchmarkWatchdogMs)
+    watchdog.unref()
+  }
+
   createWindow()
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+

@@ -10,7 +10,7 @@
  * `tests/doc.test.ts` and `tests/editor.test.ts`.
  */
 
-import { createEllipse, createRect, findNode } from '../doc/document.ts'
+import { createEllipse, createRect, createText, findNode } from '../doc/document.ts'
 import { marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
@@ -116,6 +116,71 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
     `${store.getState().document.root.children.length} top-level again`,
   )
 
+  // Issue #16: text is a document object like any other — created by a command, edited by one
+  // command in one history entry, and validated like any other node.
+  const text = createText('Smoke Text', 60, 240, 'Hello\nVectr')
+  const textInsert = store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [text] },
+    'smoke text',
+  )
+  record(
+    'text created',
+    textInsert.ok,
+    textInsert.ok ? `${text.width.toFixed(0)}x${text.height.toFixed(0)} box, 2 lines` : textInsert.message,
+  )
+
+  const depthBeforeText = store.getState().undoDepth
+  const edited = store.dispatch({ type: 'setText', nodeId: text.id, text: 'Hello again' }, 'edit text')
+  const editedNode = findNode(store.getState().document, text.id)
+  record(
+    'text edit is one entry',
+    edited.ok &&
+      store.getState().undoDepth === depthBeforeText + 1 &&
+      editedNode !== null &&
+      editedNode.type === 'text' &&
+      editedNode.text === 'Hello again',
+    `depth ${depthBeforeText} -> ${store.getState().undoDepth}`,
+  )
+  store.undo()
+  const restored = findNode(store.getState().document, text.id)
+  record(
+    'text undo restores content',
+    restored !== null && restored.type === 'text' && restored.text === 'Hello\nVectr',
+    restored !== null && restored.type === 'text' ? JSON.stringify(restored.text) : 'missing',
+  )
+
+  const badSize = store.dispatch(
+    {
+      type: 'setTextStyle',
+      nodeId: text.id,
+      fontSize: -4,
+      fontFamily: 'Inter',
+      align: 'left',
+      lineHeight: 19,
+    },
+    'bad size',
+  )
+  record(
+    'invalid text style rejected',
+    !badSize.ok && store.getState().lastError?.code === 'non-finite',
+    store.getState().lastError?.code ?? 'none',
+  )
+  store.clearError()
+
+  // A family Vectr does not bundle is accepted and reported, not refused (slice 1's rule).
+  const missingFont = store.dispatch(
+    {
+      type: 'setTextStyle',
+      nodeId: text.id,
+      fontSize: 20,
+      fontFamily: 'Comic Sans MS',
+      align: 'center',
+      lineHeight: 24,
+    },
+    'missing font',
+  )
+  record('missing font is recorded, not refused', missingFont.ok, missingFont.ok ? 'set to Comic Sans MS' : missingFont.message)
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 
@@ -156,6 +221,12 @@ export async function runEditorStress(store: DocumentStore): Promise<SmokeReport
     name: 'stress frames',
     ok: p95 <= 33,
     detail: `${stats.shapes} shapes, ${stats.buckets} buckets, render p95 ${p95.toFixed(2)} ms over 60 frames, build ${stats.lastBuildMs.toFixed(1)} ms`,
+  })
+  // Issue #16: the unavailable family set earlier must be reported, not silently drawn.
+  steps.push({
+    name: 'font substitution reported',
+    ok: stats.substitutedFonts.includes('Comic Sans MS'),
+    detail: stats.substitutedFonts.join(', ') || 'none reported',
   })
   return { passed: steps.every((step) => step.ok), steps }
 }

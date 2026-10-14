@@ -8,15 +8,25 @@
  * mutation path, and no command stores a whole-document snapshot.
  */
 
-import { childIndex, findNode, insertNodes, removeNodes, replaceNode } from './document.ts'
+import {
+  childIndex,
+  estimateTextSize,
+  findNode,
+  insertNodes,
+  MAX_TEXT_LENGTH,
+  removeNodes,
+  replaceNode,
+} from './document.ts'
 import { validateDestination, validateRemovable, type ValidationCode } from './validate.ts'
 import {
   isGroup,
+  isText,
   type Document,
   type GroupNode,
   type LayerNode,
   type NodeId,
   type Style,
+  type TextAlign,
   type Transform,
 } from './types.ts'
 
@@ -27,6 +37,18 @@ export type Command =
   | { type: 'setStyle'; nodeId: NodeId; style: Style }
   | { type: 'setFlags'; nodeId: NodeId; locked: boolean; hidden: boolean }
   | { type: 'renameNode'; nodeId: NodeId; name: string }
+  /** Text content, with the measured box when the caller could measure (issue #16). */
+  | { type: 'setText'; nodeId: NodeId; text: string; width?: number; height?: number }
+  | {
+      type: 'setTextStyle'
+      nodeId: NodeId
+      fontSize: number
+      fontFamily: string
+      align: TextAlign
+      lineHeight: number
+      width?: number
+      height?: number
+    }
   | { type: 'moveNode'; nodeId: NodeId; parentId: NodeId; index: number }
   /**
    * Several commands that undo and redo as one step (issue #34). Its inverse is a batch
@@ -104,6 +126,22 @@ export function batchCommand(commands: Command[]): Command {
   const flat = commands.flatMap((command) => (command.type === 'batch' ? command.commands : [command]))
   if (flat.length === 0) throw new Error('A batch command needs at least one command.')
   return flat.length === 1 ? flat[0] : { type: 'batch', commands: flat }
+}
+
+const TEXT_ALIGNS = new Set<TextAlign>(['left', 'center', 'right'])
+
+/** Measured box when the caller could measure, otherwise the shared estimate. */
+function textBox(
+  text: string,
+  fontSize: number,
+  lineHeight: number,
+  width?: number,
+  height?: number,
+): { width: number; height: number } {
+  const estimate = estimateTextSize(text, fontSize, lineHeight)
+  const resolvedWidth = width !== undefined && Number.isFinite(width) && width > 0 ? width : estimate.width
+  const resolvedHeight = height !== undefined && Number.isFinite(height) && height > 0 ? height : estimate.height
+  return { width: resolvedWidth, height: resolvedHeight }
 }
 
 /**
@@ -227,6 +265,80 @@ export function applyCommand(document: Document, command: Command): CommandResul
         ok: true,
         document: withRevision(insertNodes(detached, command.parentId, target, [clone(node)])),
         inverse: { type: 'moveNode', nodeId: command.nodeId, parentId: previousParent, index: previousIndex },
+      }
+    }
+
+    case 'setText': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (!isText(node)) return rejected('invalid-parent', `Node ${command.nodeId} is not a text object.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (command.text.length > MAX_TEXT_LENGTH) {
+        return rejected('invalid-index', `Text is longer than ${MAX_TEXT_LENGTH} characters.`)
+      }
+      const box = textBox(command.text, node.fontSize, node.lineHeight, command.width, command.height)
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) =>
+            isText(current) ? { ...current, text: command.text, ...box } : current,
+          ),
+        ),
+        inverse: {
+          type: 'setText',
+          nodeId: command.nodeId,
+          text: node.text,
+          width: node.width,
+          height: node.height,
+        },
+      }
+    }
+
+    case 'setTextStyle': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (!isText(node)) return rejected('invalid-parent', `Node ${command.nodeId} is not a text object.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (!Number.isFinite(command.fontSize) || command.fontSize <= 0 || command.fontSize > 1000) {
+        return rejected('non-finite', `Font size ${command.fontSize} is out of range.`)
+      }
+      if (!Number.isFinite(command.lineHeight) || command.lineHeight <= 0) {
+        return rejected('non-finite', `Line height ${command.lineHeight} is out of range.`)
+      }
+      if (!TEXT_ALIGNS.has(command.align)) {
+        return rejected('invalid-index', `Alignment ${command.align} is not supported.`)
+      }
+      const fontFamily = command.fontFamily.trim()
+      if (fontFamily.length === 0 || fontFamily.length > 128) {
+        return rejected('invalid-index', 'A font family name must be between 1 and 128 characters.')
+      }
+      const box = textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height)
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) =>
+            isText(current)
+              ? {
+                  ...current,
+                  fontSize: command.fontSize,
+                  fontFamily,
+                  align: command.align,
+                  lineHeight: command.lineHeight,
+                  ...box,
+                }
+              : current,
+          ),
+        ),
+        inverse: {
+          type: 'setTextStyle',
+          nodeId: command.nodeId,
+          fontSize: node.fontSize,
+          fontFamily: node.fontFamily,
+          align: node.align,
+          lineHeight: node.lineHeight,
+          width: node.width,
+          height: node.height,
+        },
       }
     }
 

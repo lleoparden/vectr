@@ -55,14 +55,33 @@ export type EllipseNode = BaseNode & {
   style: Style
 }
 
+export type TextAlign = 'left' | 'center' | 'right'
+
+/** Plain text (issue #16). Advanced typography stays in Phase 3, as the plan states. */
+export type TextNode = BaseNode & {
+  type: 'text'
+  text: string
+  /** Measured box, so bounds, hit testing, and marquee selection work like any other leaf. */
+  width: number
+  height: number
+  fontSize: number
+  fontFamily: string
+  align: TextAlign
+  lineHeight: number
+  /** `style.fill` is the text color; stroke and opacity apply as they do to shapes. */
+  style: Style
+}
+
 export type GroupNode = BaseNode & {
   type: 'group'
   /** Paint order: the last child is drawn on top. */
   children: LayerNode[]
 }
 
-export type LayerNode = RectNode | EllipseNode | GroupNode
+export type LayerNode = RectNode | EllipseNode | TextNode | GroupNode
 export type ShapeNode = RectNode | EllipseNode
+/** Anything that occupies a rectangular box in the tree and can be transformed by itself. */
+export type LeafNode = RectNode | EllipseNode | TextNode
 
 export type Artboard = { id: string; name: string; width: number; height: number }
 
@@ -99,8 +118,17 @@ export function isGroup(node: LayerNode): node is GroupNode {
   return node.type === 'group'
 }
 
+/** Shapes and text: leaves with a box, a style, and no children. */
+export function isLeaf(node: LayerNode): node is LeafNode {
+  return node.type !== 'group'
+}
+
 export function isShape(node: LayerNode): node is ShapeNode {
   return node.type === 'rect' || node.type === 'ellipse'
+}
+
+export function isText(node: LayerNode): node is TextNode {
+  return node.type === 'text'
 }
 
 /** Local bounds of a node, ignoring its children and transform. */

@@ -413,8 +413,8 @@ including the layer list.
 
 ### Every place the shell diverges from Illustrator, and why
 
-1. **File, Type, and Effect menus are absent.** New/Open/Save are #19, Export React is
-   the compiler phase, text is #16, and Vectr has no effects. An empty menu or a
+1. **File and Effect menus are absent** (the Type menu arrived with issue #16). New/Open/Save
+   are #19, Export React is the compiler phase, and Vectr has no effects. An empty menu or a
    permanently greyed placeholder is worse than an honest omission.
 2. **The tool palette has three tools** (Selection, Rectangle, Ellipse). Illustrator
    has around forty. Only built tools appear; Pen, Type, Shape Builder, gradients, and
@@ -450,9 +450,10 @@ including the layer list.
     transaction kept only the first inverse of a gesture. The aggregate inverse described
     later in this file lets a multi-object Hide be one transaction and one undo step, and
     `src/app/actions.ts` uses it again.
-12. **Properties, Appearance, and Color are read-only.** Editing values needs style and
-    transform commands that do not exist; the panels say so instead of showing
-    controls that silently do nothing.
+12. **Properties and Appearance are read-only for geometry, stroke, and opacity.** Color now
+    applies a fill to shapes and text, and the Properties panel edits a text object's font size,
+    but position, size, stroke, and opacity still need resize and stroke commands. The panels
+    say so instead of showing controls that silently do nothing.
 13. **No rulers, guides, grids, snapping, artboard tool, or multiple artboards on
     screen.** Phase 2.
 14. **RESOLVED for object commands in issue #20** — the canvas and a layer row open Illustrator's
@@ -705,6 +706,95 @@ Illustrator: it groups objects from different layers into the topmost object's l
 - `electron . --smoke=stress`: 13/13 steps, including `group is one entry` (depth 4 → 5, two
   top-level layers become one), `group selected and nested`, and `undo ungroups in one step`;
   1,002 shapes in 16 buckets at render p95 1.20 ms over 60 frames.
+
+## 2026-10-14 — Plain text (issue #16)
+
+### Model
+
+`TextNode` is a fourth node kind beside rectangle, ellipse, and group:
+`{ type: 'text', text, width, height, fontSize, fontFamily, align, lineHeight, style }`.
+`style.fill` is the text color, so stroke and opacity behave as they do on a shape, and the
+node's **box is stored on the node** so bounds, hit testing, marquee selection, the Layers panel,
+and the scene builder need no special cases. Advanced typography — character and paragraph
+styles, text on a path, area text, multilingual layout — stays in Phase 3, as the phase plan
+says.
+
+### Measurement
+
+Two measurements exist and they are deliberately different:
+
+- `estimateTextSize()` in `src/doc/document.ts` is pure and renderer-free: the longest line
+  times 0.55 × the font size, and the line count times the leading. It is the default the
+  document layer can always compute, so a text node created without a renderer still has a
+  usable box.
+- The renderer measures with the real font by summing Skia's glyph advances
+  (`getGlyphIDs` + `getGlyphWidths`), which is exact for the face that will be drawn.
+
+The editor prefers the renderer's measurement because it makes the selection outline match the
+glyphs; `estimateTextSize` is the fallback when no renderer or font is available. Both paths
+are tested, and the two agree in kind (longer text is wider, more lines are taller).
+
+### Commands
+
+- `setText { nodeId, text, width?, height? }` replaces the content and the box. The optional box
+  is what the caller measured; when it is absent or invalid the command uses the estimate, so
+  the box can never disagree with the content in a way that breaks selection. The inverse
+  restores the previous text *and* the previous box exactly.
+- `setTextStyle { nodeId, fontSize, fontFamily, align, lineHeight, width?, height? }` validates
+  size and leading as finite, positive, and bounded (≤ 1000), refuses an unknown alignment, and
+  rejects an empty or over-long family name. A locked text node refuses both, through the
+  `locked` code from #20.
+- Content is capped at `MAX_TEXT_LENGTH` (100 000 characters) so a paste cannot grow the
+  document without bound; the same limit is enforced by `validateDocument` at document
+  boundaries.
+- One text edit is one command inside whatever transaction the caller uses, so an edit is one
+  undo step and an edit inside a multi-object gesture folds into the aggregate entry.
+
+### Missing-font behavior (recorded in slice 1, implemented here)
+
+Vectr bundles Inter and CanvasKit has no system font manager, so:
+
+- Requesting a family Vectr does not have is **accepted, not refused**: the text is drawn with
+  Inter.
+- The substitution is **reported** three ways: `[vectr-font] "X" is not available; drawing with
+  Inter.` on the console, `RenderStats.substitutedFonts`, which the canvas shows as a notice,
+  and a warning row in the Properties panel for the selected text object.
+- The packaged smoke run asserts the report end to end (`font substitution reported`).
+
+### Editing
+
+- The Type tool (`T`) places a text object where the canvas is clicked and starts editing it,
+  which is what Illustrator's Type tool does.
+- Double-clicking a text object with the Selection tool edits it, as in Illustrator.
+- The editor is a real labelled `<textarea>` positioned over the object at its own size,
+  leading, color, and alignment, so what is typed is what will be drawn, and the whole flow
+  works from the keyboard. Escape commits (Illustrator's Escape ends text editing), Ctrl+Enter
+  commits, clicking away commits, and Tab does not leave the field.
+- **An empty text object is discarded** rather than left invisible in the document. Illustrator
+  keeps the empty object; this is a deliberate divergence, recorded here.
+- Text participates in everything else already: drag to move, marquee and shift-click
+  selection, grouping, arranging, hiding, locking, and the Layers panel.
+
+### Type commands and chords
+
+The Type menu exists now (it was an omitted menu), in Illustrator's menu order, with
+Horizontal Align Left / Center / Right (Ctrl+Shift+L/C/R) and Increase / Decrease Size
+(Ctrl+Shift+> / <). Size steps through Illustrator's size list (6…144) and moves by 20 % past
+either end. The commands grey out when no text is selected, as Illustrator's do. The Properties
+panel also edits the font size directly, and the Color panel's swatches now apply a fill to
+shapes *and* text, which closes the "applying color is not built" note from #28.
+
+### Evidence
+
+- 97 unit tests, 9 new here: defaults and estimated box, estimate monotonicity, `setText`
+  content/box/inverse, refusals (wrong kind, missing, locked, oversized), `setTextStyle`
+  validation and inverse, document validation of corrupt metrics, hit testing and marquee and
+  scene order for text, one-undo-step editing and size/alignment actions, and the size-stepping
+  table.
+- `electron . --smoke=stress`: **21/21** steps, including `text created`, `text edit is one
+  entry`, `text undo restores content`, `invalid text style rejected`,
+  `missing font is recorded, not refused`, and (in the stress phase) `font substitution
+  reported`; 1,003 shapes in 16 buckets at render p95 1.20 ms over 60 frames.
 
 ## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
 

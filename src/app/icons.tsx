@@ -56,6 +56,16 @@ export function IconEllipse(props: IconProps) {
   )
 }
 
+/** Type tool: a serif-free capital T on the 16px grid. */
+export function IconType(props: IconProps) {
+  return (
+    <Icon {...props} strokeWidth={1.6}>
+      <path d="M3 4.2 H13" />
+      <path d="M8 4.2 V12.4" />
+    </Icon>
+  )
+}
+
 export function IconEye(props: IconProps) {
   return (
     <Icon {...props}>

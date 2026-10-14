@@ -33,10 +33,18 @@ export type ShortcutSpec = {
 }
 
 export const SHORTCUTS: readonly ShortcutSpec[] = [
-  // Tools (Illustrator: V = Selection, M = Rectangle, L = Ellipse).
+  // Tools (Illustrator: V = Selection, M = Rectangle, L = Ellipse, T = Type).
   { id: 'tool.select', chord: { key: 'v' }, illustratorDefault: true },
   { id: 'tool.rect', chord: { key: 'm' }, illustratorDefault: true },
   { id: 'tool.ellipse', chord: { key: 'l' }, illustratorDefault: true },
+  { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
+
+  // Type (Illustrator's size and alignment chords).
+  { id: 'type.sizeUp', chord: { key: '>', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'type.sizeDown', chord: { key: '<', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'type.alignLeft', chord: { key: 'l', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'type.alignCenter', chord: { key: 'c', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'type.alignRight', chord: { key: 'r', ctrl: true, shift: true }, illustratorDefault: true },
 
   // Edit.
   { id: 'edit.undo', chord: { key: 'z', ctrl: true }, illustratorDefault: true },

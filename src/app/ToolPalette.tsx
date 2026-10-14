@@ -8,17 +8,23 @@
  */
 
 import { runEditorAction, type EditorActionId } from './actions.ts'
-import { IconEllipse, IconRect, IconSelect } from './icons.tsx'
+import { IconEllipse, IconRect, IconSelect, IconType } from './icons.tsx'
 import { shortcutLabel } from './shortcuts.ts'
 import { PALETTE_WIDTH, TOOL_BUTTON_SIZE } from './theme.ts'
 import { useEditorState } from '../state/useEditorState.ts'
 
-type PaletteTool = { action: EditorActionId; label: string; Icon: typeof IconSelect; tool: 'select' | 'rect' | 'ellipse' }
+type PaletteTool = {
+  action: EditorActionId
+  label: string
+  Icon: typeof IconSelect
+  tool: 'select' | 'rect' | 'ellipse' | 'text'
+}
 
 export const PALETTE_TOOLS: PaletteTool[] = [
   { action: 'tool.select', label: 'Selection Tool', Icon: IconSelect, tool: 'select' },
   { action: 'tool.rect', label: 'Rectangle Tool', Icon: IconRect, tool: 'rect' },
   { action: 'tool.ellipse', label: 'Ellipse Tool', Icon: IconEllipse, tool: 'ellipse' },
+  { action: 'tool.text', label: 'Type Tool', Icon: IconType, tool: 'text' },
 ]
 
 export function ToolPalette() {

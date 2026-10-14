@@ -11,7 +11,7 @@
  */
 
 import { findNode, paintOrder } from '../doc/document.ts'
-import type { LayerNode, NodeId } from '../doc/types.ts'
+import { isText, type LayerNode, type NodeId, type TextAlign, type TextNode } from '../doc/types.ts'
 import { documentStore, type EditorState } from '../state/documentStore.ts'
 import { workspaceStore, type PanelId } from '../state/workspaceStore.ts'
 import {
@@ -31,6 +31,12 @@ export const ACTION_IDS = [
   'tool.select',
   'tool.rect',
   'tool.ellipse',
+  'tool.text',
+  'type.sizeUp',
+  'type.sizeDown',
+  'type.alignLeft',
+  'type.alignCenter',
+  'type.alignRight',
   'edit.undo',
   'edit.redo',
   'edit.clear',
@@ -63,6 +69,12 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.select': 'Selection Tool',
   'tool.rect': 'Rectangle Tool',
   'tool.ellipse': 'Ellipse Tool',
+  'tool.text': 'Type Tool',
+  'type.sizeUp': 'Increase Size',
+  'type.sizeDown': 'Decrease Size',
+  'type.alignLeft': 'Horizontal Align Left',
+  'type.alignCenter': 'Horizontal Align Center',
+  'type.alignRight': 'Horizontal Align Right',
   'edit.undo': 'Undo',
   'edit.redo': 'Redo',
   'edit.clear': 'Clear',
@@ -162,6 +174,55 @@ function selectedIds(): NodeId[] {
   return documentStore.getState().selection
 }
 
+/** Illustrator's font-size list, so Increase/Decrease Size steps the way its menu does. */
+export const FONT_SIZE_STEPS = [6, 8, 9, 10, 11, 12, 14, 16, 18, 21, 24, 30, 36, 48, 60, 72, 96, 144]
+
+export function nextFontSize(current: number, direction: 1 | -1): number {
+  const epsilon = 1e-6
+  if (direction === 1) {
+    return FONT_SIZE_STEPS.find((step) => step > current + epsilon) ?? Math.min(1000, current * 1.2)
+  }
+  const descending = [...FONT_SIZE_STEPS].reverse()
+  return descending.find((step) => step < current - epsilon) ?? Math.max(1, current / 1.2)
+}
+
+/** The text nodes in the selection. */
+function selectedTextNodes() {
+  const document = documentStore.getState().document
+  return documentStore
+    .getState()
+    .selection.map((id) => findNode(document, id))
+    .filter((node): node is TextNode => node !== null && isText(node))
+}
+
+/**
+ * Applies a text-style change to every selected text node in one transaction, so a size or
+ * alignment change is one history entry no matter how many text objects are selected.
+ */
+function applyTextStyle(patch: (node: TextNode) => { fontSize: number; fontFamily: string; align: TextAlign; lineHeight: number }, label: string) {
+  const targets = selectedTextNodes()
+  if (targets.length === 0) return
+  documentStore.beginTransaction(label)
+  let changed = false
+  for (const node of targets) {
+    const next = patch(node)
+    if (next.fontSize === node.fontSize && next.align === node.align) continue
+    const result = documentStore.dispatch({
+      type: 'setTextStyle',
+      nodeId: node.id,
+      fontSize: next.fontSize,
+      fontFamily: next.fontFamily,
+      align: next.align,
+      lineHeight: next.lineHeight,
+      width: node.width,
+      height: node.height,
+    })
+    if (result.ok) changed = true
+  }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
+}
+
 /**
  * Runs a planned gesture: every step goes through `dispatch` inside one transaction, so the
  * whole gesture is one history entry (the aggregate inverse from #34). A step that fails
@@ -216,6 +277,16 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return planGroup(editor.document, editor.selection) !== null
     case 'object.ungroup':
       return planUngroup(editor.document, editor.selection) !== null
+    case 'type.sizeUp':
+    case 'type.sizeDown':
+    case 'type.alignLeft':
+    case 'type.alignCenter':
+    case 'type.alignRight':
+      // Illustrator greys the Type commands out until text is selected.
+      return editor.selection.some((id) => {
+        const node = findNode(editor.document, id)
+        return node !== null && isText(node)
+      })
     case 'object.arrangeFront':
     case 'object.arrangeForward':
     case 'object.arrangeBackward':
@@ -241,6 +312,24 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'tool.ellipse':
       documentStore.setTool('ellipse')
+      return
+    case 'tool.text':
+      documentStore.setTool('text')
+      return
+    case 'type.sizeUp':
+      applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, 1) }), 'increase size')
+      return
+    case 'type.sizeDown':
+      applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, -1) }), 'decrease size')
+      return
+    case 'type.alignLeft':
+      applyTextStyle((node) => ({ ...node, align: 'left' }), 'align left')
+      return
+    case 'type.alignCenter':
+      applyTextStyle((node) => ({ ...node, align: 'center' }), 'align center')
+      return
+    case 'type.alignRight':
+      applyTextStyle((node) => ({ ...node, align: 'right' }), 'align right')
       return
     case 'edit.undo':
       documentStore.undo()

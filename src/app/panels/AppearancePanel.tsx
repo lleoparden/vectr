@@ -7,7 +7,7 @@
  */
 
 import { findNode } from '../../doc/document.ts'
-import { isShape } from '../../doc/types.ts'
+import { isLeaf, isText } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 
 function Swatch({ color }: { color: string }) {
@@ -25,10 +25,10 @@ export function AppearancePanel() {
   const id = state.selection[0]
   const node = id === undefined ? null : findNode(state.document, id)
 
-  if (node === null || !isShape(node)) {
+  if (node === null || !isLeaf(node)) {
     return (
       <p className="px-3 py-4 text-ui-xs text-ink-faint">
-        Select a shape to inspect its fill, stroke, and opacity. Groups do not carry appearance yet.
+        Select a shape or a text object to inspect its fill, stroke, and opacity. Groups do not carry appearance yet.
       </p>
     )
   }
@@ -36,7 +36,7 @@ export function AppearancePanel() {
   return (
     <div className="min-h-0 flex-1 overflow-auto py-1">
       <div className="flex items-center justify-between gap-3 px-2 py-[3px]">
-        <span className="text-ui-xs text-ink-faint">Fill</span>
+        <span className="text-ui-xs text-ink-faint">{isText(node) ? 'Text color' : 'Fill'}</span>
         <span className="flex items-center gap-2 text-ui-xs text-ink-muted">
           <Swatch color={node.style.fill} />
           {node.style.fill}
@@ -60,7 +60,7 @@ export function AppearancePanel() {
         <span className="text-ui-xs text-ink-muted">{Math.round(node.style.opacity * 100)}%</span>
       </div>
       <p className="border-t border-hairline px-2 pt-2 text-ui-xs text-ink-faint">
-        Editing appearance arrives with the style commands in a later slice.
+        Editing stroke and opacity arrives with a later slice; the color swatches apply a fill.
       </p>
     </div>
   )

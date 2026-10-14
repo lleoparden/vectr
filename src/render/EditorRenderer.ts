@@ -19,16 +19,21 @@
  */
 
 import CanvasKitInit, {
+  type Canvas,
   type CanvasKit,
   type Color,
+  type Font,
   type GrDirectContext,
   type Paint,
   type Path,
   type SkPicture,
   type Surface,
+  type Typeface,
 } from 'canvaskit-wasm'
 import wasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
+import fontUrl from '../assets/fonts/Inter-Variable.ttf?url'
 import type { NodeId } from '../doc/types.ts'
+import { DEFAULT_FONT_FAMILY } from '../doc/document.ts'
 import type { Scene, SceneShape } from './scene.ts'
 
 export type EditorRendererInfo = {
@@ -43,6 +48,11 @@ export type RenderStats = {
   lastRenderMs: number
   p95RenderMs: number
   lastBuildMs: number
+  /**
+   * Font families a text node asked for that Vectr does not have, which were drawn with the
+   * bundled face instead (issue #16's "report the substitution" rule).
+   */
+  substitutedFonts: string[]
 }
 
 type Bucket = {
@@ -64,6 +74,10 @@ export class EditorRenderer {
   private readonly paintCache = new Map<string, Paint>()
   private readonly colorCache = new Map<string, Color>()
   private readonly ownedPaths: Path[] = []
+  /** One Skia font per family/size pair, bounded by the distinct sizes in the document. */
+  private readonly fonts = new Map<string, Font>()
+  private readonly substituted = new Set<string>()
+  private typeface: Typeface | null = null
   private buckets: Bucket[] = []
   private shapes = 0
   private viewport = { zoom: 1, panX: 0, panY: 0 }
@@ -111,11 +125,50 @@ export class EditorRenderer {
       surface = kit.MakeSurface(canvas.width, canvas.height)
       if (surface === null) throw new Error('CanvasKit could not create a WebGL or CPU surface.')
     }
-    return new EditorRenderer(kit, surface, context, webglHandle, {
+    const renderer = new EditorRenderer(kit, surface, context, webglHandle, {
       backend: context === null ? 'cpu-fallback' : 'webgl',
       webglAvailable: context !== null,
       wasmBytes,
     })
+    await renderer.loadFont()
+    return renderer
+  }
+
+  /**
+   * Loads the bundled face (issue #16). CanvasKit exposes no system font manager, so text is
+   * drawn with Inter — the face slice 1 chose and licensed — and any other requested family is
+   * reported as a substitution rather than failing.
+   */
+  private async loadFont(): Promise<void> {
+    try {
+      const response = await fetch(new URL(fontUrl, document.baseURI).href)
+      if (!response.ok) {
+        console.warn(`[vectr-font] Inter could not be read (${response.status}); text will not be drawn.`)
+        return
+      }
+      const buffer = await response.arrayBuffer()
+      this.typeface = this.kit.Typeface.MakeTypefaceFromData(buffer)
+      if (this.typeface === null) console.warn('[vectr-font] Inter could not be parsed; text will not be drawn.')
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause)
+      console.warn(`[vectr-font] Inter could not be loaded: ${message}`)
+    }
+  }
+
+  /** The font for a family/size pair, substituting the bundled face and recording it. */
+  private fontFor(family: string, size: number): Font | null {
+    if (this.typeface === null) return null
+    const requested = family.trim() === '' ? DEFAULT_FONT_FAMILY : family
+    if (requested.toLowerCase() !== DEFAULT_FONT_FAMILY.toLowerCase() && !this.substituted.has(requested)) {
+      this.substituted.add(requested)
+      console.warn(`[vectr-font] "${requested}" is not available; drawing with ${DEFAULT_FONT_FAMILY}.`)
+    }
+    const key = `${requested.toLowerCase()}|${size}`
+    const cached = this.fonts.get(key)
+    if (cached !== undefined) return cached
+    const font = new this.kit.Font(this.typeface, size)
+    this.fonts.set(key, font)
+    return font
   }
 
   /**
@@ -178,6 +231,28 @@ export class EditorRenderer {
     return performance.now() - started
   }
 
+  /**
+   * Measured box for a text node (issue #16). The editor uses this so selection bounds match
+   * the glyphs that are actually drawn; it returns null when no font is loaded, and callers
+   * fall back to the shared estimate.
+   */
+  measureTextBox(
+    family: string,
+    fontSize: number,
+    lineHeight: number,
+    text: string,
+  ): { width: number; height: number } | null {
+    const font = this.fontFor(family, fontSize)
+    if (font === null) return null
+    const lines = text.split('\n')
+    let width = 0
+    for (const line of lines) {
+      if (line.length === 0) continue
+      width = Math.max(width, this.measureLine(font, line))
+    }
+    return { width: Math.max(1, width), height: Math.max(1, lines.length) * lineHeight }
+  }
+
   /** Draws one frame and returns its submission time. */
   render(
     viewport: { zoom: number; panX: number; panY: number },
@@ -231,6 +306,7 @@ export class EditorRenderer {
       lastRenderMs: this.lastRenderMs,
       p95RenderMs: sorted[index] ?? 0,
       lastBuildMs: this.lastBuildMs,
+      substitutedFonts: [...this.substituted],
     }
   }
 
@@ -243,9 +319,13 @@ export class EditorRenderer {
       recording.save()
       recording.translate(shape.x, shape.y)
       if (shape.scaleX !== 1 || shape.scaleY !== 1) recording.scale(shape.scaleX, shape.scaleY)
-      recording.drawPath(path, this.paintFor('fill', shape.fill, 0, shape.opacity))
-      if (shape.stroke !== null && shape.stroke.width > 0) {
-        recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
+      if (shape.kind === 'text') {
+        this.drawText(recording, shape)
+      } else {
+        recording.drawPath(path, this.paintFor('fill', shape.fill, 0, shape.opacity))
+        if (shape.stroke !== null && shape.stroke.width > 0) {
+          recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
+        }
       }
       recording.restore()
     }
@@ -254,14 +334,47 @@ export class EditorRenderer {
     recorder.delete()
   }
 
+  /**
+   * Draws a text node line by line (issue #16): the box is the node's measured width, the
+   * leading is its line height, and alignment places each line inside the box.
+   */
+  private drawText(recording: Canvas, shape: SceneShape): void {
+    const text = shape.text
+    if (text === null || text.content.length === 0) return
+    const font = this.fontFor(text.fontFamily, text.fontSize)
+    if (font === null) return
+    const paint = this.paintFor('fill', shape.fill, 0, shape.opacity)
+    // Skia's ascent is negative above the baseline, so `-ascent` is the baseline offset.
+    const baseline = -font.getMetrics().ascent
+    const lines = text.content.split('\n')
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index]
+      if (line.length === 0) continue
+      const width = this.measureLine(font, line)
+      const left =
+        text.align === 'center' ? (shape.width - width) / 2 : text.align === 'right' ? shape.width - width : 0
+      recording.drawText(line, left, index * text.lineHeight + baseline, paint, font)
+    }
+  }
+
+  /** Width of one line, from the font's own glyph advances. */
+  private measureLine(font: Font, line: string): number {
+    const glyphs = font.getGlyphIDs(line)
+    const widths = font.getGlyphWidths(glyphs)
+    let total = 0
+    for (let index = 0; index < widths.length; index += 1) total += widths[index]
+    return total
+  }
+
   /** Rounded corners are modelled but not drawn yet; see the file header. */
   private makePath(shape: SceneShape): Path {
     const builder = new this.kit.PathBuilder()
     if (shape.kind === 'ellipse') {
       builder.addOval(this.kit.XYWHRect(0, 0, shape.width, shape.height))
-    } else {
+    } else if (shape.kind === 'rect') {
       builder.addRect(this.kit.XYWHRect(0, 0, shape.width, shape.height))
     }
+    // Text draws glyphs instead of a path; an empty path keeps the per-shape array aligned.
     const path = builder.detach()
     builder.delete()
     this.ownedPaths.push(path)
@@ -329,6 +442,10 @@ export class EditorRenderer {
     }
     this.buckets = []
     this.ownedPaths.length = 0
+    for (const font of this.fonts.values()) font.delete()
+    this.fonts.clear()
+    this.typeface?.delete()
+    this.typeface = null
     for (const paint of this.paintCache.values()) paint.delete()
     this.paintCache.clear()
     this.colorCache.clear()
@@ -346,7 +463,13 @@ export class EditorRenderer {
 function signatureOf(shapes: SceneShape[]): string {
   let signature = ''
   for (const shape of shapes) {
-    signature += `${shape.id},${shape.x},${shape.y},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity};`
+    signature += `${shape.id},${shape.x},${shape.y},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity}`
+    // Text content and metrics affect pixels exactly as geometry does, so they belong in the
+    // signature: an edited string must re-record its bucket.
+    if (shape.text !== null) {
+      signature += `,${shape.text.content},${shape.text.fontSize},${shape.text.fontFamily},${shape.text.align},${shape.text.lineHeight}`
+    }
+    signature += ';'
   }
   return signature
 }

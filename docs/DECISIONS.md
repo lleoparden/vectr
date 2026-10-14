@@ -322,3 +322,29 @@ merge commits (slice 1 evidence, slice 1b optimization, and the workflow record)
   retained as an open item. It is not acceptance evidence; the recorded five-run
   spike evidence replaces it.
 
+## 2026-10-14 — UI direction: a modern Illustrator
+
+- Owner direction: Vectr's interface must be as close to Illustrator as is
+  practical, so Illustrator users are productive without relearning anything, while
+  staying visibly Vectr's own product — a modern-looking Illustrator.
+- Concretely: a menu bar following Illustrator's menu structure; a left tool palette
+  with Illustrator's tool groupings and compatible single-key shortcuts; the canvas
+  in the middle, gaining rulers, guides, and grids when Phase 2 lands; right-docked,
+  collapsible, tabbed panels (Properties, Layers, Appearance, Color, Swatches,
+  Align, Transform); and the Layers panel as the document's spine, with per-row
+  visibility and lock toggles as Illustrator has them.
+- Panel and tool terminology, selection and transform conventions, and default
+  keyboard shortcuts follow Illustrator. This is a standing requirement for every UI
+  slice, not a one-off polish pass.
+- Deliberate divergence is allowed — a better interaction, a dependency we do not
+  have, or an accessibility need — but each divergence is recorded here with its
+  reason, so the product cannot drift from the familiar model by accident.
+- Not allowed, ever: Adobe or VectorCraft icons, assets, screenshots, branding, or
+  copied source. Vectr's icons, type, colors, and copy are original; the modern
+  visual execution is the identity.
+- Consequence for current work: the Phase 1 slice 2 shell (a top toolbar and a plain
+  layer list) does **not** yet meet this rule. Issue #20 owns the layer tree and
+  panel layout, and a UI-alignment slice owns the menu bar, tool palette, and docked
+  panels before Phase 2 tools arrive. `docs/PROGRESS.md` records the gap as a known
+  issue.
+

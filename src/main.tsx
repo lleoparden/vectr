@@ -9,6 +9,8 @@ type ScenarioResult = {
   interactionMs: number
   saveReopenMs: number
   heapBytes?: number
+  privateBytes: number
+  workingSetBytes: number
 }
 
 const fixtureKinds: FixtureKind[] = ['empty', 'representative', 'stress']
@@ -54,8 +56,9 @@ function App() {
     setLayers(JSON.parse(snapshot) as Layer[])
     await afterPaint()
     const saveReopenMs = performance.now() - saveReopenStarted
+    const memory = await window.vectrBenchmark.getMemory()
 
-    return { fixture: kind, renderMs, interactionMs, saveReopenMs, heapBytes: heapBytes() }
+    return { fixture: kind, renderMs, interactionMs, saveReopenMs, heapBytes: heapBytes(), ...memory }
   }
 
   async function runAll() {
@@ -66,8 +69,10 @@ function App() {
   }
 
   useEffect(() => {
-    window.vectrBenchmark.reportReady()
-    window.vectrBenchmark.onRun(() => void runAll())
+    if (new URLSearchParams(window.location.search).has('benchmark')) {
+      const timer = window.setTimeout(() => void runAll(), 1_000)
+      return () => window.clearTimeout(timer)
+    }
   }, [])
 
   return (

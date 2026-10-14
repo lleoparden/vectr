@@ -79,16 +79,17 @@ Platform coverage begins `Windows planned / macOS planned / Linux planned`.
 | UI-01 | Illustrator-familiar workspace: menus, tools, panels, contextual controls | planned | not applicable | Core workflows are discoverable without copying Adobe/VectorCraft branding. |
 | UI-02 | Shortcuts, command palette, workspaces, preferences, and localization | planned | not applicable | Keyboard paths and persisted preferences are documented and testable. |
 | A11Y-01 | Keyboard access, focus, contrast, screen-reader labels, and input devices | planned | not applicable | Core workflows have an accessible path and known gaps are recorded. |
-| PERF-01 | Large-document rendering, memory budgets, idle behavior, and recovery | planned | not applicable | Benchmark evidence meets approved budgets on named hardware. |
+| PERF-01 | Large-document rendering, memory budgets, idle behavior, and recovery | designed | not applicable | Phase 0 records synthetic Electron/SVG fixture evidence only; Phase 1 must validate CanvasKit/Skia with total-process memory, stress interaction, repeated unload, and real document lifecycle fixtures. |
 | AUTO-01 | Account-scoped MCP and audit trail using normal document commands | deferred | not applicable | Deferred until after the core application and compiler. |
 | COMP-01 | One readable React component per layer with stable names | deferred | supported | Deferred until core parity gate; supported layers export deterministic TSX. |
 | COMP-02 | Tailwind mapping, inline SVG, assets, and fidelity diagnostics | deferred | SVG adjunct | Deferred until core parity gate; unsupported mappings are explicit. |
 
 ## Prioritization and updates
 
-The first implementation slice is `DOC-01` through `DOC-03`, `CAN-01`,
-`SEL-01`, `PATH-01`, and `PATH-02`. It is not approved to start until its
-feature plan is written and approved.
+The first implementation slice is `PERF-01`, followed by `DOC-01` through
+`DOC-03`, `CAN-01`, `SEL-01`, `SEL-03`, `PATH-01`, `TYPE-01`, and `IMAGE-01`.
+Its approved Phase 1 plan is in `docs/PLAN.md`; each capability moves to
+`building` only on its fresh implementation branch.
 
 Every catalog change must update this file and `docs/PROGRESS.md` before
 handoff. Add: evidence link/capture, implementation plan or issue, status,

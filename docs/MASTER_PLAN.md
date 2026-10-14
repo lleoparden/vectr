@@ -24,21 +24,23 @@ it is not the current specification. The current owner direction overrides it:
 - Mockup import, AI assistant, shared library, analytics, cloud services, and
   IDE-like code editing are later features. The core architecture must leave
   extension points for them without prematurely implementing them.
-- The stack is deliberately undecided and will change from the proposal's
-  web/Paper.js/Node direction.
+- The stack is Electron + React + TypeScript + Tailwind + Vite. This supersedes
+  the proposal's web/Paper.js/Node direction.
 
-## Approved Phase 0 direction, pending benchmark
+## Completed Phase 0 direction
 
-Vectr will provisionally use Electron with React and TypeScript. Electron is a
+Vectr uses Electron with React and TypeScript. Electron is a
 desktop shell, not the document model or a reason to put drawing state in the
 DOM. Windows is the first fully tested release target; macOS and Linux must
 build and launch early and are not declared fully supported before their own
 platform testing.
 
-SVG is the initial renderer candidate for the first editing slice. A bounded
-benchmark using representative and stress documents must measure interaction,
-visual correctness, and memory before Electron or SVG is locked for production.
-A GPU renderer is introduced only if this evidence makes it necessary.
+The synthetic SVG harness rejected full-document SVG as the production
+renderer candidate. It measured fixture load, selection, and regenerated-data
+serialization only; it did not validate edited-document save/reopen, undo/redo,
+or close/reopen recovery. CanvasKit/Skia is the next renderer candidate and
+must pass the Phase 1 spike before editor implementation proceeds. A Tauri
+comparison remains optional, not a desktop-shell gate.
 
 Memory efficiency is a non-negotiable product requirement. The editor must
 avoid unnecessary retained document copies, renderer allocations, background
@@ -112,8 +114,9 @@ without those updates is not ready for handoff.
 5. Define performance budgets, offline expectations, crash recovery, and a
    feature-completion standard.
 
-**Exit:** benchmark-confirmed desktop/rendering decision, parity catalog v1,
-and a scoped MVP.
+**Exit:** desktop baseline decision, qualified renderer evidence, parity catalog
+v1, and a scoped MVP. The Phase 1 renderer spike is the production-renderer
+gate.
 
 ## Phase 1 — Document and editor foundation
 

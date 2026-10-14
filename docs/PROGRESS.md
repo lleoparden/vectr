@@ -34,20 +34,31 @@
   `main`; Phase 0 itself remains open until the blocked benchmark produces
   evidence for the Electron/SVG decision.
 - Benchmark harness started on `chore/renderer-memory-benchmark`: source test
-  and UI production build pass. Packaged Windows execution is blocked because
-  Electron Builder stalled during runtime packaging without producing an
-  executable or result artifacts.
+  and UI production build pass. An initial Electron Builder runtime-packaging
+  stall was repaired before the packaged Windows evidence run.
+- Packaging was repaired and five packaged Windows synthetic-renderer runs
+  completed. They show full-document SVG misses the stress interaction target;
+  they do not verify real edited-document save/reopen, undo/redo, or recovery.
+- Tauri comparison setup reached Rust, WebView2, Vite, and Cargo dependency
+  compilation. It cannot yet produce an executable because the benchmark
+  machine has no MSVC `link.exe`; two approved Build Tools installation attempts
+  exited without registering Build Tools or installing that linker.
+- Phase 0 platform decision completed after independent review: Electron +
+  React + TypeScript + Tailwind + Vite is the development baseline; the
+  full-document SVG renderer is rejected. CanvasKit/Skia is the next renderer
+  candidate and must pass a bounded measured spike before editor work.
 
 ## Next
 
-- Resolve the Windows packaging stall, run the benchmark, and approve the
-  Electron/SVG decision from evidence.
-- Write and approve the first feature plan from the parity catalog.
+- Execute Phase 1 Slice 1: CanvasKit/Skia renderer spike and its memory/lifecycle
+  acceptance evidence.
 
 ## Known issues
 
-- No production editor code, packaged benchmark executable, measured renderer
-  result, or GitHub labels exist yet.
+- No production editor code or GitHub labels exist yet.
 - Graphify is installed, but no knowledge graph exists until source code is added.
-- The Electron runtime package benchmark cannot run until the packaging/download
-  stall is resolved; no memory result or Electron decision has been claimed.
+- Full-document SVG misses the stress interaction target. CanvasKit/Skia is
+  unproven until its renderer spike passes the same workload.
+- The current Windows benchmark machine lacks the MSVC linker required to
+  compile Tauri. Its comparison is deferred and non-blocking; the temporary
+  harness and dependencies are outside the repo.

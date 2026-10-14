@@ -5,15 +5,16 @@ type BenchmarkResult = {
     interactionMs: number
     saveReopenMs: number
     heapBytes?: number
+    privateBytes: number
+    workingSetBytes: number
   }>
 }
 
 declare global {
   interface Window {
     vectrBenchmark: {
-      reportReady: () => void
       reportResult: (result: BenchmarkResult) => Promise<unknown>
-      onRun: (callback: () => void) => void
+      getMemory: () => Promise<{ privateBytes: number; workingSetBytes: number }>
     }
   }
 }

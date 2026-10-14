@@ -10,4 +10,5 @@ Thumbs.db
 # Generated local build and benchmark artifacts
 node_modules/
 dist/
+release/
 .ecc/benchmarks/*.log

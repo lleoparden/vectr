@@ -8,10 +8,18 @@ remains the short operational checklist for the active phase.
 - [x] Approve Electron + React + TypeScript as the proposed desktop direction:
   Windows is the first fully tested release; macOS and Linux must build and
   launch early, with full support claimed only after platform testing.
-- [ ] Run a bounded renderer and memory benchmark before locking Electron and
-  SVG rendering for production. Compare realistic and stress documents;
-  measure all application processes rather than JavaScript heap alone; avoid a
-  GPU renderer unless the evidence requires one.
+- [x] Run the packaged Electron + SVG renderer/memory benchmark. Five Windows
+  runs are recorded in `.ecc/benchmarks/phase-zero/`; SVG fails the stress
+  interaction target and is not a production renderer candidate.
+- [x] Select Electron + React + TypeScript + Tailwind + Vite as the desktop
+  development baseline. The evidence rejects full-document SVG, not Electron;
+  Electron's 3.90 MiB empty-memory overrun is not enough to justify changing
+  shells without an equivalent runtime comparison.
+- [ ] Run the prepared Tauri comparison when its Windows toolchain is available.
+  It is retained as non-blocking evidence: switch only for a repeatable,
+  equivalent-workload memory advantage of about 20% or more.
+- [ ] Run a bounded CanvasKit/Skia renderer spike before editor features. It
+  must use the frozen fixtures and retain the 33 ms stress interaction target.
 - [x] Build parity catalog v1 and define its feature-completion standard in
   `docs/PARITY_CATALOG.md`.
 - [x] Approve a versioned, renderer-independent document model: stable layer
@@ -27,7 +35,7 @@ remains the short operational checklist for the active phase.
   comparisons, desktop interaction, performance/memory budgets, and future
   account-permission coverage.
 
-### Approved execution plan — blocked at packaging
+### Completed Phase 0 platform decision
 
 1. **Benchmark specification.** Define three frozen, versioned fixtures
    (empty, representative, stress), the test machine/OS, measured metrics,
@@ -43,26 +51,63 @@ remains the short operational checklist for the active phase.
    where available, p95 interaction time, correctness outcomes, and raw traces
    across five independent runs; record macOS/Linux build-and-launch evidence
    when those hosts are available.
-4. **Decision review.** Compare results with the approved budgets. Retain
-   Electron/SVG only if all required checks pass; otherwise run the same harness
-   on Tauri before a replacement decision. Record the outcome and limitations.
+4. **Decision review.** The independent review selected Electron as the
+   baseline and rejected full-document SVG. The future Tauri comparison is
+   non-blocking and changes the shell only with a repeatable, material runtime
+   memory advantage under the same workload.
 5. **Parity catalog v1.** Create the catalog with stable IDs, reference
    evidence, status, acceptance behavior, exclusions, compiler support, and
    platform coverage. Inventory Illustrator and VectorCraft by workflow area,
    not by a misleading parity percentage; publish the catalog's completion
    rules and first prioritized MVP slice.
 
-**Approved scope:** benchmark harness and its Electron/React/TypeScript,
-Vite, packaging, and React type dependencies. Phase 0 remains open because
-the packaged Windows benchmark stalled before producing an executable or
-measurements; no Electron/SVG decision has been made from evidence.
+**Outcome:** Electron + React + TypeScript + Tailwind + Vite is selected for
+development. The document model remains renderer-independent. Full-document
+SVG is rejected; CanvasKit/Skia is the production-renderer candidate pending
+the bounded spike above. Tauri remains a deferred comparison, not a stack gate.
 
 ## Phase 1 — Core application foundation
 
-- [ ] Create, select, reorder, and group layers.
-- [ ] Support text, shapes, images, and nested groups.
-- [ ] Save and reopen projects.
-- [ ] Establish the desktop document/editor foundation before cloud features.
+### Approved execution plan
+
+1. **Renderer spike (`PERF-01`).** Add CanvasKit/Skia only if its smallest
+   official package set can render frozen primitive, text, image, and nested
+   group fixtures. Measure total-process, JavaScript, WASM, and GPU memory;
+   redraw timing; resize; zoom; replacement; and repeated load/unload. The
+   stress interaction target is 33 ms. A failed spike pauses editor work for a
+   documented renderer decision.
+2. **Editable shapes (`DOC-01`, `DOC-03`, `PATH-01`, `SEL-01`).** Establish
+   one versioned document with stable IDs, ordered children, local transforms,
+   rectangle/ellipse nodes, and serializable create/select/move commands with
+   bounded transactional undo/redo.
+3. **Layers and groups (`DOC-02`, `SEL-03`).** Add the layer list,
+   multi-selection, sibling reorder, group/ungroup, and nested groups. Reject
+   cycles, absent IDs, and invalid parents. Canvas paint order and tree order
+   must agree.
+4. **Plain text (`TYPE-01`).** Add accessible plain-text editing with content,
+   position, size, color, multiline support, and defined missing-font behavior.
+   Advanced typography is deferred.
+5. **Images (`IMAGE-01`).** Import PNG/JPEG into content-addressed local asset
+   storage. Image nodes reference shared bytes and participate in selection,
+   movement, grouping, ordering, and history; invalid or excessive images fail
+   without altering the document.
+6. **Durable local documents (`DOC-04`).** Add new/open/save/save-as, a
+   versioned manifest plus asset directory, validation, dirty-state handling,
+   and failure-safe open/save. Do not use JSON-embedded base64 assets or
+   full-document undo snapshots.
+
+### Cross-slice constraints
+
+- One editor window. React renders controls and the visible layer list; the
+  renderer owns drawing objects.
+- Commands store inverse data or changed fields, not whole documents. A drag or
+  text edit is one bounded history transaction; a fresh command clears redo.
+- Renderer and decoded-asset caches are derived, bounded, and explicitly
+  disposed. No idle animation or document-wide IPC on pointer movement.
+- Cloud, authentication, Supabase, MCP, built-in agents, compiler output,
+  collaboration, advanced paths, and the IDE are out of scope.
+- Each slice uses its own fresh branch, reviewer assessment, focused checks,
+  and catalog/progress update before the next slice.
 
 ## Later phases
 

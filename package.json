@@ -8,7 +8,7 @@
     "build": "vite build",
     "start": "npm run build && electron .",
     "package:benchmark": "npm run build && electron-builder --dir",
-    "benchmark": "npm run build && node scripts/run-benchmark.cjs",
+    "benchmark": "npm run package:benchmark && node scripts/run-benchmark.cjs",
     "test": "node --test tests/package.test.cjs"
   },
   "dependencies": {
@@ -27,6 +27,9 @@
   "build": {
     "appId": "com.vectr.phase-zero-benchmark",
     "productName": "Vectr Phase Zero Benchmark",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**",
       "electron/**",

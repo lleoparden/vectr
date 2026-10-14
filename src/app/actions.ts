@@ -11,7 +11,7 @@
  */
 
 import { findNode, paintOrder } from '../doc/document.ts'
-import { isText, type LayerNode, type NodeId, type TextAlign, type TextNode } from '../doc/types.ts'
+import { isText, supportsFill, type LayerNode, type NodeId, type ShapeNode, type TextAlign, type TextNode } from '../doc/types.ts'
 import { documentStore, type EditorState } from '../state/documentStore.ts'
 import { workspaceStore, type PanelId } from '../state/workspaceStore.ts'
 import {
@@ -327,6 +327,76 @@ export async function placeImage(
   return node.id
 }
 
+/**
+ * Tool options (owner request after Phase 1).
+ *
+ * Illustrator's tool options edit the selection when the selection can take the change and otherwise
+ * set what the *next* object will be drawn with. Both halves live here: the default is remembered in
+ * the workspace store, and applying to a selection goes through the ordinary style and text
+ * commands so it is undoable like any other edit.
+ */
+
+function fillTargets(kind: 'shape' | 'text') {
+  const document = documentStore.getState().document
+  return documentStore
+    .getState()
+    .selection.map((id) => findNode(document, id))
+    .filter(
+      (node): node is ShapeNode | TextNode =>
+        node !== null && supportsFill(node) && (kind === 'text' ? isText(node) : !isText(node)),
+    )
+}
+
+/** Applies a fill to the selection when it has nodes that take one, as one history entry. */
+function applyToolFill(kind: 'shape' | 'text', color: string): void {
+  const targets = fillTargets(kind)
+  if (targets.length === 0) return
+  documentStore.beginTransaction(kind === 'text' ? 'text color' : 'shape color')
+  let changed = false
+  for (const node of targets) {
+    if (node === null || node.style.fill === color) continue
+    const result = documentStore.dispatch(
+      { type: 'setStyle', nodeId: node.id, style: { ...node.style, fill: color } },
+      'apply fill',
+    )
+    if (result.ok) changed = true
+  }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
+}
+
+/** Picks the shape member, which also activates it so the next drag draws that shape. */
+export function setToolShapeMember(tool: 'rect' | 'ellipse'): void {
+  workspaceStore.setCreationDefaults({ shapeTool: tool })
+  documentStore.setTool(tool)
+}
+
+export function setToolShapeFill(color: string): void {
+  workspaceStore.setCreationDefaults({ shapeFill: color })
+  applyToolFill('shape', color)
+}
+
+export function setToolTextFill(color: string): void {
+  workspaceStore.setCreationDefaults({ textFill: color })
+  applyToolFill('text', color)
+}
+
+/** Font size for the next text object, or for the selected one when text is selected. */
+export function setToolTextSize(fontSize: number): void {
+  if (!Number.isFinite(fontSize) || fontSize <= 0 || fontSize > 1000) return
+  workspaceStore.setCreationDefaults({ textFontSize: fontSize })
+  applyTextStyle(
+    (node) => ({ ...node, fontSize, lineHeight: (node.lineHeight / node.fontSize) * fontSize }),
+    'set font size',
+  )
+}
+
+/** Alignment for the next text object, or for the selected text. */
+export function setToolTextAlign(align: 'left' | 'center' | 'right'): void {
+  workspaceStore.setCreationDefaults({ textAlign: align })
+  applyTextStyle((node) => ({ ...node, align }), 'align text')
+}
+
 /** Opens the platform file dialog and places whatever the user picks. */
 export async function placeImageFromDialog(): Promise<void> {
   const picked = await pickImageFile()
@@ -411,10 +481,10 @@ export function runEditorAction(id: EditorActionId): void {
       documentStore.setTool('select')
       return
     case 'tool.rect':
-      documentStore.setTool('rect')
-      return
     case 'tool.ellipse':
-      documentStore.setTool('ellipse')
+      // Picking a shape member anywhere — palette, flyout, options bar, or M / L — also remembers
+      // it, so the palette's shape slot shows the tool last used the way Illustrator's does.
+      setToolShapeMember(id === 'tool.rect' ? 'rect' : 'ellipse')
       return
     case 'tool.text':
       documentStore.setTool('text')

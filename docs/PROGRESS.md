@@ -1,5 +1,61 @@
 # Progress
 
+## Tool options bar and the grouped shape tool (2026-10-14, owner request)
+
+The owner asked for a small horizontal bar that changes with every tool, "like the one in
+Illustrator", and for the rectangle and the ellipse to be one shape tool. Both are Illustrator
+conventions, and both are now in the shell (`feat/tool-options-bar`, issue #50).
+
+**What was built**
+
+- `src/app/ui/toolOptions.ts` (new, pure): `TOOL_GROUPS` — the palette as three slots
+  (Selection, Shape, Type) with Rectangle and Ellipse as two members of the shape slot — plus
+  `displayToolFor` (the slot shows the member in use, or the one last picked),
+  `hasSelectedText`, and `toolOptionsModel(tool, selection, document, defaults, canRun)`, which
+  returns the bar's controls as data.
+- `src/app/shell/ToolOptionsBar.tsx` (new): Illustrator's Control panel in Vectr's chrome, under
+  the menu bar. Selection tool → X/Y/W/H readouts and the object commands the state allows; shape
+  tool → the Rectangle/Ellipse switch, the next shape's fill, a Stroke readout; Type tool → size,
+  horizontal alignment, colour, and a hint saying whether they apply to the selection or the next
+  text object.
+- `src/app/shell/ToolPalette.tsx`: rewritten around the groups, with the corner-triangle flyout
+  (also on right-click) listing the members and their `M` / `L` keys.
+- `workspaceStore.creationDefaults`: the shape the slot shows and the fill, size, alignment, and
+  colour the tools draw with, so the bar's controls actually mean something.
+- `setToolShapeMember`, `setToolShapeFill`, `setToolTextFill`, `setToolTextSize`,
+  `setToolTextAlign` in `src/app/actions.ts`: each edits the selection when it can take the change
+  (one undo entry, like any style or text edit) and otherwise sets what the next object uses.
+  `tool.rect` / `tool.ellipse` route through `setToolShapeMember`, so the palette, the flyout, the
+  bar's switch, and the keyboard shortcuts always leave the slot showing the same tool.
+- `createRect` / `createEllipse` take the fill to draw with, and `CanvasView` reads the defaults
+  when it creates a shape or a text object.
+
+**Evidence**
+
+- 129/129 unit tests pass, including three new cases: the group table and member memory, the bar's
+  per-tool model (empty state, shape row, type row, selection row, gated commands), and that
+  picking a member anywhere remembers it.
+- New packaged report `[vectr-ui]`, 7/7 steps: the palette shows three slots with a shape flyout,
+  clicking the Type slot changes the bar, the Type tool draws with size 42 / centre / `#7c6cf5`,
+  the bar's switch activates the member it names, a drag draws one ellipse with the chosen fill, the
+  Selection row reports X/Y/W/H and enables Duplicate, and the flyout switches members.
+- Total packaged evidence is now **65 steps across six reports**.
+
+**Two things the work exposed, both fixed**
+
+1. `runEditorAction('tool.ellipse')` set the tool but not the remembered member, so picking Ellipse
+   from the flyout and then switching tools made the shape slot fall back to Rectangle. Every tool
+   entry point now goes through `setToolShapeMember`.
+2. The new smoke report first failed because its synthetic drag used `pointerId: 2`;
+   `setPointerCapture` rejects an id that is not an active pointer, so the gesture never started.
+   A mouse is pointer id 1, and the harness now drags as one — the same class of lesson as the Type
+   tool bug: a scripted event is only evidence when it goes through the browser's real path.
+
+**Divergences** are recorded in `docs/DECISIONS.md` (read-only geometry readouts, no
+Appearance/Align/Transform sections, no corner-radius control because the renderer does not draw
+rounded corners, stroke as a readout, and a fixed quick-fill palette).
+
+
 ## Phase 1 — exit audit (2026-10-14, after the owner asked whether it is really done)
 
 The owner asked for the epic's exit criteria to be checked one by one rather than taken on trust.

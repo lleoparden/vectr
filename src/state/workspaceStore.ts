@@ -23,6 +23,27 @@ export type CanvasSize = { width: number; height: number }
 /** Why the unsaved-changes dialog is open; the copy adapts, the guard does not. */
 export type UnsavedKind = 'close' | 'new' | 'open'
 
+/**
+ * What a new object is drawn with. Illustrator's tool options set what the *next* object looks
+ * like, so these are the values the shape and text tools read when they create something.
+ */
+export type CreationDefaults = {
+  /** The member of the shape group that the palette and the options bar show. */
+  shapeTool: 'rect' | 'ellipse'
+  shapeFill: string
+  textFill: string
+  textFontSize: number
+  textAlign: 'left' | 'center' | 'right'
+}
+
+export const INITIAL_CREATION_DEFAULTS: CreationDefaults = {
+  shapeTool: 'rect',
+  shapeFill: '#4f7cff',
+  textFill: '#1e1e23',
+  textFontSize: 16,
+  textAlign: 'left',
+}
+
 export type PendingPrompt = {
   kind: UnsavedKind
   documentName: string
@@ -37,6 +58,8 @@ export type WorkspaceState = {
   aboutOpen: boolean
   /** Set when work would be lost; the dialog resolves it and the action continues or stops. */
   pendingPrompt: PendingPrompt | null
+  /** What the shape and text tools draw with, and which shape member is showing. */
+  creationDefaults: CreationDefaults
 }
 
 export const PANEL_LABELS: Record<PanelId, string> = {
@@ -68,6 +91,7 @@ export class WorkspaceStore {
       canvas: { width: 0, height: 0 },
       aboutOpen: false,
       pendingPrompt: null,
+      creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
     }
   }
 
@@ -155,6 +179,11 @@ export class WorkspaceStore {
   clearPrompt() {
     if (this.state.pendingPrompt === null) return
     this.update({ pendingPrompt: null })
+  }
+
+  /** Updates what the next drawn object uses; the tool options bar and the tools share this. */
+  setCreationDefaults(patch: Partial<CreationDefaults>) {
+    this.update({ creationDefaults: { ...this.state.creationDefaults, ...patch } })
   }
 }
 

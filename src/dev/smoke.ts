@@ -525,6 +525,177 @@ export async function runTextEntryReport(): Promise<SmokeReport> {
   return { passed: steps.every((step) => step.ok), steps }
 }
 
+/**
+ * Tool palette grouping and the tool options bar (owner request after Phase 1).
+ *
+ * The unit tests cover the model; this report drives the real chrome: it clicks the real palette
+ * slots and the real bar controls in the packaged app, then reads the document back to prove the
+ * bar's settings reached the object the tool drew. Logged as `[vectr-ui]`.
+ */
+export async function runToolOptionsReport(): Promise<SmokeReport> {
+  const steps: SmokeStep[] = []
+  const record = (name: string, ok: boolean, detail: string) => steps.push({ name, ok, detail })
+  const settle = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+  const canvas = document.querySelector<HTMLCanvasElement>('canvas[aria-label="Design canvas"]')
+  const bar = () => document.querySelector<HTMLElement>('[aria-label="Tool options"]')
+
+  if (canvas === null || bar() === null) {
+    record('the tool options bar is on screen', false, 'canvas or options bar missing')
+    return { passed: false, steps }
+  }
+
+  /** Clicks the canvas the way a user does: pointerdown then pointerup at the same point. */
+  const clickCanvas = (x: number, y: number) => {
+    const box = canvas.getBoundingClientRect()
+    const options = {
+      pointerId: 1,
+      button: 0,
+      buttons: 1,
+      clientX: box.left + x,
+      clientY: box.top + y,
+      bubbles: true,
+      isPrimary: true,
+    }
+    canvas.dispatchEvent(new PointerEvent('pointerdown', options))
+    canvas.dispatchEvent(new PointerEvent('pointerup', { ...options, buttons: 0 }))
+  }
+
+  /** Drags on the canvas, which is how the shape tool draws. Pointer id 1 is the mouse. */
+  const dragCanvas = (fromX: number, fromY: number, toX: number, toY: number) => {
+    const box = canvas.getBoundingClientRect()
+    const base = { pointerId: 1, pointerType: 'mouse', button: 0, bubbles: true, isPrimary: true }
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', { ...base, buttons: 1, clientX: box.left + fromX, clientY: box.top + fromY }),
+    )
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', { ...base, buttons: 1, clientX: box.left + toX, clientY: box.top + toY }),
+    )
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', { ...base, buttons: 0, clientX: box.left + toX, clientY: box.top + toY }),
+    )
+  }
+
+  const barButton = (text: string) =>
+    Array.from(bar()?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
+      (button) => button.textContent?.trim() === text,
+    )
+  const setNumber = (value: string) => {
+    const input = bar()?.querySelector<HTMLInputElement>('input[type="number"]')
+    if (input === undefined || input === null) return false
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    return true
+  }
+
+  newDocument()
+  await settle(150)
+  // 1. The palette groups Rectangle and Ellipse into one slot with a flyout, like Illustrator.
+  const slots = document.querySelectorAll('[data-tool-slot]')
+  const shapeFlyout = document.querySelector('[data-tool-flyout="shape"]')
+  const shapeSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="shape"]')
+  record(
+    'the palette groups the shape tools into one slot with a flyout',
+    slots.length === 3 && shapeFlyout !== null && shapeSlot?.title?.includes('Shape Tool') === true,
+    `${slots.length} slots, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, slot labelled ${JSON.stringify(shapeSlot?.title)}`,
+  )
+
+  // 2. Clicking the Type tool must change the bar to the Type tool's controls.
+  document.querySelector<HTMLButtonElement>('[data-tool-slot="text"]')?.click()
+  await settle(120)
+  record(
+    'the options bar changes with the active tool',
+    bar()?.dataset.toolOptions === 'text' && setNumber('42'),
+    `bar reports ${JSON.stringify(bar()?.dataset.toolOptions)} for the Type tool`,
+  )
+  barButton('Center')?.click()
+  document.querySelector<HTMLButtonElement>('[aria-label="Text colour #7c6cf5"]')?.click()
+  await settle(80)
+
+  // 3. Those settings must reach the object the Type tool is about to draw.
+  clickCanvas(200, 200)
+  await settle(150)
+  const editor = document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Edit text"]')
+  if (editor !== null) {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+    setter?.call(editor, 'Bar settings')
+    editor.dispatchEvent(new Event('input', { bubbles: true }))
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle(150)
+  }
+  const text = documentStore.getState().document.root.children.find((node) => node.type === 'text')
+  record(
+    'the Type tool draws with the bar settings',
+    text !== undefined &&
+      text.type === 'text' &&
+      text.text === 'Bar settings' &&
+      text.fontSize === 42 &&
+      text.align === 'center' &&
+      text.style.fill === '#7c6cf5',
+    text === undefined || text.type !== 'text'
+      ? 'no text object'
+      : `size ${text.fontSize}, align ${text.align}, fill ${text.style.fill}`,
+  )
+
+  // 4. The shape row's switch picks the member and activates it.
+  runEditorAction('tool.rect')
+  await settle(100)
+  barButton('Ellipse')?.click()
+  await settle(100)
+  const ellipsePressed = barButton('Ellipse')?.getAttribute('aria-pressed') === 'true'
+  record(
+    'the shape switch activates the member it names',
+    documentStore.getState().tool === 'ellipse' && bar()?.dataset.toolOptions === 'shape' && ellipsePressed,
+    `tool ${documentStore.getState().tool}, bar ${JSON.stringify(bar()?.dataset.toolOptions)}, ellipse pressed ${ellipsePressed}`,
+  )
+
+  // 5. The shape fill must reach the shape the drag creates.
+  document.querySelector<HTMLButtonElement>('[aria-label="Fill #e2665c"]')?.click()
+  await settle(80)
+  dragCanvas(320, 240, 420, 320)
+  await settle(150)
+  const ellipse = documentStore.getState().document.root.children.find((node) => node.type === 'ellipse')
+  record(
+    'the shape tool draws one shape with the bar fill',
+    ellipse !== undefined && ellipse.type === 'ellipse' && ellipse.style.fill === '#e2665c',
+    ellipse === undefined || ellipse.type !== 'ellipse'
+      ? 'no ellipse'
+      : `fill ${ellipse.style.fill}, ${documentStore.getState().document.root.children.length} root children`,
+  )
+  // 6. With that shape selected, the bar shows its object numbers and its commands.
+  documentStore.setSelection(ellipse === undefined ? [] : [ellipse.id])
+  await settle(120)
+  runEditorAction('tool.select')
+  await settle(120)
+  const numbers = ['X', 'Y', 'W', 'H'].map(
+    (label) => bar()?.querySelector(`[data-tool-readout="${label}"]`)?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+  )
+  const duplicate = Array.from(bar()?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
+    (button) => button.textContent?.trim() === 'Duplicate',
+  )
+  record(
+    'the Selection tool row reports the object and enables its commands',
+    numbers.every((text) => /^[XYWH] -?\d+$/.test(text)) && duplicate !== undefined && duplicate.disabled === false,
+    `readouts ${JSON.stringify(numbers)}, duplicate ${duplicate === undefined ? 'missing' : 'present'}`,
+  )
+
+  // 7. The palette flyout switches members too, which is how Illustrator's tool groups work.
+  document.querySelector<HTMLButtonElement>('[data-tool-flyout="shape"]')?.click()
+  await settle(120)
+  const members = document.querySelectorAll('[data-tool-member]')
+  document.querySelector<HTMLButtonElement>('[data-tool-member="rect"]')?.click()
+  await settle(120)
+  record(
+    'the palette flyout offers both members and switches between them',
+    members.length === 2 &&
+      documentStore.getState().tool === 'rect' &&
+      workspaceStore.getState().creationDefaults.shapeTool === 'rect',
+    `flyout listed ${members.length} member(s), tool now ${documentStore.getState().tool}`,
+  )
+
+  return { passed: steps.every((step) => step.ok), steps }
+}
+
 /** Current history depth, for step details. */
 function store_depth(): string {
   return String(documentStore.getState().undoDepth)

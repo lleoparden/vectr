@@ -214,7 +214,13 @@ export function CanvasView() {
       // before the user could type a character.
       event.preventDefault()
       const existing = state.document.root.children.filter((node) => node.type === 'text').length
-      const node = createText(`Text ${existing + 1}`, start.x, start.y, '')
+      const defaults = workspaceStore.getState().creationDefaults
+      const node = createText(`Text ${existing + 1}`, start.x, start.y, '', {
+        // The Type tool's options apply to the object it is about to create.
+        fill: defaults.textFill,
+        fontSize: defaults.textFontSize,
+        align: defaults.textAlign,
+      })
       const result = documentStore.dispatch(
         {
           type: 'insertNodes',
@@ -315,12 +321,13 @@ export function CanvasView() {
     const x = Math.min(gesture.start.x, gesture.current.x)
     const y = Math.min(gesture.start.y, gesture.current.y)
     const kind = gesture.tool
+    const defaults = workspaceStore.getState().creationDefaults
     const existing = state.document.root.children.filter((node) => node.type === kind).length
     const label = kind === 'rect' ? 'Rectangle' : 'Ellipse'
     const node =
       kind === 'rect'
-        ? createRect(`${label} ${existing + 1}`, x, y, width, height)
-        : createEllipse(`${label} ${existing + 1}`, x, y, width, height)
+        ? createRect(`${label} ${existing + 1}`, x, y, width, height, defaults.shapeFill)
+        : createEllipse(`${label} ${existing + 1}`, x, y, width, height, defaults.shapeFill)
     const result = documentStore.dispatch(
       {
         type: 'insertNodes',

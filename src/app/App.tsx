@@ -15,6 +15,7 @@ import { CanvasView } from './canvas/CanvasView.tsx'
 import { handleBeforeClose, RECOVERY_INTERVAL_MS, refreshRecoveryState, writeRecoverySnapshot } from './files/fileActions.ts'
 import { MenuBar } from './shell/MenuBar.tsx'
 import { StatusBar } from './shell/StatusBar.tsx'
+import { ToolOptionsBar } from './shell/ToolOptionsBar.tsx'
 import { ToolPalette } from './shell/ToolPalette.tsx'
 import { PanelDock } from './panels/PanelDock.tsx'
 import { useEditorShortcuts } from './menus/useEditorShortcuts.ts'
@@ -45,8 +46,9 @@ export function App() {
 
   return (
     <>
-      <div className="grid h-screen grid-rows-[auto_1fr_auto] bg-pasteboard text-ink">
+      <div className="grid h-screen grid-rows-[auto_auto_1fr_auto] bg-pasteboard text-ink">
         <MenuBar />
+        <ToolOptionsBar />
         <div className="grid min-h-0 grid-cols-[auto_1fr_auto]">
           <ToolPalette />
           <CanvasView />

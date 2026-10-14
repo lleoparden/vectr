@@ -1245,3 +1245,52 @@ How that permission is used, so the record is unambiguous:
   intent — is recorded as an open question in `docs/PROGRESS.md` instead of being merged on
   a guess.
 
+
+## 2026-10-14 — Tool palette grouping and the tool options bar
+
+The owner asked for two things: a small horizontal bar that changes with every tool, "like the one in
+Illustrator", and for the rectangle and the ellipse to be the same shape tool. Both are Illustrator
+conventions, so both are followed rather than reinvented.
+
+**Matching Illustrator:**
+
+- **One shape slot.** `TOOL_GROUPS` in `src/app/ui/toolOptions.ts` holds the palette as *groups*.
+  Rectangle and Ellipse are two members of one slot, so the palette shows three slots (Selection,
+  Shape, Type) instead of four. The slot shows the member in use, or the member last picked while
+  another tool is active, which is how Illustrator remembers the shape you drew last. The flyout
+  opens from the slot's corner triangle (Illustrator's own affordance) and from a right-click, and
+  `M` / `L` still select Rectangle and Ellipse directly.
+- **A tool-aware bar under the menu bar.** `ToolOptionsBar` is Illustrator's Control panel in
+  Vectr's chrome. Its contents are pure data (`toolOptionsModel`), derived from the tool, the
+  selection, the document, and the creation defaults, so the bar cannot disagree with the document:
+  - *Selection tool* — with nothing selected, an empty-state hint and no commands; with a selection,
+    the object's X/Y/W/H numbers and Duplicate, Group, Ungroup, Bring to Front, Send to Back, Hide,
+    Lock, Clear, each enabled only when `canRunAction` says it would work.
+  - *Shape tool* — the Rectangle/Ellipse switch (the same grouping the palette shows), the fill the
+    next shape will use, and a Stroke readout.
+  - *Type tool* — font size, horizontal alignment, and colour, plus a hint saying whether they apply
+    to the selection or to the next text object.
+- **Tool options set the *next* object.** This is Illustrator's behavior and it is why the bar has
+  anything to do at all: the shape fill and the text size/alignment/colour are remembered in
+  `workspaceStore.creationDefaults`, and the create paths read them when they draw. When a selection
+  can take the same change, the control edits the selection as well (one undo entry per change, like
+  any style edit) and remembers the value for next time.
+- **Picking a shape member anywhere remembers it.** `tool.rect` / `tool.ellipse` route through
+  `setToolShapeMember`, so the palette, the flyout, the options-bar switch, and the `M` / `L`
+  shortcuts all leave the palette's shape slot showing the same tool.
+
+**Deliberate divergences, recorded here rather than drifting quietly:**
+
+- The bar's geometry readouts are **read-only text, not editable fields**. Illustrator lets you type
+  into them; Vectr has no transform-editing command yet, so an editable box would be a lie.
+- The bar carries **no Appearance, Align, or Transform sections** because stroke width, opacity,
+  align, and transform commands do not exist yet. Empty sections were not shipped as placeholders.
+- **Corner radius is not offered** even though `RectNode.cornerRadius` exists: the renderer models
+  rounded corners but does not draw them, so the control would change nothing visible.
+- **Stroke is a readout, not a control** — every shape is drawn with the same fixed stroke today.
+- The fill control is a **fixed quick palette**, not the full Swatches/Color picker; that arrives
+  with the interactive Color and Swatches panels.
+
+`toolOptionsModel` is a pure function and the shipped tests cover it; the component only renders what
+the model returns, which is the same split the Layers panel uses.
+

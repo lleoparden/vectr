@@ -51,7 +51,15 @@ export function newId(prefix: 'rect' | 'ellipse' | 'group' | 'text' | 'image'): 
   return `${prefix}-${idCounter.toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function createRect(name: string, x: number, y: number, width = 160, height = 120): LayerNode {
+export function createRect(
+  name: string,
+  x: number,
+  y: number,
+  width = 160,
+  height = 120,
+  /** The tool options bar's fill for the next shape; the palette default otherwise. */
+  fill = '#4f7cff',
+): LayerNode {
   return {
     id: newId('rect'),
     name,
@@ -60,13 +68,20 @@ export function createRect(name: string, x: number, y: number, width = 160, heig
     width,
     height,
     cornerRadius: 0,
-    style: createStyle(),
+    style: createStyle(fill),
     locked: false,
     hidden: false,
   }
 }
 
-export function createEllipse(name: string, x: number, y: number, width = 140, height = 140): LayerNode {
+export function createEllipse(
+  name: string,
+  x: number,
+  y: number,
+  width = 140,
+  height = 140,
+  fill = '#f0a24b',
+): LayerNode {
   return {
     id: newId('ellipse'),
     name,
@@ -74,7 +89,7 @@ export function createEllipse(name: string, x: number, y: number, width = 140, h
     transform: createTransform(x, y),
     width,
     height,
-    style: createStyle('#f0a24b'),
+    style: createStyle(fill),
     locked: false,
     hidden: false,
   }

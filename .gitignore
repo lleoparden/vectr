@@ -16,6 +16,7 @@ release/
 # Local scratch: smoke-run logs and the issue/pull-request bodies before they are posted.
 # The authoritative records live on GitHub; these files are working copies.
 .ecc/tmp/
+.ecc/tmp-*.txt
 .ecc/issues/
 
 # Rust helper build output and logs (tools/vello-raster has its own rules as well)

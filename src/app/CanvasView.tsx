@@ -15,6 +15,8 @@ import { setActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene, type SceneShape } from '../render/scene.ts'
 import { documentStore, type Viewport } from '../state/documentStore.ts'
 import { useEditorState } from '../state/useEditorState.ts'
+import { workspaceStore } from '../state/workspaceStore.ts'
+import { fitArtboard, zoomAtPoint } from './viewportOps.ts'
 
 type Gesture =
   | { kind: 'none' }
@@ -24,8 +26,6 @@ type Gesture =
   | { kind: 'pan'; startClient: Point; panStart: Point }
 
 const MIN_DRAG = 4
-const ZOOM_MIN = 0.05
-const ZOOM_MAX = 32
 
 function scaledViewport(viewport: Viewport, ratio: number): Viewport {
   return { zoom: viewport.zoom * ratio, panX: viewport.panX * ratio, panY: viewport.panY * ratio }
@@ -45,6 +45,7 @@ export function CanvasView() {
   const [overlay, setOverlay] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const renderedOnce = useRef(false)
+  const fittedOnce = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -85,6 +86,15 @@ export function CanvasView() {
       canvas.width = width
       canvas.height = height
       renderer.resize(width, height)
+    }
+    // The panel dock and the View commands need the canvas size in CSS pixels; the
+    // status bar and Fit Artboard in Window both read it from the workspace store.
+    workspaceStore.setCanvasSize(box.width, box.height)
+    // Illustrator opens on the artboard rather than wherever the origin happens to
+    // be, so the first known canvas size fits it. Later zoom is the user's to own.
+    if (!fittedOnce.current && box.width > 0 && box.height > 0) {
+      fittedOnce.current = true
+      documentStore.setViewport(fitArtboard(state.document.artboards[0], { width: box.width, height: box.height }))
     }
     const scene = buildScene(state.document)
     renderer.setScene(scene)
@@ -245,16 +255,10 @@ export function CanvasView() {
       event.preventDefault()
       const viewport = documentStore.getState().viewport
       const box = canvas.getBoundingClientRect()
-      const pointerX = event.clientX - box.left
-      const pointerY = event.clientY - box.top
       const factor = Math.exp(-event.deltaY * 0.0015)
-      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, viewport.zoom * factor))
-      const ratio = zoom / viewport.zoom
-      documentStore.setViewport({
-        zoom,
-        panX: pointerX - (pointerX - viewport.panX) * ratio,
-        panY: pointerY - (pointerY - viewport.panY) * ratio,
-      })
+      documentStore.setViewport(
+        zoomAtPoint(viewport, { x: event.clientX - box.left, y: event.clientY - box.top }, factor),
+      )
     }
     canvas.addEventListener('wheel', onWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', onWheel)

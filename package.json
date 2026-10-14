@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "package:benchmark": "npm run build && electron-builder --dir",
     "benchmark": "npm run package:benchmark && node scripts/run-phase-one-benchmark.mjs",
-    "test": "node --test tests/bench.test.ts tests/doc.test.ts tests/editor.test.ts tests/package.test.cjs"
+    "test": "node --test tests/bench.test.ts tests/doc.test.ts tests/editor.test.ts tests/ui.test.ts tests/package.test.cjs"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",

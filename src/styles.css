@@ -1,5 +1,53 @@
 @import 'tailwindcss';
 
+/*
+ * Vectr theme tokens (issue #28).
+ *
+ * One place defines the shell's color, type, and radius scale, so every later
+ * panel, dialog, and tool reuses it instead of inventing sizes and colors inline.
+ * Tokens follow Tailwind v4's CSS-first `@theme` namespaces, which is why
+ * `--color-chrome` becomes `bg-chrome` / `text-chrome` / `border-chrome`.
+ *
+ * The palette is Vectr's own: a dark, low-saturation chrome with a single violet
+ * accent. It is deliberately not Adobe's artwork, icons, or trade dress — only the
+ * workspace logic follows Illustrator (see `docs/DECISIONS.md`, UI direction).
+ */
+@theme {
+  /* Chrome: the surfaces the interface itself sits on. */
+  --color-chrome: #26262c;
+  --color-chrome-raised: #2f2f37;
+  --color-chrome-sunken: #1e1e23;
+  --color-chrome-active: #3a3a44;
+  --color-hairline: #3c3c45;
+
+  /* Ink: text and icon weights. */
+  --color-ink: #ececf1;
+  --color-ink-muted: #a2a2ad;
+  --color-ink-faint: #74747f;
+
+  /* Accent: one violet, used for selection, focus, and active tools. */
+  --color-accent: #7c6cf5;
+  --color-accent-soft: #332c5e;
+  --color-accent-ink: #cfc9ff;
+
+  --color-danger: #e2665c;
+  --color-pasteboard: #1a1a1f;
+  --color-artboard: #ffffff;
+
+  /* Type scale: three UI sizes, no ad-hoc pixel values. */
+  --text-ui-xs: 11px;
+  --text-ui-xs--line-height: 16px;
+  --text-ui-sm: 12px;
+  --text-ui-sm--line-height: 18px;
+  --text-ui-md: 13px;
+  --text-ui-md--line-height: 20px;
+
+  --radius-ui: 3px;
+  --radius-ui-lg: 5px;
+
+  --font-ui: 'Inter', system-ui, sans-serif;
+}
+
 @font-face {
   font-family: 'Inter';
   src: url('./assets/fonts/Inter-Variable.ttf') format('truetype');
@@ -9,22 +57,51 @@
 
 :root {
   color-scheme: dark;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-ui);
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
   margin: 0;
-  background: #14141a;
-  color: #ececf1;
+  overflow: hidden;
+  background: var(--color-pasteboard);
+  color: var(--color-ink);
+  font-size: var(--text-ui-sm);
+  -webkit-font-smoothing: antialiased;
 }
 
 p {
-  color: #a0a0aa;
+  color: var(--color-ink-muted);
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* One focus treatment for the whole shell, so keyboard use is always visible. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-chrome-sunken);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+  border-radius: var(--radius-ui-lg);
 }
 
 .canvas {
@@ -32,6 +109,24 @@ button:disabled {
   max-height: 70vh;
   background: #fbfbfc;
 }
+
+.verdict-pass {
+  color: #7ee0a4;
+}
+
+.verdict-fail {
+  color: #ff8a7a;
+}
+
+pre {
+  max-height: 22rem;
+  overflow: auto;
+  background: #222227;
+  padding: 1rem;
+  border-radius: 0.4rem;
+  font-size: 12px;
+}
+
 
 .verdict-pass {
   color: #7ee0a4;

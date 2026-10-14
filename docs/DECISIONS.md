@@ -347,4 +347,9 @@ merge commits (slice 1 evidence, slice 1b optimization, and the workflow record)
   panel layout, and a UI-alignment slice owns the menu bar, tool palette, and docked
   panels before Phase 2 tools arrive. `docs/PROGRESS.md` records the gap as a known
   issue.
+- Enforcement: `AGENTS.md` (Product identity) states the rule, the issue and pull
+  request templates require the Illustrator mapping for interface work, and
+  `.agents/workflows/issue-ready.md` makes the mapping part of `agent-ready` and the
+  UI direction a review criterion, so an interface change that invents its own layout,
+  terminology, or shortcut does not merge.
 

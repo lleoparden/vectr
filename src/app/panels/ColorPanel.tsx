@@ -10,7 +10,7 @@
 import { documentStore } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { findNode, paintOrder } from '../../doc/document.ts'
-import { isLeaf, type Document } from '../../doc/types.ts'
+import { supportsFill, type Document } from '../../doc/types.ts'
 
 /** The palette Vectr ships with, named so swatches stay readable in tests and docs. */
 export const VECTR_PALETTE: Array<{ name: string; color: string }> = [
@@ -30,7 +30,7 @@ export function usedFillColors(document: Document): string[] {
   const seen = new Set<string>()
   for (const id of paintOrder(document)) {
     const node = findNode(document, id)
-    if (node !== null && isLeaf(node)) seen.add(node.style.fill)
+    if (node !== null && supportsFill(node)) seen.add(node.style.fill)
   }
   return [...seen]
 }
@@ -41,13 +41,13 @@ export function applyFill(color: string): void {
   const targets = documentStore
     .getState()
     .selection.map((id) => findNode(document, id))
-    .filter((node) => node !== null && isLeaf(node))
+    .filter((node) => node !== null && supportsFill(node))
   if (targets.length === 0) return
 
   documentStore.beginTransaction('apply fill')
   let changed = false
   for (const node of targets) {
-    if (node === null || !isLeaf(node) || node.style.fill === color) continue
+    if (node === null || !supportsFill(node) || node.style.fill === color) continue
     const result = documentStore.dispatch(
       { type: 'setStyle', nodeId: node.id, style: { ...node.style, fill: color } },
       'apply fill',

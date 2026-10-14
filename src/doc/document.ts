@@ -18,6 +18,7 @@ import {
   type NodeId,
   type TextAlign,
   type TextNode,
+  type ImageNode,
 } from './types.ts'
 
 const defaultArtboard: Artboard = { id: 'artboard-0', name: 'Artboard 1', width: 1200, height: 800 }
@@ -45,7 +46,7 @@ export function createDocument(name = 'Untitled'): Document {
 let idCounter = 0
 
 /** Stable, collision-checked ids. Slice #19 persists them verbatim. */
-export function newId(prefix: 'rect' | 'ellipse' | 'group' | 'text'): NodeId {
+export function newId(prefix: 'rect' | 'ellipse' | 'group' | 'text' | 'image'): NodeId {
   idCounter += 1
   return `${prefix}-${idCounter.toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -131,6 +132,33 @@ export function createText(name: string, x: number, y: number, text: string, opt
     align: options.align ?? 'left',
     lineHeight,
     style: createStyle(options.fill ?? '#1e1e23'),
+  }
+}
+
+/**
+ * Placed image node (issue #17). The node holds the asset's content key and the box it is
+ * drawn into; the pixels stay in the registry, so moving, grouping, and hiding a hundred
+ * copies of one image cost one copy of the bytes.
+ */
+export function createImage(
+  name: string,
+  x: number,
+  y: number,
+  assetId: string,
+  width: number,
+  height: number,
+): ImageNode {
+  return {
+    id: newId('image'),
+    type: 'image',
+    name,
+    transform: createTransform(x, y),
+    locked: false,
+    hidden: false,
+    assetId,
+    width,
+    height,
+    style: createStyle('#000000'),
   }
 }
 

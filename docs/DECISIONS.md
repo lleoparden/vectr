@@ -413,8 +413,8 @@ including the layer list.
 
 ### Every place the shell diverges from Illustrator, and why
 
-1. **File and Effect menus are absent** (the Type menu arrived with issue #16). New/Open/Save
-   are #19, Export React is the compiler phase, and Vectr has no effects. An empty menu or a
+1. **The File menu has Place only, and there is no Effect menu.** New/Open/Save arrive with
+   issue #19 and Export React with the compiler phase; Vectr has no effects. An empty menu or a
    permanently greyed placeholder is worse than an honest omission.
 2. **The tool palette has three tools** (Selection, Rectangle, Ellipse). Illustrator
    has around forty. Only built tools appear; Pen, Type, Shape Builder, gradients, and
@@ -795,6 +795,79 @@ shapes *and* text, which closes the "applying color is not built" note from #28.
   entry`, `text undo restores content`, `invalid text style rejected`,
   `missing font is recorded, not refused`, and (in the stress phase) `font substitution
   reported`; 1,003 shapes in 16 buckets at render p95 1.20 ms over 60 frames.
+
+## 2026-10-14 — Images: content-addressed assets (issue #17)
+
+### The split: bytes at runtime, metadata in the document
+
+An `ImageNode` holds `{ type: 'image', assetId, width, height, style }` and nothing else. The
+bytes live in a runtime **asset registry** (`src/state/assetRegistry.ts`) keyed by a digest of
+their content, and the document carries only an `AssetRef` (id, MIME type, byte length, pixel
+size) in its existing `assets` list. Three consequences are deliberate:
+
+- The document stays small and serializable, and two placements of one file share one entry
+  and one copy of the bytes in memory.
+- The renderer never touches the filesystem or the store: the canvas hands it bytes per asset
+  id and it decodes once per id (`EditorRenderer.putAsset`).
+- Issue #19 can persist the registry next to the document without changing the model.
+
+### Content addressing and limits
+
+The key is `sha256-<hex>` over the bytes, computed with `crypto.subtle.digest`. Import checks
+run **before** anything is decoded or dispatched: PNG and JPEG only, ≤ 20 MiB per asset,
+≤ 40 megapixels, ≤ 512 assets per document. A rejected import reports a reason
+(`unsupported-type`, `too-large`, `too-many-pixels`, `corrupt`, `too-many-assets`) through the
+store's error path — a new `reportError` so a pre-command failure surfaces exactly where a
+rejected command does — and the document, the registry, and the memory footprint are unchanged.
+
+### One command for placement
+
+`placeImage { parentId, index, node, asset }` inserts the node **and** registers the asset, so
+the two halves cannot get out of step. Its inverse removes the node, and — only when this
+placement was what added the asset — also removes the asset record, as a batch inverse. That is
+why a second copy of the same image undoes without dropping the shared asset, and it is the
+first real use of the aggregate-inverse work from #34 inside the command model itself.
+`addAsset` and `removeAsset` exist for the other direction: removing an asset an image still
+uses is refused with `invalid-asset`, and `validateDocument` reports an image whose asset the
+document does not carry, so a broken reference fails at the boundary rather than drawing
+nothing.
+
+### Renderer
+
+The scene carries `assetId` per image item (and the signature includes it, so a changed asset
+re-records its bucket). `drawImage` draws the decoded image into the node's box with
+`drawImageRect`, and an asset the renderer never received is drawn as a light placeholder frame
+plus a report in `RenderStats.missingAssets`, which the canvas shows as a notice — the same
+"report, do not fail silently" rule the fonts follow. Decoded images are disposed with the
+renderer, and one image is decoded once no matter how many nodes reference it.
+
+### Import paths
+
+`File > Place…` (Ctrl+Shift+P, Illustrator's chord) opens the platform dialog through the
+preload bridge; the main process shows the dialog, reads the file, and sends the bytes over
+IPC, so the renderer needs no filesystem access. Dropping image files onto the canvas places
+them too. In a plain browser build the same flow falls back to a file input, which is why the
+import logic lives in `src/app/imageImport.ts` rather than in the Electron layer. The File menu
+appears now with the command it actually has: New, Open, and Save join it in #19, so the
+"File menu is absent" divergence narrows to those commands.
+
+### Where a placed image lands
+
+An imported image is placed at its natural pixel size, centered on the first artboard. That is
+predictable and testable; Illustrator places at the click point or centered in the window
+depending on the dialog, which is a distinction worth revisiting when placement options arrive.
+
+### Evidence
+
+- 107 unit tests, 10 new here: content addressing, the four limit checks, a rejected import
+  leaving everything untouched, placement registering both halves with undo and redo, a shared
+  asset surviving the undo of a second copy, four refusals, asset-removal rules and document
+  validation, hit/marquee/scene order for an image, registry deduplication and pruning, and the
+  store's failure path for an undecodable file.
+- `electron . --smoke=stress`: **25/25** steps. The new ones generate a PNG in the page and
+  place it for real: `image imported` (8×8 pixels, 89 bytes, `sha256-ab57fee…`), `image undo
+  removes node and asset`, `image redo restores both`, and `image drawn from its asset`; 1,004
+  shapes in 16 buckets at render p95 1.30 ms over 60 frames.
 
 ## 2026-10-14 — Standing merge authorization for the remainder of Phase 1
 

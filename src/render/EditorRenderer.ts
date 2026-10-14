@@ -24,6 +24,7 @@ import CanvasKitInit, {
   type Color,
   type Font,
   type GrDirectContext,
+  type Image,
   type Paint,
   type Path,
   type SkPicture,
@@ -53,6 +54,8 @@ export type RenderStats = {
    * bundled face instead (issue #16's "report the substitution" rule).
    */
   substitutedFonts: string[]
+  /** Asset ids a scene asked for that the renderer never received (issue #17). */
+  missingAssets: string[]
 }
 
 type Bucket = {
@@ -78,6 +81,9 @@ export class EditorRenderer {
   private readonly fonts = new Map<string, Font>()
   private readonly substituted = new Set<string>()
   private typeface: Typeface | null = null
+  /** Decoded images, one per asset id, disposed with the renderer. */
+  private readonly images = new Map<string, Image>()
+  private readonly missingAssets = new Set<string>()
   private buckets: Bucket[] = []
   private shapes = 0
   private viewport = { zoom: 1, panX: 0, panY: 0 }
@@ -232,7 +238,24 @@ export class EditorRenderer {
   }
 
   /**
-   * Measured box for a text node (issue #16). The editor uses this so selection bounds match
+   * Accepts an asset's bytes and decodes them once (issue #17). A file that cannot be decoded
+   * is ignored rather than throwing, so a corrupt asset leaves an empty frame instead of
+   * taking the editor down; the scene reports it through `missingAssets`.
+   */
+  putAsset(assetId: string, bytes: Uint8Array): boolean {
+    if (this.images.has(assetId)) return true
+    try {
+      const image = this.kit.MakeImageFromEncoded(bytes)
+      if (image === null) return false
+      this.images.set(assetId, image)
+      this.missingAssets.delete(assetId)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** Measured box for a text node (issue #16). The editor uses this so selection bounds match
    * the glyphs that are actually drawn; it returns null when no font is loaded, and callers
    * fall back to the shared estimate.
    */
@@ -307,6 +330,7 @@ export class EditorRenderer {
       p95RenderMs: sorted[index] ?? 0,
       lastBuildMs: this.lastBuildMs,
       substitutedFonts: [...this.substituted],
+      missingAssets: [...this.missingAssets],
     }
   }
 
@@ -321,6 +345,8 @@ export class EditorRenderer {
       if (shape.scaleX !== 1 || shape.scaleY !== 1) recording.scale(shape.scaleX, shape.scaleY)
       if (shape.kind === 'text') {
         this.drawText(recording, shape)
+      } else if (shape.kind === 'image') {
+        this.drawImage(recording, shape)
       } else {
         recording.drawPath(path, this.paintFor('fill', shape.fill, 0, shape.opacity))
         if (shape.stroke !== null && shape.stroke.width > 0) {
@@ -355,6 +381,31 @@ export class EditorRenderer {
         text.align === 'center' ? (shape.width - width) / 2 : text.align === 'right' ? shape.width - width : 0
       recording.drawText(line, left, index * text.lineHeight + baseline, paint, font)
     }
+  }
+
+  /**
+   * Draws an image asset into the node's box (issue #17). A missing or undecodable asset is
+   * drawn as a light placeholder frame — Illustrator shows a box for a missing link too — and
+   * is reported through `missingAssets` rather than disappearing silently.
+   */
+  private drawImage(recording: Canvas, shape: SceneShape): void {
+    const assetId = shape.assetId
+    const image = assetId === null ? undefined : this.images.get(assetId)
+    if (image === undefined) {
+      if (assetId !== null) this.missingAssets.add(assetId)
+      recording.drawRect(
+        this.kit.XYWHRect(0, 0, shape.width, shape.height),
+        this.paintFor('fill', '#d8d8de', 0, shape.opacity),
+      )
+      return
+    }
+    recording.drawImageRect(
+      image,
+      this.kit.XYWHRect(0, 0, image.width(), image.height()),
+      this.kit.XYWHRect(0, 0, shape.width, shape.height),
+      this.paintFor('fill', '#ffffff', 0, shape.opacity),
+      false,
+    )
   }
 
   /** Width of one line, from the font's own glyph advances. */
@@ -446,6 +497,9 @@ export class EditorRenderer {
     this.fonts.clear()
     this.typeface?.delete()
     this.typeface = null
+    for (const image of this.images.values()) image.delete()
+    this.images.clear()
+    this.missingAssets.clear()
     for (const paint of this.paintCache.values()) paint.delete()
     this.paintCache.clear()
     this.colorCache.clear()
@@ -463,7 +517,7 @@ export class EditorRenderer {
 function signatureOf(shapes: SceneShape[]): string {
   let signature = ''
   for (const shape of shapes) {
-    signature += `${shape.id},${shape.x},${shape.y},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity}`
+    signature += `${shape.id},${shape.x},${shape.y},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity},${shape.assetId ?? '-'}`
     // Text content and metrics affect pixels exactly as geometry does, so they belong in the
     // signature: an edited string must re-record its bucket.
     if (shape.text !== null) {

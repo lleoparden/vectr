@@ -14,15 +14,19 @@ import {
   findNode,
   insertNodes,
   MAX_TEXT_LENGTH,
+  paintOrder,
   removeNodes,
   replaceNode,
 } from './document.ts'
+import { ALLOWED_IMAGE_MIME, MAX_ASSETS } from './assets.ts'
 import { validateDestination, validateRemovable, type ValidationCode } from './validate.ts'
 import {
   isGroup,
   isText,
+  type AssetRef,
   type Document,
   type GroupNode,
+  type ImageNode,
   type LayerNode,
   type NodeId,
   type Style,
@@ -49,6 +53,12 @@ export type Command =
       width?: number
       height?: number
     }
+  /** Places an image and registers its asset in one undoable step (issue #17). */
+  | { type: 'placeImage'; parentId: NodeId; index: number; node: ImageNode; asset: AssetRef }
+  /** Adds an asset record; the inverse of removing one. */
+  | { type: 'addAsset'; asset: AssetRef }
+  /** Removes an unreferenced asset record. */
+  | { type: 'removeAsset'; assetId: string }
   | { type: 'moveNode'; nodeId: NodeId; parentId: NodeId; index: number }
   /**
    * Several commands that undo and redo as one step (issue #34). Its inverse is a batch
@@ -339,6 +349,98 @@ export function applyCommand(document: Document, command: Command): CommandResul
           width: node.width,
           height: node.height,
         },
+      }
+    }
+
+    case 'placeImage': {
+      const node = command.node as ImageNode
+      if (node.type !== 'image' || node.assetId !== command.asset.id) {
+        return rejected('invalid-asset', 'The image node does not match the asset being placed.')
+      }
+      if (!Number.isFinite(node.width) || !Number.isFinite(node.height)) {
+        return rejected('non-finite', `Image ${node.id} has a non-finite size.`)
+      }
+      if (node.width <= 0 || node.height <= 0) {
+        return rejected('non-positive-size', `Image ${node.id} has a non-positive size.`)
+      }
+      const asset = command.asset
+      if (!ALLOWED_IMAGE_MIME.has(asset.mimeType)) {
+        return rejected('invalid-asset', `${asset.mimeType} is not an importable image type.`)
+      }
+      if (
+        asset.byteLength <= 0 ||
+        !Number.isFinite(asset.width) ||
+        !Number.isFinite(asset.height) ||
+        asset.width <= 0 ||
+        asset.height <= 0
+      ) {
+        return rejected('invalid-asset', `Asset ${asset.id} has no usable size.`)
+      }
+      const alreadyStored = document.assets.some((existing) => existing.id === asset.id)
+      if (!alreadyStored && document.assets.length >= MAX_ASSETS) {
+        return rejected('invalid-asset', `A document may hold ${MAX_ASSETS} images.`)
+      }
+      const destination = validateDestination(document, command.parentId, command.index)
+      if (!destination.ok) return rejected(destination.issue.code, destination.issue.message)
+
+      const inserted = insertNodes(document, command.parentId, command.index, [clone(node)])
+      // One command covers both halves, so undo restores both: the node goes away, and the
+      // asset record goes with it when this placement was what added it.
+      const inverse: Command =
+        alreadyStored
+          ? { type: 'removeNodes', nodeIds: [node.id] }
+          : {
+              type: 'batch',
+              commands: [
+                { type: 'removeNodes', nodeIds: [node.id] },
+                { type: 'removeAsset', assetId: asset.id },
+              ],
+            }
+      return {
+        ok: true,
+        document: withRevision({
+          ...inserted,
+          assets: alreadyStored ? document.assets : [...document.assets, clone(asset)],
+        }),
+        inverse,
+      }
+    }
+
+    case 'addAsset': {
+      const asset = command.asset
+      if (document.assets.some((existing) => existing.id === asset.id)) {
+        return rejected('invalid-asset', `Asset ${asset.id} is already in the document.`)
+      }
+      if (!ALLOWED_IMAGE_MIME.has(asset.mimeType)) {
+        return rejected('invalid-asset', `${asset.mimeType} is not an importable image type.`)
+      }
+      if (document.assets.length >= MAX_ASSETS) {
+        return rejected('invalid-asset', `A document may hold ${MAX_ASSETS} images.`)
+      }
+      return {
+        ok: true,
+        document: withRevision({ ...document, assets: [...document.assets, clone(asset)] }),
+        inverse: { type: 'removeAsset', assetId: asset.id },
+      }
+    }
+
+    case 'removeAsset': {
+      const asset = document.assets.find((existing) => existing.id === command.assetId)
+      if (asset === undefined) return rejected('absent-node', `Asset ${command.assetId} does not exist.`)
+      const referenced = paintOrder(document).some((id) => {
+        const node = findNode(document, id)
+        return node !== null && node.type === 'image' && node.assetId === command.assetId
+      })
+      if (referenced) {
+        return rejected('invalid-asset', `Asset ${command.assetId} is still used by an image.`)
+      }
+      return {
+        ok: true,
+        document: withRevision({
+          ...document,
+          assets: document.assets.filter((existing) => existing.id !== command.assetId),
+        }),
+        inverse: { type: 'addAsset', asset: clone(asset) },
       }
     }
 

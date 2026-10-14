@@ -19,7 +19,7 @@ export type SceneText = {
 
 export type SceneShape = {
   id: NodeId
-  kind: 'rect' | 'ellipse' | 'text'
+  kind: 'rect' | 'ellipse' | 'text' | 'image'
   /** Top-level ancestor, which is the invalidation unit of the renderer. */
   root: NodeId
   x: number
@@ -34,6 +34,8 @@ export type SceneShape = {
   opacity: number
   /** Present exactly when `kind` is `text`. */
   text: SceneText | null
+  /** Present exactly when `kind` is `image`: the asset the renderer must draw. */
+  assetId: string | null
 }
 
 export type Scene = {
@@ -88,6 +90,7 @@ function walkShapes(
           lineHeight: node.lineHeight,
         }
       : null,
+    assetId: node.type === 'image' ? node.assetId : null,
   })
 }
 

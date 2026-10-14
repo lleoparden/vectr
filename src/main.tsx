@@ -14,6 +14,7 @@ createRoot(document.getElementById('root')!).render(isBenchmark ? <BenchmarkApp 
 
 // `?smoke` runs the scripted acceptance pass and logs JSON lines for the packaged
 // evidence run (`electron . --smoke`); `?smoke=stress` adds the 1,000-shape case.
+// The menu bar has the File menu now that Place exists; New/Open/Save join it in issue #19.
 if (search.has('smoke')) {
   window.setTimeout(() => {
     void (async () => {

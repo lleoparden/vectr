@@ -27,6 +27,11 @@ export type MenuSpec = {
 
 export const MENU_BAR: MenuSpec[] = [
   {
+    id: 'file',
+    label: 'File',
+    items: [{ kind: 'command', id: 'file.place', label: 'Place…' }],
+  },
+  {
     id: 'edit',
     label: 'Edit',
     items: [
@@ -112,11 +117,6 @@ export type OmittedMenu = { label: string; reason: string }
 
 /** Menus Illustrator has that Vectr does not show yet, and why. */
 export const OMITTED_MENUS: OmittedMenu[] = [
-  {
-    label: 'File',
-    reason:
-      'New, Open, and Save are issue #19; Export React belongs to the compiler phase. The UI direction says an empty menu or a disabled placeholder is worse than an honest omission.',
-  },
   {
     label: 'Effect',
     reason: 'Vectr has no effects, appearances, or raster effects, and no plan for them before Phase 3.',

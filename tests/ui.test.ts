@@ -94,10 +94,11 @@ test('Escape cancels instead of deselecting, as it does in Illustrator', () => {
 
 test('menu mnemonics are distinct, so Alt+letter is unambiguous', () => {
   const letters = MENU_BAR.map(menuMnemonic)
-  assert.deepEqual(letters, ['e', 'o', 't', 's', 'v', 'w', 'h'])
+  assert.deepEqual(letters, ['f', 'e', 'o', 't', 's', 'v', 'w', 'h'])
   assert.equal(new Set(letters).size, MENU_BAR.length)
-  assert.equal(menuForMnemonic('e'), 0)
-  assert.equal(menuForMnemonic('E'), 0, 'case does not matter')
+  assert.equal(menuForMnemonic('f'), 0)
+  assert.equal(menuForMnemonic('e'), MENU_BAR.findIndex((menu) => menu.label === 'Edit'))
+  assert.equal(menuForMnemonic('E'), 1, 'case does not matter')
   assert.equal(menuForMnemonic('w'), MENU_BAR.findIndex((menu) => menu.label === 'Window'))
   assert.equal(menuForMnemonic('q'), -1, 'an unbound letter opens nothing')
 })
@@ -105,7 +106,7 @@ test('menu mnemonics are distinct, so Alt+letter is unambiguous', () => {
 test('the menu model uses Illustrator names, order, and sane separators', () => {
   assert.deepEqual(
     MENU_BAR.map((menu) => menu.label),
-    ['Edit', 'Object', 'Type', 'Select', 'View', 'Window', 'Help'],
+    ['File', 'Edit', 'Object', 'Type', 'Select', 'View', 'Window', 'Help'],
   )
   for (const menu of MENU_BAR) {
     assert.ok(menuCommands(menu).length > 0, `${menu.label} would be an empty menu`)
@@ -120,7 +121,7 @@ test('the menu model uses Illustrator names, order, and sane separators', () => 
   }
   assert.deepEqual(
     OMITTED_MENUS.map((menu) => menu.label),
-    ['File', 'Effect'],
+    ['Effect'],
   )
 })
 

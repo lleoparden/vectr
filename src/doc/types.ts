@@ -72,16 +72,26 @@ export type TextNode = BaseNode & {
   style: Style
 }
 
+/** Placed raster image (issue #17). The pixels live in the asset registry, keyed by content. */
+export type ImageNode = BaseNode & {
+  type: 'image'
+  /** Content-addressed asset id; the document's `assets` list holds the metadata. */
+  assetId: string
+  width: number
+  height: number
+  style: Style
+}
+
 export type GroupNode = BaseNode & {
   type: 'group'
   /** Paint order: the last child is drawn on top. */
   children: LayerNode[]
 }
 
-export type LayerNode = RectNode | EllipseNode | TextNode | GroupNode
+export type LayerNode = RectNode | EllipseNode | TextNode | ImageNode | GroupNode
 export type ShapeNode = RectNode | EllipseNode
 /** Anything that occupies a rectangular box in the tree and can be transformed by itself. */
-export type LeafNode = RectNode | EllipseNode | TextNode
+export type LeafNode = RectNode | EllipseNode | TextNode | ImageNode
 
 export type Artboard = { id: string; name: string; width: number; height: number }
 
@@ -129,6 +139,15 @@ export function isShape(node: LayerNode): node is ShapeNode {
 
 export function isText(node: LayerNode): node is TextNode {
   return node.type === 'text'
+}
+
+export function isImage(node: LayerNode): node is ImageNode {
+  return node.type === 'image'
+}
+
+/** Nodes that carry a fill: shapes and text. An image's pixels are its appearance. */
+export function supportsFill(node: LayerNode): node is ShapeNode | TextNode {
+  return node.type === 'rect' || node.type === 'ellipse' || node.type === 'text'
 }
 
 /** Local bounds of a node, ignoring its children and transform. */

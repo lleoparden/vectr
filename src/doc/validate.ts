@@ -8,7 +8,7 @@
 
 import { findNode, findParent, findWithin } from './document.ts'
 import { MAX_TEXT_LENGTH } from './document.ts'
-import { isGroup, isText, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
+import { isGroup, isImage, isText, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
 
 export type ValidationCode =
   | 'duplicate-id'
@@ -22,6 +22,8 @@ export type ValidationCode =
   | 'unsupported-version'
   /** The node, or an ancestor of it, is locked (issue #20; replaces the #18 wart). */
   | 'locked'
+  /** An asset record is missing, disallowed, or still referenced (issue #17). */
+  | 'invalid-asset'
 
 export type ValidationIssue = { code: ValidationCode; message: string; nodeId?: NodeId }
 
@@ -77,6 +79,16 @@ export function validateDocument(document: Document): ValidationResult {
         }
         if (node.text.length > MAX_TEXT_LENGTH) {
           return fail('invalid-index', `Text node ${node.id} is longer than ${MAX_TEXT_LENGTH} characters.`, node.id)
+        }
+      }
+      // An image must point at an asset the document carries, so a broken file reference
+      // fails at the boundary instead of drawing nothing (issue #17).
+      if (isImage(node)) {
+        if (node.assetId.trim().length === 0) {
+          return fail('invalid-asset', `Image ${node.id} has no asset reference.`, node.id)
+        }
+        if (!document.assets.some((asset) => asset.id === node.assetId)) {
+          return fail('invalid-asset', `Image ${node.id} references missing asset ${node.assetId}.`, node.id)
         }
       }
       return ok

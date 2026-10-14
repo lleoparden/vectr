@@ -202,6 +202,14 @@ export class DocumentStore {
     this.update({ lastError: null })
   }
 
+  /**
+   * Surfaces a failure that happened before a command could run — an import rejection, for
+   * example — in the same place a rejected command appears, so the UI has one error path.
+   */
+  reportError(code: string, message: string) {
+    this.update({ lastError: { code, message, command: { type: 'batch', commands: [] } } })
+  }
+
   /** True when the id names a group in the current document. */
   isGroupId(id: NodeId): boolean {
     const node = this.state.document.root.children.find((child) => child.id === id) ?? null

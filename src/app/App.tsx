@@ -8,8 +8,10 @@
  * reachable with `?benchmark` so recorded evidence can still be reproduced.
  */
 
+import { useEffect } from 'react'
 import { AboutDialog } from './AboutDialog.tsx'
 import { CanvasView } from './CanvasView.tsx'
+import { handleBeforeClose, RECOVERY_INTERVAL_MS, refreshRecoveryState, writeRecoverySnapshot } from './fileActions.ts'
 import { MenuBar } from './MenuBar.tsx'
 import { StatusBar } from './StatusBar.tsx'
 import { ToolPalette } from './ToolPalette.tsx'
@@ -18,6 +20,27 @@ import { useEditorShortcuts } from './useEditorShortcuts.ts'
 
 export function App() {
   useEditorShortcuts()
+
+  useEffect(() => {
+    // Recovery (issue #19): offer a snapshot from a previous session, keep one rolling snapshot
+    // while the document is dirty, and take a last one before the window unloads.
+    void refreshRecoveryState()
+    const api = window.vectrFiles
+    api?.onBeforeClose(() => {
+      void handleBeforeClose()
+    })
+    const timer = window.setInterval(() => {
+      void writeRecoverySnapshot()
+    }, RECOVERY_INTERVAL_MS)
+    const onUnload = () => {
+      void writeRecoverySnapshot()
+    }
+    window.addEventListener('beforeunload', onUnload)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('beforeunload', onUnload)
+    }
+  }, [])
 
   return (
     <>

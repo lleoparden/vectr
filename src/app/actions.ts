@@ -25,6 +25,7 @@ import {
 import { planDrop } from './layerDrag.ts'
 import type { LayerRow } from './layerRows.ts'
 import { importImageBytes, pickImageFile } from './imageImport.ts'
+import { newDocument, openDocument, recoverDocument, saveDocument } from './fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
 import { createImage } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './viewportOps.ts'
@@ -36,6 +37,11 @@ export const ACTION_IDS = [
   'tool.ellipse',
   'tool.text',
   'file.place',
+  'file.new',
+  'file.open',
+  'file.save',
+  'file.saveAs',
+  'file.recover',
   'type.sizeUp',
   'type.sizeDown',
   'type.alignLeft',
@@ -75,6 +81,11 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.ellipse': 'Ellipse Tool',
   'tool.text': 'Type Tool',
   'file.place': 'Place…',
+  'file.new': 'New',
+  'file.open': 'Open…',
+  'file.save': 'Save',
+  'file.saveAs': 'Save As…',
+  'file.recover': 'Recover Unsaved Work',
   'type.sizeUp': 'Increase Size',
   'type.sizeDown': 'Decrease Size',
   'type.alignLeft': 'Horizontal Align Left',
@@ -332,6 +343,15 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return anyNode((node) => node.hidden)
     case 'object.unlockAll':
       return anyNode((node) => node.locked)
+    case 'file.recover':
+      // Illustrator-style: the command is only available when there is something to recover.
+      return editor.recovery.available
+    case 'file.save':
+    case 'file.saveAs':
+    case 'file.new':
+    case 'file.open':
+    case 'file.place':
+      return true
     case 'object.group':
       return planGroup(editor.document, editor.selection) !== null
     case 'object.ungroup':
@@ -379,6 +399,21 @@ export function runEditorAction(id: EditorActionId): void {
       // Importing is asynchronous (dialog, decode, hashing); failures surface through the
       // store's error path, which the canvas already renders.
       void placeImageFromDialog()
+      return
+    case 'file.new':
+      newDocument()
+      return
+    case 'file.open':
+      void openDocument()
+      return
+    case 'file.save':
+      void saveDocument()
+      return
+    case 'file.saveAs':
+      void saveDocument({ askForPath: true })
+      return
+    case 'file.recover':
+      void recoverDocument()
       return
     case 'type.sizeUp':
       applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, 1) }), 'increase size')

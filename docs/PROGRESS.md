@@ -192,6 +192,25 @@
   imported` (8×8 pixels, 89 bytes, content key `sha256-ab57fee…`), `image undo removes node and
   asset`, `image redo restores both`, and `image drawn from its asset`, with 1,004 shapes at
   render p95 1.30 ms; 107 unit tests pass (10 new) with clean typecheck and build.
+- Phase 1 slice 6, durable local documents (issue #19, branch `feat/durable-documents`, PR #40):
+  the project format (`src/file/format.ts`, `serialize.ts`, `validate.ts`, `atomicWrite.ts`,
+  `recovery.ts`) — a `<name>.vectr/` directory with a canonical, byte-stable `manifest.json`, a
+  separate `metadata.json`, and content-addressed `assets/<key>.<ext>` files, with no base64 in
+  the manifest. `serializeDocument`/`deserializeDocument` are pure and round-trip exactly;
+  `verifyAssets` checks presence, byte length, and content hash on open; version, foreign-file,
+  JSON, and document-validation failures are refused with a code and never a partial load; saves
+  write assets first and rename the manifest into place, so an interrupted save leaves the
+  previous project intact, and prune unreferenced assets. New, Open, Save, Save As, and Recover
+  Unsaved Work ship with Illustrator's chords, a dirty marker, status-bar state, and a native
+  close guard; recovery is one rolling snapshot (30 s while dirty and before unload, no merge,
+  newest wins, cleared on save).
+- Slice 6 evidence: the packaged `[vectr-file]` run passes **11/11** steps on the real
+  filesystem — `save writes a project`, `saving clears the dirty state`, `an edit after save is
+  dirty`, `reopen restores the layer tree`, `reopen restores geometry, text, and the image`,
+  `a reopened document resaves byte-identically` (3208 bytes), `reopened document is clean`,
+  `recovery snapshot is written`, `recovery restores the unsaved work`, `recovery clears after it
+  is consumed`, and `memory recorded after save and reopen` (**453.5 MiB** whole app with one image
+  asset); 119 unit tests pass (12 new) with clean typecheck and build.
 
 ## Next
 

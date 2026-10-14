@@ -337,7 +337,10 @@ export function MenuBar() {
         )
       })}
       <div className="ml-auto flex items-center gap-2 pr-1 text-ui-xs text-ink-faint">
-        <span className="text-ink-muted">{state.document.name}</span>
+        <span className="text-ink-muted">
+          {state.document.name}
+          {state.document.revision !== state.savedRevision ? ' *' : ''}
+        </span>
         <span aria-hidden="true">·</span>
         <span>Vectr</span>
       </div>

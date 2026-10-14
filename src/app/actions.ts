@@ -15,7 +15,9 @@ import { isText, type LayerNode, type NodeId, type TextAlign, type TextNode } fr
 import { documentStore, type EditorState } from '../state/documentStore.ts'
 import { workspaceStore, type PanelId } from '../state/workspaceStore.ts'
 import {
+  duplicatedIds,
   planArrange,
+  planDuplicate,
   planGroup,
   planUngroup,
   stepCommand,
@@ -27,9 +29,9 @@ import type { LayerRow } from './panels/layerRows.ts'
 import { importImageBytes, pickImageFile } from './files/imageImport.ts'
 import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
-import { createImage } from '../doc/document.ts'
+import { createGroup, createImage } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './canvas/viewportOps.ts'
-import type { Command } from '../doc/commands.ts'
+import { isLocked, type Command } from '../doc/commands.ts'
 
 export const ACTION_IDS = [
   'tool.select',
@@ -62,6 +64,8 @@ export const ACTION_IDS = [
   'object.arrangeForward',
   'object.arrangeBackward',
   'object.arrangeBack',
+  'object.duplicate',
+  'layer.new',
   'view.zoomIn',
   'view.zoomOut',
   'view.fitArtboard',
@@ -106,6 +110,8 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'object.arrangeForward': 'Bring Forward',
   'object.arrangeBackward': 'Send Backward',
   'object.arrangeBack': 'Send to Back',
+  'object.duplicate': 'Duplicate',
+  'layer.new': 'New Layer',
   'view.zoomIn': 'Zoom In',
   'view.zoomOut': 'Zoom Out',
   'view.fitArtboard': 'Fit Artboard in Window',
@@ -328,6 +334,20 @@ export async function placeImageFromDialog(): Promise<void> {
   await placeImage(picked.name, picked.mimeType, picked.bytes)
 }
 
+/**
+ * Deletes the unlocked nodes in the selection. A locked layer is skipped rather than making the
+ * whole delete fail, which is the same policy the context menu uses; returns how many went.
+ */
+export function deleteUnlockedSelection(): number {
+  const document = documentStore.getState().document
+  const removable = documentStore.getState().selection.filter((id) => !isLocked(document, id))
+  if (removable.length === 0) return 0
+  const result = documentStore.dispatch({ type: 'removeNodes', nodeIds: removable }, 'delete')
+  if (!result.ok) return 0
+  documentStore.clearSelection()
+  return removable.length
+}
+
 /** Whether an action can do anything right now; menus disable what cannot run. */
 export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
   switch (id) {
@@ -356,6 +376,10 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return planGroup(editor.document, editor.selection) !== null
     case 'object.ungroup':
       return planUngroup(editor.document, editor.selection) !== null
+    case 'object.duplicate':
+      return planDuplicate(editor.document, editor.selection) !== null
+    case 'layer.new':
+      return true
     case 'type.sizeUp':
     case 'type.sizeDown':
     case 'type.alignLeft':
@@ -481,6 +505,25 @@ export function runEditorAction(id: EditorActionId): void {
       const released = plan.filter((step) => step.kind === 'move').map((step) => step.nodeId)
       runPlan(plan, 'ungroup')
       if (released.length > 0) documentStore.setSelection(released)
+      return
+    }
+    case 'object.duplicate': {
+      const plan = planDuplicate(editor.document, selectedIds())
+      if (plan === null) return
+      const created = duplicatedIds(plan)
+      runPlan(plan, 'duplicate')
+      // Illustrator leaves the copies selected, so dragging right after duplicating moves them.
+      if (created.length > 0) documentStore.setSelection(created)
+      return
+    }
+    case 'layer.new': {
+      const document = documentStore.getState().document
+      const layer = createGroup(`Layer ${document.root.children.length + 1}`)
+      runPlan(
+        [{ kind: 'insert', parentId: document.root.id, index: document.root.children.length, nodes: [layer] }],
+        'new layer',
+      )
+      documentStore.setSelection([layer.id])
       return
     }
     case 'object.arrangeFront':

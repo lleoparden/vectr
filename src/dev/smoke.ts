@@ -195,6 +195,42 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
   )
   record('missing font is recorded, not refused', missingFont.ok, missingFont.ok ? 'set to Comic Sans MS' : missingFont.message)
 
+  // Layers panel actions: Duplicate and New Layer, each one undo step with a predictable result.
+  const duplicateTarget = store.getState().document.root.children[0]
+  store.setSelection([duplicateTarget.id])
+  const depthBeforeDuplicate = store.getState().undoDepth
+  const countBeforeDuplicate = store.getState().document.root.children.length
+  runEditorAction('object.duplicate')
+  const afterDuplicate = store.getState().document.root.children
+  const copyId = store.getState().selection[0]
+  record(
+    'duplicate is one entry above the original',
+    store.getState().undoDepth === depthBeforeDuplicate + 1 &&
+      afterDuplicate.length === countBeforeDuplicate + 1 &&
+      copyId !== undefined &&
+      copyId !== duplicateTarget.id &&
+      afterDuplicate[1].id === copyId,
+    `${countBeforeDuplicate} -> ${afterDuplicate.length} top-level, copy at index 1: ${afterDuplicate[1].id === copyId}`,
+  )
+  store.undo()
+  record(
+    'undo removes the duplicate',
+    store.getState().document.root.children.length === countBeforeDuplicate,
+    `${store.getState().document.root.children.length} top-level again`,
+  )
+
+  const depthBeforeLayer = store.getState().undoDepth
+  runEditorAction('layer.new')
+  const withLayer = store.getState().document.root.children
+  const topLayer = withLayer[withLayer.length - 1]
+  record(
+    'new layer lands on top and is selected',
+    store.getState().undoDepth === depthBeforeLayer + 1 &&
+      topLayer.type === 'group' &&
+      store.getState().selection[0] === topLayer.id,
+    `${topLayer.type} "${topLayer.name}" at the top`,
+  )
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

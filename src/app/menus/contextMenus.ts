@@ -5,7 +5,7 @@
  * right-click, in Illustrator's grouping and order, so the two menus cannot drift apart.
  */
 
-import { isLocked } from '../../doc/commands.ts'
+import { deleteUnlockedSelection } from '../actions.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import type { ContextMenuItem } from '../canvas/ContextMenu.tsx'
 
@@ -20,20 +20,16 @@ export function objectContextItems(): ContextMenuItem[] {
     { kind: 'command', id: 'object.group' },
     { kind: 'command', id: 'object.ungroup' },
     { kind: 'separator' },
-    {
-      kind: 'custom',
-      label: 'Delete',
-      enabled: documentStore.getState().selection.length > 0,
-      run: () => {
-        // A locked layer cannot be deleted, so the delete skips locked nodes rather than
-        // failing the whole command (Illustrator refuses the whole delete instead).
-        const document = documentStore.getState().document
-        const removable = documentStore.getState().selection.filter((id) => !isLocked(document, id))
-        if (removable.length === 0) return
-        documentStore.dispatch({ type: 'removeNodes', nodeIds: removable }, 'delete')
-        documentStore.clearSelection()
+      {
+        kind: 'custom',
+        label: 'Delete',
+        enabled: documentStore.getState().selection.length > 0,
+        run: () => {
+          // A locked layer cannot be deleted, so the delete skips locked nodes rather than
+          // failing the whole command (Illustrator refuses the whole delete instead).
+          void deleteUnlockedSelection()
+        },
       },
-    },
     { kind: 'separator' },
     { kind: 'command', id: 'object.hideSelection' },
     { kind: 'command', id: 'object.showAll' },
@@ -52,7 +48,7 @@ export function canvasContextItems(): ContextMenuItem[] {
   ]
 }
 
-/** A Layers-panel row: rename first, the way Illustrator's layer menu starts. */
+/** A Layers-panel row: rename first, then the layer commands, as Illustrator's menu does. */
 export function layerRowContextItems(onRename: () => void): ContextMenuItem[] {
   return [
     {
@@ -61,6 +57,8 @@ export function layerRowContextItems(onRename: () => void): ContextMenuItem[] {
       enabled: documentStore.getState().selection.length === 1,
       run: onRename,
     },
+    { kind: 'command', id: 'object.duplicate' },
+    { kind: 'command', id: 'layer.new' },
     { kind: 'separator' },
     ...objectContextItems(),
   ]

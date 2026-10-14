@@ -26,9 +26,11 @@ import { PropertiesPanel } from './PropertiesPanel.tsx'
 /** The commands each panel group's flyout offers, following Illustrator's panel menus. */
 const GROUP_FLYOUT: Record<string, EditorActionId[]> = {
   'group.layers': [
-    'object.hideSelection',
+    'layer.new',
+    'object.duplicate',
+    'object.group',
+    'object.ungroup',
     'object.showAll',
-    'object.lockSelection',
     'object.unlockAll',
   ],
   'group.style': [],

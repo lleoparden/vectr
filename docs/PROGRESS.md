@@ -298,6 +298,13 @@ renderer, a working layer tree, and a project format the compiler can read.
   imported` (8×8 pixels, 89 bytes, content key `sha256-ab57fee…`), `image undo removes node and
   asset`, `image redo restores both`, and `image drawn from its asset`, with 1,004 shapes at
   render p95 1.30 ms; 107 unit tests pass (10 new) with clean typecheck and build.
+- UI enhancement, owner-requested, after Phase 1 (branch `feat/layers-panel-actions`): the Layers
+  panel gained the foot Illustrator has — New Layer, Duplicate Selection, and Delete Selection —
+  reachable from the panel foot, the Layers flyout, and the row context menu. `duplicateSubtree`
+  deep-copies with fresh ids while sharing content-addressed image assets, and delete now uses one
+  shared locked-aware policy everywhere. **Thumbnails are still the open half**: the row's thumbnail
+  slot remains an empty box, recorded as a divergence. Evidence: 126 unit tests (5 new) and 48
+  packaged smoke steps across four reports.
 - UI enhancement, owner-requested, after Phase 1 (branch `feat/unsaved-changes-dialog`): the
   unsaved-changes warning is now Vectr's own modal instead of a native operating-system message box
   (`src/app/shell/UnsavedChangesDialog.tsx` with the copy in `src/app/files/unsavedPrompt.ts`,

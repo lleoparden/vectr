@@ -21,14 +21,14 @@ import {
   stepCommand,
   type ArrangeWhere,
   type PlanStep,
-} from './arrange.ts'
-import { planDrop } from './layerDrag.ts'
-import type { LayerRow } from './layerRows.ts'
-import { importImageBytes, pickImageFile } from './imageImport.ts'
-import { newDocument, openDocument, recoverDocument, saveDocument } from './fileActions.ts'
+} from './editing/arrange.ts'
+import { planDrop } from './editing/layerDrag.ts'
+import type { LayerRow } from './panels/layerRows.ts'
+import { importImageBytes, pickImageFile } from './files/imageImport.ts'
+import { newDocument, openDocument, recoverDocument, saveDocument } from './files/fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
 import { createImage } from '../doc/document.ts'
-import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './viewportOps.ts'
+import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './canvas/viewportOps.ts'
 import type { Command } from '../doc/commands.ts'
 
 export const ACTION_IDS = [

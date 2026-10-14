@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import type { TextAlign } from '../doc/types.ts'
+import type { TextAlign } from '../../doc/types.ts'
 
 export type TextEditorBox = {
   left: number

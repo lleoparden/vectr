@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App.tsx'
-import { BenchmarkApp } from './app/BenchmarkApp.tsx'
+import { BenchmarkApp } from './bench/BenchmarkApp.tsx'
 import { runEditorSmoke, runEditorStress, runFileRoundTrip } from './dev/smoke.ts'
 import { documentStore } from './state/documentStore.ts'
 import './styles.css'

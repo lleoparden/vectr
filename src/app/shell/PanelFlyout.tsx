@@ -7,10 +7,10 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { ACTION_LABELS, canRunAction, runEditorAction, type EditorActionId } from './actions.ts'
-import { IconFlyout } from './icons.tsx'
-import { shortcutLabel } from './shortcuts.ts'
-import { useEditorState } from '../state/useEditorState.ts'
+import { ACTION_LABELS, canRunAction, runEditorAction, type EditorActionId } from '../actions.ts'
+import { IconFlyout } from '../ui/icons.tsx'
+import { shortcutLabel } from '../menus/shortcuts.ts'
+import { useEditorState } from '../../state/useEditorState.ts'
 
 export function PanelFlyout({ label, items }: { label: string; items: EditorActionId[] }) {
   const state = useEditorState()

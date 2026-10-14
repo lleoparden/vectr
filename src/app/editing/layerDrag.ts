@@ -7,11 +7,11 @@
  * plan is simulated so a rejected step cannot leave a half-applied drag behind.
  */
 
-import { applyCommand, isLocked } from '../doc/commands.ts'
-import { childIndex, findNode, findParent, subtreeIds } from '../doc/document.ts'
-import { isGroup, type Document, type NodeId } from '../doc/types.ts'
+import { applyCommand, isLocked } from '../../doc/commands.ts'
+import { childIndex, findNode, findParent, subtreeIds } from '../../doc/document.ts'
+import { isGroup, type Document, type NodeId } from '../../doc/types.ts'
 import { selectionInPaintOrder, stepCommand, type PlanStep } from './arrange.ts'
-import type { LayerRow } from './layerRows.ts'
+import type { LayerRow } from '../panels/layerRows.ts'
 
 export type DropPlacement = 'before' | 'inside' | 'after'
 

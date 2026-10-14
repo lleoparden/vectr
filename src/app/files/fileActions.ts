@@ -11,13 +11,13 @@
  * a dirty bit.
  */
 
-import { createDocument } from '../doc/document.ts'
-import { assetRegistry } from '../state/assetRegistry.ts'
-import { documentStore } from '../state/documentStore.ts'
-import { requiredAssets, verifyAssets } from '../file/validate.ts'
-import { deserializeDocument, serializeDocument } from '../file/serialize.ts'
-import { projectFileName } from '../file/format.ts'
-import { readRecovery } from '../file/recovery.ts'
+import { createDocument } from '../../doc/document.ts'
+import { assetRegistry } from '../../state/assetRegistry.ts'
+import { documentStore } from '../../state/documentStore.ts'
+import { requiredAssets, verifyAssets } from '../../file/validate.ts'
+import { deserializeDocument, serializeDocument } from '../../file/serialize.ts'
+import { projectFileName } from '../../file/format.ts'
+import { readRecovery } from '../../file/recovery.ts'
 
 /** Autosave interval for the recovery snapshot: bounded work while the document is dirty. */
 export const RECOVERY_INTERVAL_MS = 30_000

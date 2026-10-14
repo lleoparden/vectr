@@ -11,9 +11,9 @@
  * are recorded as not built yet in `docs/DECISIONS.md`.
  */
 
-import { IconChevron } from '../icons.tsx'
-import { PanelFlyout } from '../PanelFlyout.tsx'
-import { DOCK_WIDTH } from '../theme.ts'
+import { IconChevron } from '../ui/icons.tsx'
+import { PanelFlyout } from '../shell/PanelFlyout.tsx'
+import { DOCK_WIDTH } from '../ui/theme.ts'
 import { workspaceStore, type PanelId } from '../../state/workspaceStore.ts'
 import { PANEL_LABELS } from '../../state/workspaceStore.ts'
 import type { EditorActionId } from '../actions.ts'

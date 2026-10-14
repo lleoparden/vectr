@@ -30,7 +30,7 @@ when renderer numbers are being re-measured.
 | `src/file/` | The project format: manifest, serialization, open-time validation, atomic writes, recovery. |
 | `src/render/` | The CanvasKit renderer and the scene builder that turns a document into an ordered draw list. |
 | `src/state/` | The document and workspace stores, the asset registry, and the React hooks around them. |
-| `src/app/` | The editor shell: menu bar, tool palette, canvas, panels, actions, and the editing logic behind them. |
+| `src/app/` | The editor shell: `App.tsx` composes it, `actions.ts` is the action table everything calls, and the folders below group the rest. |
 | `src/bench/` | The renderer benchmark harness, its fixtures, and the benchmark window. |
 | `src/dev/` | The smoke-run entry points used as packaged evidence. |
 | `electron/` | The main process — window, menus, file and image dialogs, the close guard — and the preload bridge. |
@@ -41,6 +41,16 @@ when renderer numbers are being re-measured.
 | `.codex/` | Agent hooks and role definitions for a separate tool; kept because it is in use. |
 | `.github/` | Issue and pull-request templates and the label set. |
 | `scripts/`, `tools/` | Benchmark orchestration, and the Rust helper used for the renderer comparison. |
+
+Inside `src/app/`, one folder per kind of thing:
+
+- `shell/` — menu bar, status bar, tool palette, about dialog, panel flyout.
+- `canvas/` — canvas view, in-place text editor, context menu, viewport math.
+- `menus/` — menu model, shortcut map, shortcut hook, context-menu contents.
+- `panels/` — panel dock and the four panels, plus the layer row model.
+- `editing/` — group/ungroup/arrange planning and drag targeting.
+- `files/` — new/open/save/recovery actions and image import.
+- `ui/` — theme tokens and icons.
 
 `dist/` and `release/` are build output and are ignored. `docs/proposal/` holds the original
 project proposal page, and `docs/assets/` holds the wordmark.

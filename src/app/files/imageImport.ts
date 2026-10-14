@@ -7,7 +7,7 @@
  * tested.
  */
 
-import { importAsset, mimeTypeForName, type AssetImportResult } from '../doc/assets.ts'
+import { importAsset, mimeTypeForName, type AssetImportResult } from '../../doc/assets.ts'
 
 export type PickedImageFile = { name: string; mimeType: string; bytes: Uint8Array }
 

@@ -9,14 +9,14 @@
  */
 
 import { useEffect } from 'react'
-import { AboutDialog } from './AboutDialog.tsx'
-import { CanvasView } from './CanvasView.tsx'
-import { handleBeforeClose, RECOVERY_INTERVAL_MS, refreshRecoveryState, writeRecoverySnapshot } from './fileActions.ts'
-import { MenuBar } from './MenuBar.tsx'
-import { StatusBar } from './StatusBar.tsx'
-import { ToolPalette } from './ToolPalette.tsx'
+import { AboutDialog } from './shell/AboutDialog.tsx'
+import { CanvasView } from './canvas/CanvasView.tsx'
+import { handleBeforeClose, RECOVERY_INTERVAL_MS, refreshRecoveryState, writeRecoverySnapshot } from './files/fileActions.ts'
+import { MenuBar } from './shell/MenuBar.tsx'
+import { StatusBar } from './shell/StatusBar.tsx'
+import { ToolPalette } from './shell/ToolPalette.tsx'
 import { PanelDock } from './panels/PanelDock.tsx'
-import { useEditorShortcuts } from './useEditorShortcuts.ts'
+import { useEditorShortcuts } from './menus/useEditorShortcuts.ts'
 
 export function App() {
   useEditorShortcuts()

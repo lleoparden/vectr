@@ -9,7 +9,7 @@
  * `docs/DECISIONS.md`.
  */
 
-import type { EditorActionId } from './actions.ts'
+import type { EditorActionId } from '../actions.ts'
 
 export type CommandItem = { kind: 'command'; id: EditorActionId; label: string }
 

@@ -10,9 +10,9 @@
  */
 
 import { useEffect } from 'react'
-import { canRunAction, runEditorAction } from './actions.ts'
+import { canRunAction, runEditorAction } from '../actions.ts'
 import { chordFromEvent, matchShortcut } from './shortcuts.ts'
-import { documentStore } from '../state/documentStore.ts'
+import { documentStore } from '../../state/documentStore.ts'
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false

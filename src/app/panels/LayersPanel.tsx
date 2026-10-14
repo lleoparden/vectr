@@ -14,8 +14,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { findNode } from '../../doc/document.ts'
 import type { NodeId } from '../../doc/types.ts'
-import { ContextMenu, type ContextMenuState } from '../ContextMenu.tsx'
-import { layerRowContextItems } from '../contextMenus.ts'
+import { ContextMenu, type ContextMenuState } from '../canvas/ContextMenu.tsx'
+import { layerRowContextItems } from '../menus/contextMenus.ts'
 import {
   IconDisclosureClosed,
   IconDisclosureOpen,
@@ -23,10 +23,10 @@ import {
   IconEyeOff,
   IconLock,
   IconUnlock,
-} from '../icons.tsx'
-import { expandedGroupIds, layerRows, rowDescription, type LayerRow } from '../layerRows.ts'
-import { placementFor } from '../layerDrag.ts'
-import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../theme.ts'
+} from '../ui/icons.tsx'
+import { expandedGroupIds, layerRows, rowDescription, type LayerRow } from './layerRows.ts'
+import { placementFor } from '../editing/layerDrag.ts'
+import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../ui/theme.ts'
 import { runLayerDrop } from '../actions.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'

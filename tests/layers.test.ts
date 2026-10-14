@@ -28,9 +28,9 @@ import {
   selectionInPaintOrder,
   sharedParent,
   stepCommand,
-} from '../src/app/arrange.ts'
-import { placementFor, planDrop, resolveDrop } from '../src/app/layerDrag.ts'
-import { expandedGroupIds, layerRows } from '../src/app/layerRows.ts'
+} from '../src/app/editing/arrange.ts'
+import { placementFor, planDrop, resolveDrop } from '../src/app/editing/layerDrag.ts'
+import { expandedGroupIds, layerRows } from '../src/app/panels/layerRows.ts'
 import type { Document, LayerNode, NodeId } from '../src/doc/types.ts'
 
 function insert(document: Document, nodes: LayerNode[], parentId: NodeId = 'root'): Document {

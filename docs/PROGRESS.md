@@ -276,6 +276,15 @@ renderer, a working layer tree, and a project format the compiler can read.
   `recovery snapshot is written`, `recovery restores the unsaved work`, `recovery clears after it
   is consumed`, and `memory recorded after save and reopen` (**453.5 MiB** whole app with one image
   asset); 119 unit tests pass (12 new) with clean typecheck and build.
+- Repository structure cleanup, on the owner's request (PRs #43 and the `chore/src-app-structure`
+  follow-up): the proposal page and the wordmark moved out of the root into `docs/`, generated logs
+  were deleted, scratch (`.ecc/tmp/`, `.ecc/issues/`, `tools` build output) is ignored, the missing
+  root `README.md` and a `docs/README.md` index were added, an `npm run smoke` script exposes the
+  evidence run, and `src/app/` was regrouped by role into `shell/`, `canvas/`, `menus/`, `panels/`,
+  `editing/`, `files/`, and `ui/` with the benchmark window moved to `src/bench/`. Nothing was
+  renamed and no behavior changed: 99 import specifiers rewritten, identical bundle hash, 119/119
+  tests, and 37/37 packaged smoke steps. The audit and the layout decision are in `docs/PLAN.md`
+  and `docs/DECISIONS.md`.
 
 ## Next
 

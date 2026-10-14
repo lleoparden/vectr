@@ -7,8 +7,8 @@
  * brings the whole artboard back.
  */
 
-import { zoomPercent } from './viewportOps.ts'
-import { useEditorState } from '../state/useEditorState.ts'
+import { zoomPercent } from '../canvas/viewportOps.ts'
+import { useEditorState } from '../../state/useEditorState.ts'
 
 export function StatusBar() {
   const state = useEditorState()

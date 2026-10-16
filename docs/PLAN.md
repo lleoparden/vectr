@@ -24,6 +24,70 @@ The issue and pull-request flow is defined in
   order. Every slice pull request carries its own catalog and `docs/PROGRESS.md`
   update.
 
+## Phase 2 issue tracking
+
+- Epic: [#5 Phase 2 — Core vector illustration](https://github.com/lleoparden/vectr/issues/5)
+- Planning method: ECC architecture decomposition on 2026-10-16. It keeps every
+  change on the existing validated document/command/history path instead of
+  creating a parallel editing model.
+- Pull-request strategy: one fresh, unstacked branch and one merge-commit pull
+  request per slice, in the dependency order below. Big decision-surface changes
+  require owner review and merge under the normal policy; the temporary Phase 1
+  exception has expired.
+- Child issues: [#64 selection](https://github.com/lleoparden/vectr/issues/64),
+  [#65 transforms](https://github.com/lleoparden/vectr/issues/65),
+  [#66 align/clipboard](https://github.com/lleoparden/vectr/issues/66),
+  [#67 artboards](https://github.com/lleoparden/vectr/issues/67),
+  [#68 snapping](https://github.com/lleoparden/vectr/issues/68),
+  [#69 appearance](https://github.com/lleoparden/vectr/issues/69),
+  [#70 gradients](https://github.com/lleoparden/vectr/issues/70), and
+  [#71 isolation/clipping](https://github.com/lleoparden/vectr/issues/71).
+
+### Proposed execution plan — pending the recorded decisions
+
+1. **Selection modes (`SEL-01`, `PATH-01`).** Add direct selection, lasso,
+   hierarchy selection, and editing of the existing rounded-rectangle radius.
+   Reuse hit testing and the one command path; Bézier anchors/handles remain out
+   of scope for this slice.
+2. **Transforms (`SEL-02`).** Add selection bounds/handles and numeric move,
+   scale, rotate, reflect, and shear. Pointer gestures remain one history entry
+   and use the existing `Transform` data rather than a second geometry model.
+3. **Align, distribute, and clipboard (`SEL-03`).** Extend the existing arrange
+   and duplicate planners with deterministic alignment/distribution and copy,
+   cut, and paste. The clipboard boundary must be decided before implementation.
+4. **Artboards and precision canvas (`CAN-01`, `UI-01`).** Add multi-artboard
+   management, rulers, a grid, and guides. This is the only planned slice that
+   changes persisted artboard/guide data; the coordinate and active-artboard
+   contract must be decided first.
+5. **Snapping and Smart Guides (`CAN-02`).** Snap drawing and transforms against
+   the finalized artboard, guide, and selection primitives with keyboard-accessible
+   controls and explicit acceptance fixtures.
+6. **Basic vector appearance (`PAINT-01`, `PAINT-02`).** Add editable fills,
+   strokes, caps, joins, dashes, widths, and named RGB swatches through
+   `setStyle`; CMYK, spot colors, and color books remain deferred.
+7. **Gradients, opacity, and blend modes (`PAINT-03`, `APP-01`).** Add
+   deterministic serializable gradients and a deliberately limited blend-mode
+   set, with renderer cache/memory evidence.
+8. **Isolation and vector clipping masks (`DOC-02`, `APP-02`).** Add isolation
+   as workspace state and a persisted group-owned vector clipping relationship,
+   preserving existing stack, lock/hide, and raster-mask behavior.
+
+### Decisions required before implementation
+
+- Persisted multi-artboard position and active-artboard model.
+- Vectr-only structured clipboard first (recommended) versus operating-system
+  clipboard interoperability.
+- RGB-only swatches for Phase 2 (recommended), plus the initial blend-mode list.
+- A group-owned vector clipping relationship using one existing shape as the
+  clip (recommended), rather than raster masking or compound-path editing.
+
+Every slice must trace UI, document, persistence, compiler, and renderer
+boundaries; preserve exact undo/redo and locked/hidden protections; prove
+save/reopen and recovery for persisted data; run typecheck, tests, build, and
+packaged smoke; and update the catalog, progress record, decision log, and
+compiler matrix in the same pull request. UI slices also record Illustrator
+mapping, deliberate Vectr differences, and unbuilt controls.
+
 ## Phase 0 — Reference catalog and platform decision
 
 - [x] Approve Electron + React + TypeScript as the proposed desktop direction:

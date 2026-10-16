@@ -108,18 +108,14 @@ owner approves a feature plan.
   agent wrote moments earlier: re-read the full diff as a reviewer, post what it
   actually changes, any counter-argument or risk found, what was verified, and any
   residual doubt. An unresolved doubt blocks the merge.
-- Agents may merge a **small** pull request themselves when it is confined to one
-  approved slice or work item, avoids every decision surface listed below, and
-  `npm run typecheck`, `npm test`, and `npm run build` pass on the branch head with
-  the documentation, catalog, and progress updates included. Merges use a merge
-  commit.
-- **Big or important pull requests need the owner's review and merge decision.**
-  That includes any change to the document format or persisted data, the
-  command/undo model, persistence or file I/O, the renderer path or published
-  performance limits, dependencies, the stack, security or permissions, or a
-  public interface later slices build on; anything spanning more than one slice or
-  exceeding a few hundred lines of non-test change; and anything the agent cannot
-  honestly judge.
+- **Temporary Phase 1 merge authority (owner authorization, 2026-10-16).** Until
+  Phase 1 is finished, agents may merge an approved pull request themselves —
+  including an otherwise big or important one — after the required self-review is
+  posted and the branch-head checks, documentation, catalog, and progress updates
+  are recorded. A known verification gap must be stated in the pull request; an
+  unresolved safety, data-loss, or correctness doubt still blocks merge. Merges use
+  a merge commit. This exception expires when Phase 1 finishes, after which big or
+  important pull requests again need the owner's review and merge decision.
 - Agents never squash, rebase, force-push, or delete a branch, and never push
   directly to `main`; every change reaches `main` through a pull request.
 - Use the issue and pull-request templates in `.github/` and apply labels from

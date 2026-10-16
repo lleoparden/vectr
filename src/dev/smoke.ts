@@ -715,6 +715,13 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
 
   newDocument()
   await settle(150)
+  const placeImage = document.querySelector<HTMLButtonElement>('[data-place-image]')
+  const placeLinkedImage = document.querySelector<HTMLButtonElement>('[data-place-linked-image]')
+  record(
+    'the options bar exposes embedded and linked image placement',
+    placeImage?.textContent?.trim() === 'Place image' && placeLinkedImage?.textContent?.trim() === 'Link',
+    `embed ${placeImage === null ? 'missing' : 'present'}, link ${placeLinkedImage === null ? 'missing' : 'present'}`,
+  )
   // 1. The palette groups Rectangle and Ellipse into one slot with a flyout, like Illustrator.
   const slots = document.querySelectorAll('[data-tool-slot]')
   const shapeFlyout = document.querySelector('[data-tool-flyout="shape"]')

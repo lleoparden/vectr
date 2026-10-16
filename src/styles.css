@@ -18,6 +18,8 @@
   --color-chrome-raised: #2f2f37;
   --color-chrome-sunken: #1e1e23;
   --color-chrome-active: #3a3a44;
+  --color-chrome-hover: #34343e;
+  --color-chrome-panel: #292a31;
   --color-hairline: #3c3c45;
 
   /* Ink: text and icon weights. */
@@ -84,10 +86,14 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button:not(:disabled) {
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
 /* One focus treatment for the whole shell, so keyboard use is always visible. */
 :focus-visible {
   outline: 2px solid var(--color-accent);
-  outline-offset: -1px;
+  outline-offset: -2px;
 }
 
 ::-webkit-scrollbar {
@@ -109,24 +115,6 @@ button:disabled {
   max-height: 70vh;
   background: #fbfbfc;
 }
-
-.verdict-pass {
-  color: #7ee0a4;
-}
-
-.verdict-fail {
-  color: #ff8a7a;
-}
-
-pre {
-  max-height: 22rem;
-  overflow: auto;
-  background: #222227;
-  padding: 1rem;
-  border-radius: 0.4rem;
-  font-size: 12px;
-}
-
 
 .verdict-pass {
   color: #7ee0a4;

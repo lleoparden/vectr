@@ -68,7 +68,7 @@ export function ToolPalette() {
       role="toolbar"
       aria-label="Tools"
       aria-orientation="vertical"
-      className="flex shrink-0 flex-col items-center gap-[2px] border-r border-hairline bg-chrome py-1"
+      className="flex shrink-0 flex-col items-center gap-[3px] border-r border-hairline bg-chrome-sunken py-2 shadow-[1px_0_0_rgba(0,0,0,0.2)]"
       style={{ width: PALETTE_WIDTH }}
     >
       {TOOL_GROUPS.map((group) => {
@@ -94,7 +94,7 @@ export function ToolPalette() {
                 setOpenGroup(openGroup === group.id ? null : group.id)
               }}
               className={`flex items-center justify-center rounded-ui ${
-                active ? 'bg-accent text-white' : 'text-ink-muted hover:bg-chrome-active hover:text-ink'
+                active ? 'bg-accent text-white shadow-[0_1px_5px_rgba(124,108,245,0.38)]' : 'text-ink-muted hover:bg-chrome-hover hover:text-ink'
               }`}
               style={{ width: TOOL_BUTTON_SIZE, height: TOOL_BUTTON_SIZE }}
             >

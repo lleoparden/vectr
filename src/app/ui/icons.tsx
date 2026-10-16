@@ -56,6 +56,17 @@ export function IconEllipse(props: IconProps) {
   )
 }
 
+/** Raster placement: an original framed landscape icon, not an Adobe asset. */
+export function IconImage(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="2.3" y="3" width="11.4" height="10" rx="1.1" />
+      <circle cx="5.4" cy="6.2" r="1" />
+      <path d="M3.5 11 L7 7.7 L9.1 9.6 L10.6 8.1 L12.5 11" />
+    </Icon>
+  )
+}
+
 /** Type tool: a serif-free capital T on the 16px grid. */
 export function IconType(props: IconProps) {
   return (

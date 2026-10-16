@@ -669,3 +669,12 @@ renderer, a working layer tree, and a project format the compiler can read.
   Five divergences have been closed since #28: the per-node undo aggregation (#34), Escape
   deselecting, the missing Alt menu mnemonics, the read-only layer tree (#20), and the missing
   context menus (#20).
+
+## UI-01 modern Illustrator shell refinement (2026-10-16, issue #62)
+
+The approved UI-01 slice now gives the existing editor a clearer modern-Illustrator hierarchy:
+layered chrome, restrained hover/active/focus states, a quiet tool rail, and visibly separated dock
+tabs, without changing fixed shell geometry or command behavior. The Control panel now has a visible
+**Place image** / **Link** pair that delegates to the existing embed and linked image flows rather
+than pretending images are a persistent drawing tool. Automated type/test evidence is recorded on
+the issue branch; normal/high-DPI desktop inspection remains required before the slice is merged.

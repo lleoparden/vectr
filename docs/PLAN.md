@@ -164,7 +164,9 @@ See `PROGRESS.md` for the exit evidence and the recorded gaps.
 Before any feature larger than a small documentation update, replace the
 relevant checklist item with an implementation plan and wait for approval.
 
-## Proposed — UI-01 modern Illustrator shell refinement (pending owner approval)
+## Approved — UI-01 modern Illustrator shell refinement
+
+**Tracking:** [#62 UI-01: modern Illustrator shell and visible image placement](https://github.com/lleoparden/vectr/issues/62), a sub-issue of [#3 Phase 1 — Core application foundation](https://github.com/lleoparden/vectr/issues/3).
 
 **Problem.** The Phase 1 workspace has the required Illustrator layout and behavior,
 but its chrome still reads as a collection of equal-weight dark surfaces. The owner
@@ -174,7 +176,8 @@ tool or panel feature.
 **In scope.** On a fresh `enhance/modern-illustrator-shell` branch, refine the
 existing shell only: `src/styles.css`, `src/app/shell/MenuBar.tsx`,
 `src/app/shell/ToolPalette.tsx`, `src/app/shell/ToolOptionsBar.tsx`,
-`src/app/panels/PanelDock.tsx`, and the focused UI assertions in `tests/ui.test.ts`.
+`src/app/panels/PanelDock.tsx`, `src/app/ui/icons.tsx`, and the focused packaged
+UI smoke assertion in `src/dev/smoke.ts`.
 The work will make the menu/control strip, left tool rail, right-panel tab strips,
 and canvas boundary more deliberately layered; improve the visible active, hover,
 and keyboard-focus states; and preserve the established compact desktop metrics.

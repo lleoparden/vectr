@@ -24,6 +24,7 @@ import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { toolOptionsModel, groupFor, type ToolOptionControl } from '../ui/toolOptions.ts'
 import type { ShapeKind } from '../../doc/document.ts'
 import { TOOL_OPTIONS_HEIGHT } from '../ui/theme.ts'
+import { IconImage } from '../ui/icons.tsx'
 
 const SEGMENT_CLASS =
   'rounded-ui border px-2 py-[1px] text-ui-xs transition-colors disabled:opacity-40'
@@ -197,12 +198,33 @@ export function ToolOptionsBar() {
       role="toolbar"
       aria-label="Tool options"
       data-tool-options={state.tool === 'rect' || state.tool === 'ellipse' ? 'shape' : state.tool}
-      className="flex shrink-0 items-center gap-2 overflow-hidden border-b border-hairline bg-chrome px-2"
+      className="flex shrink-0 items-center gap-2 overflow-hidden border-b border-hairline bg-chrome-raised px-2 shadow-[0_1px_0_rgba(0,0,0,0.24)]"
       style={{ height: TOOL_OPTIONS_HEIGHT }}
     >
       {controls.map((control, index) => (
         <Control key={`${control.kind}-${index}`} control={control} />
       ))}
+      <span className="ml-auto flex items-center" role="group" aria-label="Place image">
+        <button
+          type="button"
+          data-place-image
+          title="Place embedded image"
+          className="flex items-center gap-1 rounded-l-ui border border-hairline bg-chrome-panel px-2 py-[2px] text-ui-xs text-ink-muted hover:border-accent hover:bg-chrome-hover hover:text-ink"
+          onClick={() => runEditorAction('file.place')}
+        >
+          <IconImage size={14} />
+          Place image
+        </button>
+        <button
+          type="button"
+          data-place-linked-image
+          title="Place linked image"
+          className="-ml-px rounded-r-ui border border-hairline bg-chrome-panel px-2 py-[2px] text-ui-xs text-ink-muted hover:border-accent hover:bg-chrome-hover hover:text-ink"
+          onClick={() => runEditorAction('file.placeLinked')}
+        >
+          Link
+        </button>
+      </span>
     </div>
   )
 }

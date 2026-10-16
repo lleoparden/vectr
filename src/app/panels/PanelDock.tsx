@@ -56,14 +56,14 @@ export function PanelDock() {
   return (
     <aside
       aria-label="Panels"
-      className="flex shrink-0 flex-col overflow-hidden border-l border-hairline bg-chrome"
+      className="flex shrink-0 flex-col overflow-hidden border-l border-hairline bg-chrome-panel shadow-[-1px_0_0_rgba(0,0,0,0.22)]"
       style={{ width: DOCK_WIDTH }}
     >
       {groups.map((group) => {
         const tabs = group.tabs.filter((tab) => workspace.visible[tab])
         return (
-          <section key={group.id} className="flex min-h-0 flex-col border-b border-hairline">
-            <div className="flex items-stretch border-b border-hairline bg-chrome-raised" role="tablist">
+          <section key={group.id} className="flex min-h-0 flex-col border-b border-hairline bg-chrome">
+            <div className="flex items-stretch border-b border-hairline bg-chrome-raised shadow-[inset_0_-1px_0_rgba(0,0,0,0.18)]" role="tablist">
               {tabs.map((tab) => (
                 <button
                   key={tab}
@@ -78,8 +78,8 @@ export function PanelDock() {
                   }
                   className={`flex-1 px-2 py-[5px] text-ui-xs ${
                     !group.collapsed && group.active === tab
-                      ? 'bg-chrome text-ink'
-                      : 'text-ink-faint hover:bg-chrome-active hover:text-ink-muted'
+                      ? 'bg-chrome text-ink shadow-[inset_0_2px_0_var(--color-accent)]'
+                      : 'text-ink-faint hover:bg-chrome-hover hover:text-ink-muted'
                   }`}
                   onClick={() => workspaceStore.togglePanel(tab)}
                 >

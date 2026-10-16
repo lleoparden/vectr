@@ -1498,3 +1498,15 @@ Two honest limits are part of the decision rather than hidden behind it:
   it is not an Illustrator vector clipping mask and has no generic mask editor. Image tracing,
   clipping masks, network links, and colour-management work remain separate capability areas.
 
+## 2026-10-16 — UI-01 modern Illustrator shell refinement (issue #62)
+
+- The shell remains deliberately Illustrator-familiar in layout, not copied styling: menu bar,
+  Control panel, left tool rail, central pasteboard, and right dock stay fixed in their established
+  geometry while Vectr's dark-violet identity, Inter typography, and original icons remain intact.
+- The Control panel exposes **Place image** and **Link** as a visible pair. Both delegate to the
+  existing File placement actions; they are not a new Image tool and do not change document, import,
+  history, or renderer behavior.
+- Chrome hierarchy is refined through existing tokens and compact surface/focus/active states only.
+  Floating/resizable panels, rulers, guides, grids, and unbuilt Appearance/Align/Transform controls
+  remain out of scope.
+

@@ -20,7 +20,7 @@ import { useEditorState } from '../../state/useEditorState.ts'
 type Interactive = CommandItem | Extract<MenuItem, { kind: 'submenu' }>
 
 const TITLE_CLASS =
-  'rounded-ui px-2 py-[3px] text-ui-sm text-ink hover:bg-chrome-active aria-expanded:bg-chrome-active'
+  'rounded-ui px-2 py-[3px] text-ui-sm text-ink-muted hover:bg-chrome-hover hover:text-ink aria-expanded:bg-chrome-active aria-expanded:text-ink'
 const ITEM_CLASS = 'flex w-full items-center justify-between gap-6 px-3 py-[3px] text-left text-ui-sm'
 const PANEL_CLASS = 'absolute z-40 rounded-ui border border-hairline bg-chrome-raised py-1 shadow-lg shadow-black/40'
 
@@ -205,7 +205,7 @@ export function MenuBar() {
       ref={barRef}
       role="menubar"
       aria-label="Main menu"
-      className="relative z-30 flex h-[26px] shrink-0 items-center border-b border-hairline bg-chrome px-1"
+      className="relative z-30 flex h-[26px] shrink-0 items-center border-b border-hairline bg-chrome-panel px-1 shadow-[0_1px_0_rgba(0,0,0,0.38)]"
     >
       {MENU_BAR.map((menu, index) => {
         let slot = -1

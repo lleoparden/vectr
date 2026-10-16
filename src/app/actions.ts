@@ -44,6 +44,7 @@ export const ACTION_IDS = [
   'tool.arc',
   'tool.text',
   'file.place',
+  'file.placeLinked',
   'file.new',
   'file.open',
   'file.save',
@@ -96,6 +97,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.arc': 'Arc Tool',
   'tool.text': 'Type Tool',
   'file.place': 'Place…',
+  'file.placeLinked': 'Place Linked…',
   'file.new': 'New',
   'file.open': 'Open…',
   'file.save': 'Save',
@@ -301,6 +303,7 @@ export async function placeImage(
   name: string,
   mimeType: string,
   bytes: Uint8Array,
+  sourcePath?: string,
 ): Promise<NodeId | null> {
   const document = documentStore.getState().document
   const imported = await importImageBytes(name, mimeType, bytes, document.assets.length)
@@ -308,7 +311,7 @@ export async function placeImage(
     documentStore.reportError(imported.code, imported.message)
     return null
   }
-  const { ref } = imported.asset
+  const ref = sourcePath === undefined ? imported.asset.ref : { ...imported.asset.ref, sourcePath }
   const artboard = document.artboards[0]
   const node = createImage(
     name,
@@ -466,10 +469,66 @@ export function setToolTextAlign(align: 'left' | 'center' | 'right'): void {
 }
 
 /** Opens the platform file dialog and places whatever the user picks. */
-export async function placeImageFromDialog(): Promise<void> {
+export async function placeImageFromDialog(linked = false): Promise<void> {
   const picked = await pickImageFile()
   if (picked === null) return
-  await placeImage(picked.name, picked.mimeType, picked.bytes)
+  await placeImage(picked.name, picked.mimeType, picked.bytes, linked ? picked.sourcePath : undefined)
+}
+
+/** Replaces a selected image with a newly chosen external file in one undo step. */
+export async function relinkImageFromDialog(nodeId: NodeId): Promise<void> {
+  const picked = await pickImageFile()
+  if (picked === null) return
+  const document = documentStore.getState().document
+  const imported = await importImageBytes(picked.name, picked.mimeType, picked.bytes, document.assets.length)
+  if (!imported.ok) {
+    documentStore.reportError(imported.code, imported.message)
+    return
+  }
+  const ref = { ...imported.asset.ref, sourcePath: picked.sourcePath }
+  const exists = document.assets.some((asset) => asset.id === ref.id)
+  const result = documentStore.dispatch(
+    exists
+      ? { type: 'setImageAsset', nodeId, assetId: ref.id, width: ref.width, height: ref.height }
+      : { type: 'batch', commands: [
+          { type: 'addAsset', asset: ref },
+          { type: 'setImageAsset', nodeId, assetId: ref.id, width: ref.width, height: ref.height },
+        ] },
+    'relink image',
+  )
+  if (!result.ok) {
+    documentStore.reportError(result.code, result.message)
+    return
+  }
+  assetRegistry.put({ ref, bytes: imported.asset.bytes, name: imported.asset.name })
+}
+
+/** Adds a picked raster asset as the selected image's alpha mask in one undo step. */
+export async function setImageMaskFromDialog(nodeId: NodeId): Promise<void> {
+  const picked = await pickImageFile()
+  if (picked === null) return
+  const document = documentStore.getState().document
+  const imported = await importImageBytes(picked.name, picked.mimeType, picked.bytes, document.assets.length)
+  if (!imported.ok) {
+    documentStore.reportError(imported.code, imported.message)
+    return
+  }
+  const ref = imported.asset.ref
+  const exists = document.assets.some((asset) => asset.id === ref.id)
+  const result = documentStore.dispatch(
+    exists
+      ? { type: 'setImageMask', nodeId, maskAssetId: ref.id }
+      : { type: 'batch', commands: [
+          { type: 'addAsset', asset: ref },
+          { type: 'setImageMask', nodeId, maskAssetId: ref.id },
+        ] },
+    'set image mask',
+  )
+  if (!result.ok) {
+    documentStore.reportError(result.code, result.message)
+    return
+  }
+  assetRegistry.put({ ref, bytes: imported.asset.bytes, name: imported.asset.name })
 }
 
 /**
@@ -509,6 +568,7 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     case 'file.new':
     case 'file.open':
     case 'file.place':
+    case 'file.placeLinked':
       return true
     case 'object.group':
       return planGroup(editor.document, editor.selection) !== null
@@ -567,6 +627,9 @@ export function runEditorAction(id: EditorActionId): void {
       // Importing is asynchronous (dialog, decode, hashing); failures surface through the
       // store's error path, which the canvas already renders.
       void placeImageFromDialog()
+      return
+    case 'file.placeLinked':
+      void placeImageFromDialog(true)
       return
     case 'file.new':
       requestNewDocument()

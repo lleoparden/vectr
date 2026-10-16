@@ -27,6 +27,7 @@ import {
   type Document,
   type GroupNode,
   type ImageNode,
+  type ImageCrop,
   type LayerNode,
   type NodeId,
   type Style,
@@ -59,6 +60,9 @@ export type Command =
   | { type: 'addAsset'; asset: AssetRef }
   /** Removes an unreferenced asset record. */
   | { type: 'removeAsset'; assetId: string }
+  | { type: 'setImageCrop'; nodeId: NodeId; crop: ImageCrop }
+  | { type: 'setImageMask'; nodeId: NodeId; maskAssetId: string | null }
+  | { type: 'setImageAsset'; nodeId: NodeId; assetId: string; width: number; height: number }
   | { type: 'moveNode'; nodeId: NodeId; parentId: NodeId; index: number }
   /**
    * Several commands that undo and redo as one step (issue #34). Its inverse is a batch
@@ -424,12 +428,67 @@ export function applyCommand(document: Document, command: Command): CommandResul
       }
     }
 
+    case 'setImageCrop': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Image ${command.nodeId} does not exist.`)
+      if (node.type !== 'image') return rejected('invalid-asset', `${command.nodeId} is not an image.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Image ${command.nodeId} is locked.`)
+      const crop = { ...command.crop }
+      if (
+        ![crop.x, crop.y, crop.width, crop.height].every(Number.isFinite) ||
+        crop.x < 0 || crop.y < 0 || crop.width <= 0 || crop.height <= 0 ||
+        crop.x + crop.width > 1 || crop.y + crop.height > 1
+      ) {
+        return rejected('invalid-asset', 'Crop must stay inside the image bounds.')
+      }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, node.id, (current) => current.type === 'image' ? { ...current, crop } : current)),
+        inverse: { type: 'setImageCrop', nodeId: node.id, crop: { ...node.crop } },
+      }
+    }
+
+    case 'setImageMask': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Image ${command.nodeId} does not exist.`)
+      if (node.type !== 'image') return rejected('invalid-asset', `${command.nodeId} is not an image.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Image ${command.nodeId} is locked.`)
+      if (command.maskAssetId !== null && !document.assets.some((asset) => asset.id === command.maskAssetId)) {
+        return rejected('invalid-asset', `Mask asset ${command.maskAssetId} is not in the document.`)
+      }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, node.id, (current) => current.type === 'image' ? { ...current, maskAssetId: command.maskAssetId } : current)),
+        inverse: { type: 'setImageMask', nodeId: node.id, maskAssetId: node.maskAssetId },
+      }
+    }
+
+    case 'setImageAsset': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Image ${command.nodeId} does not exist.`)
+      if (node.type !== 'image') return rejected('invalid-asset', `${command.nodeId} is not an image.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Image ${command.nodeId} is locked.`)
+      if (!document.assets.some((asset) => asset.id === command.assetId)) {
+        return rejected('invalid-asset', `Asset ${command.assetId} is not in the document.`)
+      }
+      if (!Number.isFinite(command.width) || !Number.isFinite(command.height) || command.width <= 0 || command.height <= 0) {
+        return rejected('invalid-asset', 'Image dimensions must be positive.')
+      }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, node.id, (current) => current.type === 'image' ? {
+          ...current, assetId: command.assetId, width: command.width, height: command.height,
+        } : current)),
+        inverse: { type: 'setImageAsset', nodeId: node.id, assetId: node.assetId, width: node.width, height: node.height },
+      }
+    }
+
     case 'removeAsset': {
       const asset = document.assets.find((existing) => existing.id === command.assetId)
       if (asset === undefined) return rejected('absent-node', `Asset ${command.assetId} does not exist.`)
       const referenced = paintOrder(document).some((id) => {
         const node = findNode(document, id)
-        return node !== null && node.type === 'image' && node.assetId === command.assetId
+        return node !== null && node.type === 'image' && (node.assetId === command.assetId || node.maskAssetId === command.assetId)
       })
       if (referenced) {
         return rejected('invalid-asset', `Asset ${command.assetId} is still used by an image.`)

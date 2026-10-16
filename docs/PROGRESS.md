@@ -150,7 +150,7 @@ an explicit Save is acceptable.
 | SEL-01 | building (pointer and keyboard object selection) | **building.** Click, shift-click, marquee, select-all, Escape, inherited locks. Missing: direct selection, lasso, anchor-level selection. |
 | SEL-03 | building (reorder, group, ungroup) | **building.** Reorder, group, ungroup, arrange, duplicate, new layer, locked-aware delete. Missing: **distribute, copy/paste, and global edit**. |
 | TYPE-01 | building (plain point text) | **building.** Point text with exact-inverse commands, a measured box, alignment, size, colour. Missing: **area text, text on a path, threaded text**, and typography UI beyond the options bar. |
-| IMAGE-01 | building (place and embed) | **building.** Place by dialog and by drop, embed with content-addressed bytes, verification, a placeholder for a missing asset. Missing: **link/relink, crop, image masks**. |
+| IMAGE-01 | building (place, embed, link, relink, crop, masks) | **building.** PNG/JPEG Place and Place Linked, content-addressed embedded assets, external linked sources, missing-link placeholder/relink, non-destructive crop, and raster alpha masks with exact-inverse commands. Still missing: clipping masks, tracing, generic mask editing, and colour management. |
 
 The honest summary: the phase table is accurate about what was expected, and PATH-01 was the only row
 on the owner's list whose content was actually absent; the others are missing *parts* of rows already
@@ -312,10 +312,9 @@ Recorded gaps and limitations, so Phase 2 starts from an honest baseline:
 - **No GUI automation.** Drag, the inline text editor's overlay, the native dialogs, and the window
   close guard are verified by their pure logic, by the store-level steps, and by construction — not
   by driving the real window.
-- Fourteen documented divergences from Illustrator remain (`docs/DECISIONS.md`), all of them
-  features Vectr does not have yet: read-only geometry/stroke fields, no rulers/guides/workspaces,
-  no isolation mode, no duplicate/copy-paste, no image cropping or relinking, no area text or
-  character styles, and Layers thumbnails.
+- Documented divergences from Illustrator remain (`docs/DECISIONS.md`), including read-only
+  geometry/stroke fields, no rulers/guides/workspaces, no isolation mode, no duplicate/copy-paste,
+  no vector clipping masks or image tracing, no area text or character styles, and Layers thumbnails.
 - One editor window and one document at a time; no tabs or multiple documents.
 - The recovery snapshot keeps one rolling copy with no merge, so a crash after a long unsaved
   session can lose the state from before that session's last snapshot.

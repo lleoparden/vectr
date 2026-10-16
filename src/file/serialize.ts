@@ -7,7 +7,7 @@
  */
 
 import { validateDocument } from '../doc/validate.ts'
-import type { AssetRef, Document } from '../doc/types.ts'
+import type { AssetRef, Document, GroupNode, LayerNode } from '../doc/types.ts'
 import { MANIFEST_VERSION, canonicalJson, manifestFor, type Manifest } from './format.ts'
 
 export type SerializeResult = { manifest: string; assets: AssetRef[] }
@@ -29,7 +29,7 @@ export type DeserializeResult =
   | { ok: false; code: DeserializeFailure; message: string }
 
 /** Format versions this build can open, plus the hook later migrations plug into. */
-export const SUPPORTED_FORMAT_VERSIONS = [1, 2]
+export const SUPPORTED_FORMAT_VERSIONS = [1, 2, 3]
 export const MIGRATIONS: Record<number, (manifest: Manifest) => Manifest> = {}
 
 /**
@@ -69,14 +69,15 @@ export function deserializeDocument(text: string): DeserializeResult {
     }
   }
 
+  const upgraded = migrated.formatVersion < 3 ? upgradeImages(migrated) : migrated
   const document: Document = {
-    formatVersion: migrated.formatVersion,
-    revision: typeof migrated.documentRevision === 'number' ? migrated.documentRevision : 0,
-    id: typeof migrated.id === 'string' ? migrated.id : 'document',
-    name: typeof migrated.name === 'string' ? migrated.name : 'Untitled',
-    artboards: Array.isArray(migrated.artboards) ? migrated.artboards : [],
-    root: migrated.root,
-    assets: Array.isArray(migrated.assets) ? migrated.assets : [],
+    formatVersion: upgraded.formatVersion,
+    revision: typeof upgraded.documentRevision === 'number' ? upgraded.documentRevision : 0,
+    id: typeof upgraded.id === 'string' ? upgraded.id : 'document',
+    name: typeof upgraded.name === 'string' ? upgraded.name : 'Untitled',
+    artboards: Array.isArray(upgraded.artboards) ? upgraded.artboards : [],
+    root: upgraded.root,
+    assets: Array.isArray(upgraded.assets) ? upgraded.assets : [],
   }
 
   const validation = validateDocument(document)
@@ -87,5 +88,15 @@ export function deserializeDocument(text: string): DeserializeResult {
       message: `The document is not valid (${validation.issue.code}): ${validation.issue.message}`,
     }
   }
-  return { ok: true, document, manifest: migrated }
+  return { ok: true, document, manifest: upgraded }
+}
+
+/** v1/v2 images occupied their complete source asset; v3 makes that implicit state explicit. */
+function upgradeImages(manifest: Manifest): Manifest {
+  const upgrade = (node: LayerNode): LayerNode => {
+    if (node.type === 'group') return { ...node, children: node.children.map(upgrade) } as GroupNode
+    if (node.type !== 'image') return node
+    return { ...node, crop: { x: 0, y: 0, width: 1, height: 1 }, maskAssetId: null }
+  }
+  return { ...manifest, formatVersion: 3, root: upgrade(manifest.root) as GroupNode }
 }

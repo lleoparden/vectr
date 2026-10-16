@@ -475,13 +475,28 @@ export class EditorRenderer {
       )
       return
     }
-    recording.drawImageRect(
-      image,
-      this.kit.XYWHRect(0, 0, image.width(), image.height()),
-      this.kit.XYWHRect(0, 0, shape.width, shape.height),
-      this.paintFor('fill', '#ffffff', 0, shape.opacity),
-      false,
+    const crop = shape.crop ?? { x: 0, y: 0, width: 1, height: 1 }
+    const source = this.kit.XYWHRect(
+      image.width() * crop.x,
+      image.height() * crop.y,
+      image.width() * crop.width,
+      image.height() * crop.height,
     )
+    const destination = this.kit.XYWHRect(0, 0, shape.width, shape.height)
+    const mask = shape.maskAssetId === null ? undefined : this.images.get(shape.maskAssetId)
+    if (mask === undefined) {
+      if (shape.maskAssetId !== null) this.missingAssets.add(shape.maskAssetId)
+      recording.drawImageRect(image, source, destination, this.paintFor('fill', '#ffffff', 0, shape.opacity), false)
+      return
+    }
+    recording.saveLayer()
+    recording.drawImageRect(image, source, destination, this.paintFor('fill', '#ffffff', 0, shape.opacity), false)
+    const maskPaint = new this.kit.Paint()
+    maskPaint.setAntiAlias(true)
+    maskPaint.setBlendMode(this.kit.BlendMode.DstIn)
+    recording.drawImageRect(mask, this.kit.XYWHRect(0, 0, mask.width(), mask.height()), destination, maskPaint, false)
+    maskPaint.delete()
+    recording.restore()
   }
 
   /** Width of one line, from the font's own glyph advances. */

@@ -164,6 +164,115 @@ See `PROGRESS.md` for the exit evidence and the recorded gaps.
 Before any feature larger than a small documentation update, replace the
 relevant checklist item with an implementation plan and wait for approval.
 
+## Proposed — UI-01 modern Illustrator shell refinement (pending owner approval)
+
+**Problem.** The Phase 1 workspace has the required Illustrator layout and behavior,
+but its chrome still reads as a collection of equal-weight dark surfaces. The owner
+asked for a closer, more modern Illustrator feel without turning this into a new
+tool or panel feature.
+
+**In scope.** On a fresh `enhance/modern-illustrator-shell` branch, refine the
+existing shell only: `src/styles.css`, `src/app/shell/MenuBar.tsx`,
+`src/app/shell/ToolPalette.tsx`, `src/app/shell/ToolOptionsBar.tsx`,
+`src/app/panels/PanelDock.tsx`, and the focused UI assertions in `tests/ui.test.ts`.
+The work will make the menu/control strip, left tool rail, right-panel tab strips,
+and canvas boundary more deliberately layered; improve the visible active, hover,
+and keyboard-focus states; and preserve the established compact desktop metrics.
+
+**Illustrator mapping.** This keeps Illustrator's menu bar, Control panel beneath
+it, left tool palette, central pasteboard, right-docked panel groups, Layers-first
+ordering, terminology, and shortcut behavior. The deliberately Vectr-specific
+dark-violet color system, Inter type, and original icons stay unchanged. No Adobe
+or VectorCraft assets, branding, screenshots, or copied styling are permitted.
+
+**Out of scope.** No new commands, tools, menus, panels, document fields,
+persistence, renderer changes, keyboard bindings, dependencies, resizeable or
+floating panels, rulers, guides, grids, or unimplemented Appearance/Transform/
+Align controls. Read-only fields remain honest rather than becoming inert inputs.
+
+**User-flow and data impact.** The only affected flow is visual navigation of the
+existing editor shell. The document command path, layer tree, file/recovery path,
+renderer, IPC, and compiler contract are untouched; the change must not create,
+retain, expose, or discard user work.
+
+**Smallest implementation.** Reuse the current CSS theme tokens and component
+classes rather than add a design system or dependency. Adjust only shell surface,
+border, and state classes; keep `DOCK_WIDTH`, `PALETTE_WIDTH`, menu ordering,
+tool grouping, panel behavior, and action wiring unchanged. Remove the duplicated
+global `pre`/verdict CSS declarations while touching the stylesheet.
+
+**Acceptance and evidence.** Existing menus, palette buttons, panel tabs/flyouts,
+shortcuts, focus indicators, Layers actions, and canvas pointer behavior remain
+unchanged. Add focused assertions only if a token or model-level shell invariant
+changes; styling itself is verified in the packaged desktop smoke run plus a
+manual Windows visual pass at normal and high DPI. Run `npm run typecheck`,
+`npm test`, `npm run build`, and `npm run smoke`; record the Illustrator mapping,
+the visual evidence, any divergence, and the results in `docs/DECISIONS.md`,
+`docs/PROGRESS.md`, and `docs/PARITY_CATALOG.md` in the same pull request.
+
+**Risks and rollback.** Denser contrast could weaken legibility or obscure focus;
+the fixed geometry is therefore preserved and keyboard focus is tested. CSS-only
+regression is isolated to this branch and rolls back by reverting the slice.
+
+## Approved — IMAGE-01 completion: linked images, relink, crop, and masks
+
+**Tracking:** [#58 IMAGE-01 follow-up: linked images, relink, crop, and raster masks](https://github.com/lleoparden/vectr/issues/58), a sub-issue of [#3 Phase 1 — Core application foundation](https://github.com/lleoparden/vectr/issues/3).
+
+**Problem.** Vectr currently places and embeds PNG/JPEG assets safely, but `IMAGE-01`
+still lacks the linked-image, relink, crop, and image-mask workflows named in the
+catalog. The owner approved completing this capability before the UI refinement.
+
+**Scope and document contract.** On `enhance/image-workflows`, extend the versioned
+document and serializable command model with: (1) an asset storage mode (`embedded`
+or `linked`) and a recorded external path for linked assets; (2) a non-destructive,
+normalised crop rectangle on an image node; and (3) an optional raster mask asset on
+an image node. A linked file is never copied into the ordinary project asset folder;
+it is explicitly reported as missing, changed, or unreadable rather than being
+silently substituted. Cropping and mask changes are commands with exact inverses.
+Existing v1/v2 embedded documents continue to open unchanged; the writer moves to
+the next format version only after the reader and validation accept the old forms.
+
+**User flows.** File ▸ Place offers Embed or Link. The selected image may be relinked
+from Properties when its source is unavailable or intentionally replaced. Properties
+also exposes crop bounds and Set/Clear Mask for the selected image; mask selection
+uses the same guarded PNG/JPEG import boundary. The renderer draws the crop and
+applies the raster mask; missing main or mask content remains a labelled placeholder.
+
+**Boundaries and safety.** The renderer receives only decoded runtime bytes from the
+asset registry; Electron alone opens or rereads a linked path. Project save writes
+only embedded bytes. Recovery snapshots carry the runtime bytes required to restore
+unsaved linked work, but restoration retains the link metadata and reports if the
+source has changed. All imported/relinked/mask bytes use the existing MIME, byte,
+pixel, count, decode, hash, and validation limits. A failed read, decode, relink,
+or command leaves the current document and registry untouched.
+
+**Likely files.** `src/doc/{types,document,commands,validate,assets}.ts`,
+`src/file/{format,serialize,validate}.ts`, `src/render/{scene,EditorRenderer}.ts`,
+`src/state/assetRegistry.ts`, `src/app/{actions.ts,canvas/CanvasView.tsx,files/*,
+panels/PropertiesPanel.tsx,menus/*}.ts[x]`, `electron/{main,preload}.cjs`, type
+declarations, the image/file/editor/UI tests, packaged smoke steps, and the catalog,
+progress, and decisions records. The compiler is not changed: it continues to state
+its raster-image limitation explicitly.
+
+**Illustrator mapping and deliberate limits.** Place supports Embed and Link; relink
+is explicit; crop and a raster opacity mask are non-destructive. Vectr will not add
+image tracing, vector clipping masks, live effects, CMYK/color management, linked
+network assets, or a generic mask editor in this slice. Those are separate capability
+areas and must not be implied by a raster mask control.
+
+**Acceptance.** Tests prove exact undo/redo, save/reopen, old-format readability,
+asset pruning, recovery, missing/changed-link reporting, invalid-input refusal,
+crop source-rectangle correctness, and mask lifecycle/disposal. The packaged smoke
+run places embedded and linked images, crops and masks an image, saves/reopens,
+relinks a missing source, and checks recovery. Run typecheck, tests, build, smoke,
+and representative/stress memory evidence; update `IMAGE-01`, `DOC-04`, and the
+recorded limitations in the same branch.
+
+**Risk and rollback.** This touches persistence and image memory, so it is an
+important change: no merge without full evidence and self-review. The format reader
+remains backward-compatible and reverting the branch preserves previously saved
+documents.
+
 ## Repository structure cleanup (owner request, 2026-10-14)
 
 The owner reported that the folder and file structure had become a mess and asked for it to be

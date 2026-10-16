@@ -154,6 +154,24 @@ test('a mixed document survives a manifest round trip exactly', async () => {
   assert.deepEqual(assets, document.assets)
 })
 
+test('v2 image manifests gain an explicit full crop and no mask on open', async () => {
+  const { document } = await mixedDocument()
+  const legacy = JSON.parse(serializeDocument(document).manifest) as { formatVersion: number; root: { children: Array<Record<string, unknown>> } }
+  legacy.formatVersion = 2
+  const image = legacy.root.children.find((node) => node.type === 'image')
+  assert.notEqual(image, undefined)
+  delete image?.crop
+  delete image?.maskAssetId
+
+  const parsed = deserializeDocument(JSON.stringify(legacy))
+  assert.equal(parsed.ok, true, parsed.ok ? '' : parsed.message)
+  if (!parsed.ok) return
+  const reopened = parsed.document.root.children.find((node) => node.type === 'image')
+  assert.equal(parsed.document.formatVersion, 3)
+  assert.deepEqual(reopened?.type === 'image' ? reopened.crop : null, { x: 0, y: 0, width: 1, height: 1 })
+  assert.equal(reopened?.type === 'image' ? reopened.maskAssetId : undefined, null)
+})
+
 test('saving an unchanged document twice produces byte-identical manifests', async () => {
   const { document } = await mixedDocument()
   const first = serializeDocument(document).manifest
@@ -240,6 +258,11 @@ test('asset verification catches missing, truncated, and replaced files', async 
   replaced[replaced.length - 1] = 42
   const swapped = await verifyAssets(document, new Map([[asset.id, replaced]]))
   assert.equal(swapped.ok ? '' : swapped.code, 'hash-mismatch')
+
+  const linked: Document = { ...document, assets: [{ ...asset, sourcePath: 'C:/images/photo.png' }] }
+  const unavailableLink = await verifyAssets(linked, new Map())
+  assert.equal(unavailableLink.ok, true, 'a missing link keeps the document open for relinking')
+  if (unavailableLink.ok) assert.equal(unavailableLink.available.length, 0)
 })
 
 test('writing a project stores each asset once and keeps the manifest byte-identical', async () => {

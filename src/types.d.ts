@@ -31,6 +31,7 @@ declare global {
         mimeType: string
         byteLength: number
         bytes: Uint8Array
+        sourcePath: string
       } | null>
       openProject: () => Promise<
         | { ok: true; canceled: true }

@@ -9,7 +9,7 @@
 
 import { importAsset, mimeTypeForName, type AssetImportResult } from '../../doc/assets.ts'
 
-export type PickedImageFile = { name: string; mimeType: string; bytes: Uint8Array }
+export type PickedImageFile = { name: string; mimeType: string; bytes: Uint8Array; sourcePath?: string }
 
 /** Opens the platform file dialog; returns null when the user cancels. */
 export async function pickImageFile(): Promise<PickedImageFile | null> {
@@ -17,7 +17,7 @@ export async function pickImageFile(): Promise<PickedImageFile | null> {
   if (api !== undefined) {
     const picked = await api.openImage()
     if (picked === null) return null
-    return { name: picked.name, mimeType: picked.mimeType, bytes: new Uint8Array(picked.bytes) }
+    return { name: picked.name, mimeType: picked.mimeType, bytes: new Uint8Array(picked.bytes), sourcePath: picked.sourcePath }
   }
   return pickImageWithInput()
 }

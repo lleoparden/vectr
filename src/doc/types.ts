@@ -8,9 +8,9 @@
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 2
-/** Versions this build still opens. v2 added line, polygon, star, and arc nodes. */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2]
+export const FORMAT_VERSION = 3
+/** Versions this build still opens. v3 adds non-destructive image crop and mask state. */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3]
 
 export type NodeId = string
 
@@ -121,12 +121,18 @@ export type TextNode = BaseNode & {
 }
 
 /** Placed raster image (issue #17). The pixels live in the asset registry, keyed by content. */
+export type ImageCrop = { x: number; y: number; width: number; height: number }
+
 export type ImageNode = BaseNode & {
   type: 'image'
   /** Content-addressed asset id; the document's `assets` list holds the metadata. */
   assetId: string
   width: number
   height: number
+  /** Normalised source rectangle; crop never changes the original asset bytes. */
+  crop: ImageCrop
+  /** Optional raster alpha mask, also held as a normal document asset. */
+  maskAssetId: string | null
   style: Style
 }
 
@@ -159,6 +165,8 @@ export type AssetRef = {
   byteLength: number
   width: number
   height: number
+  /** Absolute path selected through the desktop picker; omitted assets are embedded. */
+  sourcePath?: string
 }
 
 export type Document = {

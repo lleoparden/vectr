@@ -71,7 +71,7 @@ export async function openDocument(options: { directory?: string } = {}): Promis
   }
 
   // Only now is the work on screen touched: validated document, verified assets, then swap.
-  for (const asset of requiredAssets(parsed.document)) {
+  for (const asset of verified.available) {
     const bytes = found.get(asset.id)
     if (bytes !== undefined) assetRegistry.put({ ref: asset, bytes, name: asset.id })
   }
@@ -93,6 +93,7 @@ export async function saveDocument(options: { askForPath?: boolean; directory?: 
   const state = documentStore.getState()
   const { manifest, assets } = serializeDocument(state.document)
   const payloadAssets = assets
+    .filter((ref) => ref.sourcePath === undefined)
     .map((ref) => {
       const record = assetRegistry.get(ref.id)
       return record === undefined ? null : { id: ref.id, mimeType: ref.mimeType, bytes: record.bytes }
@@ -106,7 +107,7 @@ export async function saveDocument(options: { askForPath?: boolean; directory?: 
     suggestedName: projectFileName(state.document.name),
     manifest,
     assets: payloadAssets,
-    usedAssetIds: assets.map((ref) => ref.id),
+    usedAssetIds: assets.filter((ref) => ref.sourcePath === undefined).map((ref) => ref.id),
   })
   if (!result.ok) {
     report(result.code, result.message)
@@ -143,6 +144,7 @@ export async function writeRecoverySnapshot(options: { reason: AutosaveReason } 
   }
   const { manifest, assets } = serializeDocument(state.document)
   const payload = assets
+    .filter((ref) => ref.sourcePath === undefined)
     .map((ref) => {
       const record = assetRegistry.get(ref.id)
       return record === undefined ? null : { ref, bytes: record.bytes }

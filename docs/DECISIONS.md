@@ -1486,3 +1486,15 @@ Two honest limits are part of the decision rather than hidden behind it:
   always-visible primitives, and that stays published as an amended, unmet gate. A memory budget does
   not make that gate pass, and it is not presented as if it did.
 
+## 2026-10-16 — IMAGE-01 links, crop, and raster masks
+
+- Vectr follows Illustrator's familiar Place split: **Place…** embeds content-addressed bytes and
+  **Place Linked…** records the source chosen through the desktop picker. Linked bytes are never
+  copied into the ordinary project asset folder.
+- A missing or content-changed link opens as a labelled placeholder rather than preventing the rest
+  of the project from opening; Properties offers **Relink…** to repair it. This deliberately favours
+  preserving the editable document over silently substituting changed pixels.
+- Crop is a normalized, non-destructive source rectangle. A mask is an optional raster alpha asset;
+  it is not an Illustrator vector clipping mask and has no generic mask editor. Image tracing,
+  clipping masks, network links, and colour-management work remain separate capability areas.
+

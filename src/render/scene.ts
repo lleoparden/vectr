@@ -6,7 +6,7 @@
  * "paint order equals layer order" acceptance criterion testable without a GPU.
  */
 
-import { isGroup, isText, type Document, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
+import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
 export type SceneText = {
@@ -46,6 +46,9 @@ export type SceneShape = {
   text: SceneText | null
   /** Present exactly when `kind` is `image`: the asset the renderer must draw. */
   assetId: string | null
+  /** Image-only source crop and optional raster alpha mask. */
+  crop: ImageCrop | null
+  maskAssetId: string | null
 }
 
 export type Scene = {
@@ -107,6 +110,8 @@ function walkShapes(
         }
       : null,
     assetId: node.type === 'image' ? node.assetId : null,
+    crop: node.type === 'image' ? { ...node.crop } : null,
+    maskAssetId: node.type === 'image' ? node.maskAssetId : null,
   })
 }
 

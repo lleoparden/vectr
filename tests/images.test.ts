@@ -30,6 +30,7 @@ import type { AssetRef, Document } from '../src/doc/types.ts'
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
 const PNG_ASSET: AssetRef = { id: 'sha256-test', mimeType: 'image/png', byteLength: PNG.byteLength, width: 40, height: 20 }
+const MASK_ASSET: AssetRef = { id: 'sha256-mask', mimeType: 'image/png', byteLength: PNG.byteLength, width: 40, height: 20 }
 
 function documentWithAsset(asset: AssetRef = PNG_ASSET): Document {
   const result = applyCommand(createDocument(), { type: 'addAsset', asset })
@@ -223,6 +224,43 @@ test('an asset cannot be removed while an image uses it, and validation knows th
   const validation = validateDocument(orphan)
   assert.equal(validation.ok, false)
   if (!validation.ok) assert.equal(validation.issue.code, 'invalid-asset')
+})
+
+test('image crop and mask commands validate, invert, and retain the mask asset', () => {
+  const node = createImage('photo.png', 0, 0, PNG_ASSET.id, 40, 20)
+  const withMask = applyCommand(documentWithAsset(), { type: 'addAsset', asset: MASK_ASSET })
+  assert.equal(withMask.ok, true)
+  if (!withMask.ok) return
+  const placed = applyCommand(withMask.document, {
+    type: 'placeImage', parentId: 'root', index: 0, node, asset: PNG_ASSET,
+  })
+  assert.equal(placed.ok, true)
+  if (!placed.ok) return
+
+  const cropped = applyCommand(placed.document, {
+    type: 'setImageCrop', nodeId: node.id, crop: { x: 0.1, y: 0.2, width: 0.7, height: 0.6 },
+  })
+  assert.equal(cropped.ok, true)
+  if (!cropped.ok) return
+  const croppedNode = findNode(cropped.document, node.id)
+  assert.deepEqual(croppedNode?.type === 'image' ? croppedNode.crop : null, { x: 0.1, y: 0.2, width: 0.7, height: 0.6 })
+  const restored = applyCommand(cropped.document, cropped.inverse)
+  assert.equal(restored.ok, true)
+  if (restored.ok) assert.deepEqual(findNode(restored.document, node.id)?.type === 'image' ? findNode(restored.document, node.id).crop : null, { x: 0, y: 0, width: 1, height: 1 })
+  const invalid = applyCommand(placed.document, {
+    type: 'setImageCrop', nodeId: node.id, crop: { x: 0.8, y: 0, width: 0.3, height: 1 },
+  })
+  assert.equal(invalid.ok ? '' : invalid.code, 'invalid-asset')
+
+  const masked = applyCommand(placed.document, { type: 'setImageMask', nodeId: node.id, maskAssetId: MASK_ASSET.id })
+  assert.equal(masked.ok, true)
+  if (!masked.ok) return
+  assert.equal(findNode(masked.document, node.id)?.type === 'image' ? findNode(masked.document, node.id).maskAssetId : null, MASK_ASSET.id)
+  const removal = applyCommand(masked.document, { type: 'removeAsset', assetId: MASK_ASSET.id })
+  assert.equal(removal.ok ? '' : removal.code, 'invalid-asset')
+  const scene = buildScene(masked.document).shapes[0]
+  assert.deepEqual(scene.kind === 'image' ? scene.crop : null, { x: 0, y: 0, width: 1, height: 1 })
+  assert.equal(scene.kind === 'image' ? scene.maskAssetId : null, MASK_ASSET.id)
 })
 
 test('an image is selected, hit, marqueed, and drawn in paint order like any node', () => {

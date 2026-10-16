@@ -349,6 +349,8 @@ export function createImage(
     assetId,
     width,
     height,
+    crop: { x: 0, y: 0, width: 1, height: 1 },
+    maskAssetId: null,
     style: createStyle('#000000'),
   }
 }

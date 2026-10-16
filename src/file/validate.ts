@@ -13,14 +13,17 @@ import type { AssetRef, Document } from '../doc/types.ts'
 export type AssetCheckCode = 'missing-asset' | 'length-mismatch' | 'hash-mismatch' | 'extra-assets'
 
 export type AssetCheckResult =
-  | { ok: true; used: AssetRef[] }
+  | { ok: true; used: AssetRef[]; available: AssetRef[] }
   | { ok: false; code: AssetCheckCode; message: string }
 
 /** The assets the document's image nodes actually reference, in manifest order. */
 export function requiredAssets(document: Document): AssetRef[] {
   const referenced = new Set<string>()
   const walk = (node: Document['root'] | Document['root']['children'][number]) => {
-    if (node.type === 'image') referenced.add(node.assetId)
+    if (node.type === 'image') {
+      referenced.add(node.assetId)
+      if (node.maskAssetId !== null) referenced.add(node.maskAssetId)
+    }
     else if (node.type === 'group') for (const child of node.children) walk(child)
   }
   for (const child of document.root.children) walk(child)
@@ -33,12 +36,15 @@ export async function verifyAssets(
   found: Map<string, Uint8Array>,
 ): Promise<AssetCheckResult> {
   const used = requiredAssets(document)
+  const available: AssetRef[] = []
   for (const asset of used) {
     const bytes = found.get(asset.id)
     if (bytes === undefined) {
+      if (asset.sourcePath !== undefined) continue
       return { ok: false, code: 'missing-asset', message: `Asset ${asset.id} is missing from the project.` }
     }
     if (bytes.byteLength !== asset.byteLength) {
+      if (asset.sourcePath !== undefined) continue
       return {
         ok: false,
         code: 'length-mismatch',
@@ -47,12 +53,14 @@ export async function verifyAssets(
     }
     const key = await assetKeyFor(bytes)
     if (key !== asset.id) {
+      if (asset.sourcePath !== undefined) continue
       return {
         ok: false,
         code: 'hash-mismatch',
         message: `Asset ${asset.id} does not match its content key; the file may have been replaced.`,
       }
     }
+    available.push(asset)
   }
-  return { ok: true, used }
+  return { ok: true, used, available }
 }

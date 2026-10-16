@@ -8,7 +8,7 @@
 
 import { findNode, findParent, findWithin } from './document.ts'
 import { MAX_TEXT_LENGTH } from './document.ts'
-import { isGroup, isImage, isText, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
+import { isGroup, isImage, isText, SUPPORTED_FORMAT_VERSION_LIST, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
 import { clampCornerRadius } from './shapeGeometry.ts'
 
 export type ValidationCode =
@@ -86,10 +86,10 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
 
 /** Full-tree validation: ids, parents, cycles, geometry, and version. */
 export function validateDocument(document: Document): ValidationResult {
-  if (document.formatVersion !== 1 && document.formatVersion !== 2) {
+  if (!SUPPORTED_FORMAT_VERSION_LIST.includes(document.formatVersion)) {
     return fail(
       'unsupported-version',
-      `Unsupported document format version ${document.formatVersion}; expected 1 or 2.`,
+      `Unsupported document format version ${document.formatVersion}; expected one of ${SUPPORTED_FORMAT_VERSION_LIST.join(', ')}.`,
     )
   }
   const seen = new Set<NodeId>()
@@ -132,6 +132,17 @@ export function validateDocument(document: Document): ValidationResult {
         }
         if (!document.assets.some((asset) => asset.id === node.assetId)) {
           return fail('invalid-asset', `Image ${node.id} references missing asset ${node.assetId}.`, node.id)
+        }
+        const crop = node.crop
+        if (
+          ![crop.x, crop.y, crop.width, crop.height].every(Number.isFinite) ||
+          crop.x < 0 || crop.y < 0 || crop.width <= 0 || crop.height <= 0 ||
+          crop.x + crop.width > 1 || crop.y + crop.height > 1
+        ) {
+          return fail('invalid-asset', `Image ${node.id} has an invalid crop rectangle.`, node.id)
+        }
+        if (node.maskAssetId !== null && !document.assets.some((asset) => asset.id === node.maskAssetId)) {
+          return fail('invalid-asset', `Image ${node.id} references missing mask ${node.maskAssetId}.`, node.id)
         }
       }
       // Shape parameters are part of the file: a polygon without valid sides, or an arc with a

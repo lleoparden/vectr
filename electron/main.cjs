@@ -92,6 +92,25 @@ async function readProject(directory) {
       assets.push({ id: `sha256-${name.replace(/\.[a-z]+$/i, '')}`, mimeType, bytes: new Uint8Array(bytes) })
     }
   }
+  // Linked image bytes never enter the project folder. A missing or changed link is deliberately
+  // omitted here; the renderer draws its placeholder and the document stays open for Relink.
+  let manifestAssets = []
+  try {
+    const parsed = JSON.parse(manifest)
+    manifestAssets = Array.isArray(parsed.assets) ? parsed.assets : []
+  } catch {
+    // The renderer validates the manifest and will surface its structured error.
+  }
+  for (const asset of manifestAssets) {
+    if (!asset || typeof asset.id !== 'string' || typeof asset.sourcePath !== 'string') continue
+    if (assets.some((entry) => entry.id === asset.id)) continue
+    try {
+      const bytes = await fs.promises.readFile(asset.sourcePath)
+      assets.push({ id: asset.id, mimeType: asset.mimeType, bytes: new Uint8Array(bytes) })
+    } catch {
+      // The manifest remains usable; a relink action can repair this missing source.
+    }
+  }
   return { manifest, assets }
 }
 
@@ -325,7 +344,7 @@ app.whenReady().then(() => {
     const lower = name.toLowerCase()
     const mimeType = lower.endsWith('.png') ? 'image/png' : 'image/jpeg'
     const bytes = fs.readFileSync(filePath)
-    return { name, mimeType, byteLength: bytes.byteLength, bytes: new Uint8Array(bytes) }
+    return { name, mimeType, byteLength: bytes.byteLength, bytes: new Uint8Array(bytes), sourcePath: filePath }
   })
 
   ipcMain.handle('benchmark:result', async (_event, result) => {

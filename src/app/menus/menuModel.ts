@@ -37,6 +37,7 @@ export const MENU_BAR: MenuSpec[] = [
       { kind: 'command', id: 'file.saveAs', label: 'Save As…' },
       { kind: 'separator' },
       { kind: 'command', id: 'file.place', label: 'Place…' },
+      { kind: 'command', id: 'file.placeLinked', label: 'Place Linked…' },
       { kind: 'separator' },
       { kind: 'command', id: 'file.recover', label: 'Recover Unsaved Work' },
     ],

@@ -1576,4 +1576,15 @@ document that `validateDocument` would then reject.
 - **`Q` and `A` are Illustrator's keys**, so they are `illustratorDefault: true`; nothing new was
   invented for this slice.
 
+## 2026-10-17 — The lasso now matches Illustrator: enclosed, not touched
 
+The owner asked for Illustrator's exact lasso rule. This replaces the touched-bounds rule recorded above,
+which selected an object any time the path crossed its box — broader than Illustrator, and therefore a
+divergence that changed what a familiar gesture did.
+
+- `polygonEnclosesBounds` is the rule now: every corner of the object's box must be inside the path, and no
+  path edge may cross the box (a concave path can contain all four corners and still cut an object).
+- A path across an object's middle encloses nothing and selects nothing; half an object is not selected.
+- The unit tests pin both cases, and the packaged smoke step draws an enclosing loop, so it still proves
+  the gesture end to end.
+- The `SEL-01` catalog row states the enclosed rule, so the recorded behavior and the tests agree.

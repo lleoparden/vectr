@@ -1646,3 +1646,22 @@ was settled.
   three unlocked ones, which is what Clear already does and avoids a command that fails wholesale.
 - **No new document command.** Alignment and distribution are `setTransform` moves in one
   transaction; paste is the existing `insertNodes`.
+
+## 2026-10-17 — Artboards shipped, and where their controls live (Phase 2.4, issue #67)
+
+Implementation follows the contract recorded above: geometry in the document, positions derived,
+the active page in workspace state.
+
+- **Positions are derived, not stored.** `artboardRects` lays pages out left to right at a fixed gap, so
+  the file never records a page's coordinates and two people cannot open the same file with pages in
+  different places. A page move, when it arrives, will move its artwork instead.
+- **The last page cannot be removed** (`invalid-index`), because Fit, placement, and the status bar all
+  need a page to describe.
+- **Divergence, recorded:** Illustrator has an Artboards panel and an Artboard tool (Shift+O) with
+  on-canvas resize handles. Vectr lists the pages in Properties while nothing is selected, with New,
+  Delete, and numeric W/H — no tool, no handles, no reordering yet. The controls are where the values
+  are editable, not a second dock slot; the tool and handles arrive with the canvas work in #68.
+- **The status bar, Fit Artboard in Window, and image placement all read the active page** in one place
+  (`artboardRect`), so they cannot disagree about which page is current, and they fall back to the first
+  page rather than failing when the pointer names a page that no longer exists.
+

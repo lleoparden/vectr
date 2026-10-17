@@ -68,6 +68,21 @@ export function actualSize(viewport: Viewport, canvas: CanvasSize): Viewport {
 }
 
 /** Fit Artboard in Window (`Ctrl+0`): the whole artboard, centered, with margin. */
+/** Fit any scene rectangle (a page, including its offset) in the canvas, centred with margin. */
+export function fitRect(rect: { x: number; y: number; width: number; height: number }, canvas: CanvasSize, padding = FIT_PADDING): Viewport {
+  if (canvas.width <= 0 || canvas.height <= 0 || rect.width <= 0 || rect.height <= 0) {
+    return { zoom: 1, panX: 0, panY: 0 }
+  }
+  const usableWidth = Math.max(1, canvas.width - padding * 2)
+  const usableHeight = Math.max(1, canvas.height - padding * 2)
+  const zoom = clampZoom(Math.min(usableWidth / rect.width, usableHeight / rect.height))
+  return {
+    zoom,
+    panX: (canvas.width - rect.width * zoom) / 2 - rect.x * zoom,
+    panY: (canvas.height - rect.height * zoom) / 2 - rect.y * zoom,
+  }
+}
+
 export function fitArtboard(artboard: Artboard, canvas: CanvasSize, padding = FIT_PADDING): Viewport {
   if (canvas.width <= 0 || canvas.height <= 0 || artboard.width <= 0 || artboard.height <= 0) {
     return { zoom: 1, panX: 0, panY: 0 }

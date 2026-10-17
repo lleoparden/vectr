@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { relinkImageFromDialog, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius } from '../actions.ts'
+import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -70,10 +70,52 @@ export function PropertiesPanel() {
   const bounds = id === undefined ? null : worldBounds(state.document, id)
 
   if (node === null || id === undefined) {
+    // With nothing selected the panel shows the document's pages (Phase 2.4, issue #67). Illustrator
+    // keeps them in their own Artboards panel; Vectr puts them here for now, a recorded divergence.
+    const pages = artboardList()
+    const active = pages.find((page) => page.active) ?? pages[0]
     return (
-      <p className="px-3 py-4 text-ui-xs text-ink-faint">
-        No selection. Click a layer on the canvas or in the Layers panel.
-      </p>
+      <div className="min-h-0 flex-1 overflow-auto py-1">
+        <p className="px-2 pb-1 text-ui-xs text-ink-faint">No selection.</p>
+        <p className="px-2 py-[3px] text-ui-xs text-ink-muted">Artboards</p>
+        {pages.map((page) => (
+          <button
+            key={page.id}
+            type="button"
+            aria-pressed={page.active}
+            onClick={() => setActiveArtboard(page.id)}
+            className={"flex w-full items-center justify-between gap-2 px-2 py-[3px] text-left text-ui-xs " + (page.active ? "bg-accent-soft text-ink" : "text-ink-muted hover:bg-chrome-hover")}
+          >
+            <span className="truncate">{page.name}</span>
+            <span className="text-ink-faint">
+              {page.width}×{page.height}
+            </span>
+          </button>
+        ))}
+        {active !== undefined && (
+          <div className="grid grid-cols-2 gap-1 px-2 py-1">
+            <BoxField label="W" value={active.width} onCommit={(width) => setActiveArtboardSize({ width })} />
+            <BoxField label="H" value={active.height} onCommit={(height) => setActiveArtboardSize({ height })} />
+          </div>
+        )}
+        <div className="flex gap-2 px-2 py-1">
+          <button
+            type="button"
+            className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover"
+            onClick={() => runEditorAction('artboard.new')}
+          >
+            New Artboard
+          </button>
+          <button
+            type="button"
+            className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover disabled:opacity-40"
+            disabled={pages.length <= 1}
+            onClick={() => runEditorAction('artboard.delete')}
+          >
+            Delete Artboard
+          </button>
+        </div>
+      </div>
     )
   }
 

@@ -1,6 +1,34 @@
 # Progress
 
 
+## UI pass — live Properties, a real colour control, and a layout that stays put (2026-10-17)
+
+The owner asked for a Properties panel that updates in real time, a colour control with more options, and a
+UI that looks and behaves better. This is that pass.
+
+- **Everything is live.** Typing a number, dragging the opacity slider, and turning the colour wheel all
+  reach the document on the change itself — no blur required. The edit session is the undo unit: focusing a
+  field opens a transaction and blurring closes it, so a wheel drag is still one step to undo.
+- **A colour control with options.** The swatch opens a popover holding the platform **wheel**, a **hex**
+  field that accepts `#abc`, `abcdef`, or `#abcdef`, the **document's own colours**, a fixed twelve-colour
+  **palette**, and **recently used** colours. Swatches show a check on the active colour and stay readable
+  via Rec. 709 luma.
+- **Shared field primitives** (`ui/fields.tsx`): one height, radius, focus ring, and label column for every
+  input, a switch for toggles, a slider for opacity, and consistent buttons — so the panel reads as one
+  surface instead of a pile of inputs.
+- **Layout fixed.** Sections with headers, a fixed label column, controls that shrink, and
+  `overflow-x-hidden` on every panel body: Properties scrolls vertically only. Scrollbars, range thumbs,
+  colour swatches, number spinners, and keyboard focus are styled once in `styles.css`.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **214/214** (5 new in
+`tests/fields.test.ts`: hex forms, RGB/readability, the gradient-angle round trip, a live session as one
+undo entry, and a focus that changes nothing recording no history); packaged run **111 steps across seven
+reports**, `[vectr-ui]` 12/12 with three new steps — the colour popover opens with wheel/hex/swatches,
+clicking a swatch applies it immediately, typing in a number field updates the object **before blur with
+focus kept**, and the panel's `scrollWidth` never exceeds its `clientWidth`.
+
+
+
 ## Phase 2 — exit audit (2026-10-17)
 
 Every slice of Phase 2 has shipped a pull request with its own branch, tests, typecheck, build, packaged

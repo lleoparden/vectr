@@ -43,7 +43,7 @@ export function AppearancePanel() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto py-1">
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1">
       <div className="flex items-center justify-between gap-3 px-2 py-[3px]">
         <span className="text-ui-xs text-ink-faint">{isText(node) ? 'Text color' : 'Fill'}</span>
         <span className="flex items-center gap-2 text-ui-xs text-ink-muted">

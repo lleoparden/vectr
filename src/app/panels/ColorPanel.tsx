@@ -94,7 +94,7 @@ export function ColorPanel() {
   const hasSelection = state.selection.length > 0
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto py-1">
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1">
       <SwatchList title="Vectr palette" entries={VECTR_PALETTE} onPick={applyFill} />
       {entries.length > 0 && (
         <SwatchList title={`In this document (${entries.length})`} entries={entries} onPick={applyFill} />

@@ -1871,3 +1871,24 @@ Implementation follows the contract above. Three decisions worth naming:
 - **Unknown modes are refused at the boundary**, so a hand-edited file cannot reach `setBlendMode` with
   something the renderer would silently treat as normal.
 
+## 2026-10-17 — Live fields, one entry per edit session (UI pass)
+
+- **Fields edit the document as you type, and the session is the undo unit.** Focusing a field opens a
+  transaction; every keystroke or slider/colour change dispatches inside it; blurring closes it. Dragging a
+  colour wheel through a hundred values is one step to undo, and the panel never looks stale while you drag.
+- **The helpers had to stop opening their own transactions.** `setSelectionFill` and friends began a
+  transaction unconditionally, which nested inside the live session and produced one history entry per
+  keystroke. They now join an open transaction and only own one when they started it — the fix that makes
+  live editing possible at all, and the one the unit test pins.
+- **One control set, shared.** `ui/fields.tsx` owns the height, radius, focus ring, and label column for
+  every input, so a panel cannot invent its own scale. `ui/color.ts` owns hex normalisation and readability
+  (Rec. 709 luma) instead of each control deciding for itself.
+- **The colour control is a popover, not a replaced native input.** The platform wheel is still there (it is
+  the only one that works with a system colour picker), joined by a hex field, the document's own colours,
+  a fixed palette, and recent picks — more options without inventing a colour model the document cannot
+  store.
+- **No horizontal scrolling in any panel.** One fixed label column, `min-w-0` on every shrinking control,
+  and `overflow-x-hidden` on panel bodies; the packaged run asserts `scrollWidth <= clientWidth`.
+- **Deliberately not in this pass:** an eyedropper, CMYK/colour books, GHS/HSB sliders, and draggable
+  panel widths. Those are colour-management or shell work, not field polish.
+

@@ -1069,6 +1069,58 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     `readouts ${JSON.stringify(numbers)}, duplicate ${duplicate === undefined ? 'missing' : 'present'}`,
   )
 
+  // UI pass: the Properties colour control is live, and the panel does not scroll sideways.
+  const panelBody = document.querySelector<HTMLElement>('[data-panel-body="properties"]')
+  const fillTrigger = document.querySelector<HTMLButtonElement>('[data-color-trigger="Fill"]')
+  fillTrigger?.click()
+  await settle(120)
+  const colorPanel = document.querySelector<HTMLElement>('[data-color-panel="Fill"]')
+  const swatchCount = colorPanel?.querySelectorAll('[aria-label^="Fill #"]')?.length ?? 0
+  record(
+    'the fill control opens a colour popover with a wheel, hex, and swatches',
+    colorPanel !== null && swatchCount >= 12,
+    colorPanel === null ? 'no popover' : swatchCount + ' swatches',
+  )
+
+  // A real user action on the colour popover: clicking a swatch applies it immediately.
+  const swatch = document.querySelector<HTMLButtonElement>('[aria-label="Fill #e2665c"]')
+  const selectedId = documentStore.getState().selection[0]
+  swatch?.click()
+  await settle(80)
+  const painted = selectedId === undefined ? null : findNode(documentStore.getState().document, selectedId)
+  record(
+    'clicking a colour swatch applies it immediately',
+    painted !== null && painted.type !== 'group' && painted.style.fill === '#e2665c',
+    painted !== null && painted.type !== 'group' ? 'fill ' + painted.style.fill : 'no node',
+  )
+
+  // Live typing: focus the X field, type a value, and check the document before any blur.
+  const xField = document.querySelector<HTMLInputElement>('[data-panel-body="properties"] input[aria-label="X"]')
+  xField?.focus()
+  if (xField !== null && xField !== undefined) {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(xField, '42')
+    xField.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  await settle(80)
+  const typedBounds = selectedId === undefined ? null : worldBounds(documentStore.getState().document, selectedId)
+  record(
+    'typing in a number field updates the object before the field loses focus',
+    typedBounds !== null && Math.round(typedBounds.x) === 42 && document.activeElement === xField,
+    typedBounds === null ? 'no bounds' : 'x ' + Math.round(typedBounds.x) + ', focus kept: ' + (document.activeElement === xField),
+  )
+  xField?.blur()
+  await settle(60)
+
+  await settle(60)
+
+  record(
+    'the Properties panel never scrolls sideways',
+    panelBody !== null && panelBody.scrollWidth <= panelBody.clientWidth + 1,
+    panelBody === null ? 'no panel body' : panelBody.scrollWidth + ' <= ' + panelBody.clientWidth,
+  )
+
+
   // 7. The palette flyout switches members too, which is how Illustrator's tool groups work.
   document.querySelector<HTMLButtonElement>('[data-tool-flyout="shape"]')?.click()
   await settle(120)

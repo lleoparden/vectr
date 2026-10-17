@@ -242,7 +242,8 @@ function applyFlags(
   label: string,
 ) {
   if (ids.length === 0) return
-  documentStore.beginTransaction(label)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction(label)
   let changed = false
   for (const id of ids) {
     const node = nodeOf(id)
@@ -257,6 +258,7 @@ function applyFlags(
     })
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }
@@ -293,7 +295,8 @@ function selectedTextNodes() {
 function applyTextStyle(patch: (node: TextNode) => { fontSize: number; fontFamily: string; align: TextAlign; lineHeight: number }, label: string) {
   const targets = selectedTextNodes()
   if (targets.length === 0) return
-  documentStore.beginTransaction(label)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction(label)
   let changed = false
   for (const node of targets) {
     const next = patch(node)
@@ -310,6 +313,7 @@ function applyTextStyle(patch: (node: TextNode) => { fontSize: number; fontFamil
     })
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }
@@ -322,7 +326,8 @@ function applyTextStyle(patch: (node: TextNode) => { fontSize: number; fontFamil
  */
 function runPlan(steps: PlanStep[] | null, label: string) {
   if (steps === null || steps.length === 0) return
-  documentStore.beginTransaction(label)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction(label)
   const applied: Command[] = []
   for (const step of steps) {
     const result = documentStore.dispatch(stepCommand(step))
@@ -352,12 +357,14 @@ export const ALIGN_MODE: Record<
 /** Runs a planner's moves as one transaction, so an align or distribute is one undo entry. */
 function applyMoves(moves: AlignMove[], label: string) {
   if (moves.length === 0) return
-  documentStore.beginTransaction(label)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction(label)
   let changed = false
   for (const move of moves) {
     const result = documentStore.dispatch({ type: 'setTransform', nodeId: move.nodeId, transform: move.transform })
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }
@@ -489,7 +496,8 @@ function fillTargets(kind: 'shape' | 'text') {
 function applyToolFill(kind: 'shape' | 'text', color: string): void {
   const targets = fillTargets(kind)
   if (targets.length === 0) return
-  documentStore.beginTransaction(kind === 'text' ? 'text color' : 'shape color')
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction(kind === 'text' ? 'text color' : 'shape color')
   let changed = false
   for (const node of targets) {
     if (node === null || node.style.fill === color) continue
@@ -499,6 +507,7 @@ function applyToolFill(kind: 'shape' | 'text', color: string): void {
     )
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }
@@ -555,7 +564,8 @@ export function nudgeSelection(dx: number, dy: number): void {
     .map((id) => findNode(document, id))
     .filter((node): node is LayerNode => node !== null)
   if (targets.length === 0) return
-  documentStore.beginTransaction('nudge')
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('nudge')
   let changed = false
   for (const node of targets) {
     const result = documentStore.dispatch({
@@ -565,6 +575,7 @@ export function nudgeSelection(dx: number, dy: number): void {
     })
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }
@@ -595,7 +606,8 @@ export function setSelectionBounds(patch: { x?: number; y?: number; width?: numb
       : 1
   if (dx === 0 && dy === 0 && sx === 1 && sy === 1) return
 
-  documentStore.beginTransaction('transform selection')
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('transform selection')
   let changed = false
   for (const node of targets) {
     const next =
@@ -605,6 +617,7 @@ export function setSelectionBounds(patch: { x?: number; y?: number; width?: numb
     const result = documentStore.dispatch({ type: 'setTransform', nodeId: node.id, transform: next })
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }
@@ -805,6 +818,16 @@ export function linearGradientFrom(angleDegrees: number, fromColor: string, toCo
   }
 }
 
+/** The angle a stored gradient runs at, so the panel can show and re-apply it (issue #70). */
+export function gradientAngle(gradient: FillGradient): number {
+  const dx = gradient.to.x - gradient.from.x
+  const dy = gradient.to.y - gradient.from.y
+  if (dx === 0 && dy === 0) return 90
+  // The y flip matches linearGradientFrom: scene y grows downward, 90 degrees runs bottom to top.
+  const degrees = Math.round((Math.atan2(-dy, dx) * 180) / Math.PI)
+  return Object.is(degrees, -0) ? 0 : degrees
+}
+
 /** Applies or removes a gradient fill on the selection, one undo entry. */
 export function setSelectionGradient(gradient: FillGradient | null): void {
   applySelectionStyle((node) => ({ ...node.style, gradient }), 'gradient')
@@ -837,12 +860,14 @@ function applySelectionStyle(next: (node: StyledNode) => Style, label: string): 
     .map((id) => findNode(document, id))
     .filter((node): node is StyledNode => node !== null && node.type !== 'group')
   if (targets.length === 0) return
-  documentStore.beginTransaction(label)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction(label)
   let changed = false
   for (const node of targets) {
     const result = documentStore.dispatch({ type: 'setStyle', nodeId: node.id, style: next(node) })
     if (result.ok) changed = true
   }
+  if (!own) return
   if (changed) documentStore.commitTransaction()
   else documentStore.abortTransaction()
 }

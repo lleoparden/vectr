@@ -581,11 +581,12 @@ renderer, a working layer tree, and a project format the compiler can read.
 
 ## Next
 
-- **Phase 1 is complete** (see the section at the top of this file). The next approved work is
-  Phase 2 — core vector illustration (pen and anchor editing, path editing, transform tools,
-  align/distribute, rulers and guides). It must open with the owner's plan approval, because
-  Phase 2's slice list has not been approved yet. The one carry-over decision is the renderer:
-  `PERF-01` stays open for the 10,000-loose-primitives case recorded in issue #25.
+- **Phase 1 is complete** (see the section at the top of this file). Phase 2 now has an ECC-derived,
+  dependency-ordered planning set: issues #64-#71 under epic #5 and the proposed plan in
+  `docs/PLAN.md`. They are not agent-ready: multi-artboard coordinates, clipboard scope, RGB paint
+  scope/initial blend modes, and vector clipping representation need owner decisions before any
+  implementation starts. The one carry-over decision is the renderer: `PERF-01` stays open for the
+  10,000-loose-primitives case recorded in issue #25.
 
 ### Older next-step notes, kept for context
 

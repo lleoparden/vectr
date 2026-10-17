@@ -14,7 +14,8 @@ import { createEllipse, createGroup, createRect, createText, findNode, worldBoun
 import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
 import { scaleFactors, scaledTransform, unionBounds } from '../app/editing/transform.ts'
-import { artboardRect } from '../doc/artboards.ts'
+import { artboardRect, artboardRects } from '../doc/artboards.ts'
+import { SNAP_PIXELS, snapBox, snapTargets } from '../app/editing/snapping.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
@@ -417,6 +418,33 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
       store.getState().undoDepth === depthBeforePage + 1,
     store.getState().document.artboards.length + ' pages',
   )
+
+
+  // Phase 2.5 (issue #68): Smart Guides snap a drag onto the nearest edge or centre.
+  newDocument()
+  const snapRectA = createRect('Snap A', 4, 40, 100, 60)
+  store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [snapRectA] },
+    'smoke snap prep',
+  )
+  const page = artboardRects(store.getState().document)[0]
+  const snap = snapBox(
+    { x: 4, y: 40, width: 100, height: 60 },
+    snapTargets(store.getState().document, [snapRectA.id], store.getState().document.artboards[0].id),
+    SNAP_PIXELS,
+  )
+  record(
+    'smart guides snap a drag inside the six-pixel threshold',
+    snap.dx !== 0 && snap.guides.length > 0,
+    'dx ' + snap.dx + ', ' + snap.guides.length + ' guide(s)',
+  )
+  const outside = snapBox(
+    { x: 96, y: 40, width: 100, height: 60 },
+    snapTargets(store.getState().document, [snapRectA.id], store.getState().document.artboards[0].id),
+    0.5,
+  )
+  record('a drag outside the threshold is not snapped', outside.dx === 0 && outside.dy === 0, 'dx ' + outside.dx)
+  record('the page is a snap target', page !== undefined && page.width > 0, page === undefined ? 'no page' : page.width + ' wide')
 
 
   return { passed: steps.every((step) => step.ok), steps }

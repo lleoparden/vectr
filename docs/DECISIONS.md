@@ -1721,3 +1721,15 @@ explicit acceptance fixtures. Artboards are final after #67; guides and grids ar
 - **Zero means none.** A stroke weight of 0 stores `null` rather than a zero-width stroke, so the
   renderer's existing "no stroke" path is what runs and the saved file says what it means.
 
+## 2026-10-17 — Smart Guides snapping shipped (Phase 2.5, issue #68)
+
+Implementation follows the contract recorded above, with two decisions worth naming:
+
+- **The guide lines are drawn as an overlay, not recorded into the scene.** They are gesture feedback,
+  so they live in the canvas exactly like the lasso path and the shape preview; nothing about them can
+  reach the document or the renderer's recorded pictures.
+- **Only drags snap so far.** Draw gestures and scale handles compute their own deltas, and snapping
+  them would change what a new shape's size *is* rather than where it sits; each needs its own rule, so
+  they are recorded as remaining on `CAN-02` rather than guessed at. Guide objects you can place (the
+  ruler-guide workflow) also remain, since no ruler exists yet.
+

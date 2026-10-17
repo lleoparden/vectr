@@ -105,6 +105,7 @@ export const ACTION_IDS = [
   'view.zoomOut',
   'view.fitArtboard',
   'view.actualSize',
+  'view.smartGuides',
   'window.togglePanel.layers',
   'window.togglePanel.properties',
   'window.togglePanel.appearance',
@@ -173,6 +174,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'view.zoomOut': 'Zoom Out',
   'view.fitArtboard': 'Fit Artboard in Window',
   'view.actualSize': 'Actual Size',
+  'view.smartGuides': 'Smart Guides',
   'window.togglePanel.layers': 'Layers',
   'window.togglePanel.properties': 'Properties',
   'window.togglePanel.appearance': 'Appearance',
@@ -1027,6 +1029,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'view.fitArtboard':
       documentStore.setViewport(fitRect(artboardRect(editor.document, workspace.activeArtboardId) ?? artboardRects(editor.document)[0], workspace.canvas))
+      return
+    case 'view.smartGuides':
+      workspaceStore.setSmartGuides(!workspace.smartGuides)
       return
     case 'view.actualSize':
       documentStore.setViewport(actualSize(editor.viewport, workspace.canvas))

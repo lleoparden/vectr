@@ -20,6 +20,7 @@ import { placeImage } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
+import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
 import { artboardRects } from '../../doc/artboards.ts'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
@@ -34,7 +35,7 @@ import { fitRect, zoomAtPoint } from './viewportOps.ts'
 type Gesture =
   | { kind: 'none' }
   | { kind: 'create'; tool: ShapeKind; start: Point; current: Point; shift: boolean }
-  | { kind: 'move'; start: Point; current: Point; originals: Map<string, Transform> }
+  | { kind: 'move'; start: Point; current: Point; originals: Map<string, Transform>; box: Rect | null }
   | { kind: 'marquee'; start: Point; current: Point; deep: boolean }
   | { kind: 'lasso'; points: Point[] }
   | { kind: 'pan'; startClient: Point; panStart: Point }
@@ -83,6 +84,8 @@ export function CanvasView() {
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
   const [lassoPath, setLassoPath] = useState<Point[] | null>(null)
+  /** Smart-guide lines shown while a snapped drag is in flight (issue #68). */
+  const [guides, setGuides] = useState<SnapGuide[]>([])
   /** The scale gesture's starting box and transforms, captured once so every move is absolute. */
   const scaleRef = useRef<{ handle: HandleId; box: Rect; originals: Map<string, Transform> } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -360,7 +363,7 @@ export function CanvasView() {
       return
     }
     documentStore.beginTransaction('move')
-    gestureRef.current = { kind: 'move', start, current: start, originals }
+    gestureRef.current = { kind: 'move', start, current: start, originals, box: unionBounds(state.document, [...originals.keys()]) }
   }
 
   function onPointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -376,8 +379,22 @@ export function CanvasView() {
     const current = toScene(event)
     if (gesture.kind === 'move') {
       gestureRef.current = { ...gesture, current }
-      const dx = current.x - gesture.start.x
-      const dy = current.y - gesture.start.y
+      let dx = current.x - gesture.start.x
+      let dy = current.y - gesture.start.y
+      // Smart Guides: the gesture's raw delta may be replaced by the nearest snap target, so the
+      // pointer still drives the drag but the stored transform lands exactly on an edge (issue #68).
+      if (workspaceStore.getState().smartGuides && gesture.box !== null) {
+        const snap = snapBox(
+          { x: gesture.box.x + dx, y: gesture.box.y + dy, width: gesture.box.width, height: gesture.box.height },
+          snapTargets(state.document, [...gesture.originals.keys()], workspaceStore.getState().activeArtboardId),
+          SNAP_PIXELS / state.viewport.zoom,
+        )
+        dx += snap.dx
+        dy += snap.dy
+        setGuides(snap.guides)
+      } else {
+        setGuides([])
+      }
       for (const [id, original] of gesture.originals) {
         documentStore.dispatch(
           { type: 'setTransform', nodeId: id, transform: { ...original, x: original.x + dx, y: original.y + dy } },

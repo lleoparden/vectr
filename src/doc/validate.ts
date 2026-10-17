@@ -8,7 +8,7 @@
 
 import { findNode, findParent, findWithin } from './document.ts'
 import { MAX_TEXT_LENGTH } from './document.ts'
-import { isGroup, isImage, isText, SUPPORTED_FORMAT_VERSION_LIST, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
+import { BLEND_MODES, isGroup, isImage, isText, SUPPORTED_FORMAT_VERSION_LIST, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
 import { clampCornerRadius } from './shapeGeometry.ts'
 
 export type ValidationCode =
@@ -60,6 +60,10 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
     }
   }
   if (!isGroup(node)) {
+    const mode = node.style.blendMode
+    if (mode !== undefined && !BLEND_MODES.includes(mode)) {
+      return fail('invalid-index', `Node ${node.id} has an unsupported blend mode.`, node.id)
+    }
     const gradient = node.style.gradient ?? null
     if (gradient !== null) {
       if (gradient.type !== 'linear') {

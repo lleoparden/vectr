@@ -40,12 +40,18 @@ export type Stroke = {
 export type GradientStop = { offset: number; color: string }
 export type FillGradient = { type: 'linear'; stops: GradientStop[]; from: { x: number; y: number }; to: { x: number; y: number } }
 
+/** The blend modes Vectr supports deliberately (issue #71/APP-01); not Illustrator's full set. */
+export type BlendMode = 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten'
+export const BLEND_MODES: BlendMode[] = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten']
+
 export type Style = {
   /** CSS hex color, for example `#4f7cff`. */
   fill: string
   stroke: Stroke | null
   /** When set, it paints the fill and `fill` is the fallback colour (issue #70). */
   gradient?: FillGradient | null
+  /** How the fill composites with what is beneath it; absent means normal (issue #71). */
+  blendMode?: BlendMode
   /** 0..1, applied to the node and its subtree. */
   opacity: number
 }

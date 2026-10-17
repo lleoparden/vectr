@@ -18,7 +18,8 @@
  *   skipped rather than drawn wrongly.
  */
 
-import type { StrokeCap, StrokeJoin } from '../doc/types.ts'
+import type { BlendMode as CanvasBlendMode } from 'canvaskit-wasm'
+import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import CanvasKitInit, {
   type Canvas,
@@ -463,7 +464,9 @@ export class EditorRenderer {
         const stroke = shape.stroke ?? { color: shape.fill, width: 2 }
         recording.drawPath(path, this.paintFor('stroke', stroke.color, stroke.width, shape.opacity))
       } else {
-        recording.drawPath(path, this.fillPaintFor(shape))
+        const fillPaint = this.fillPaintFor(shape)
+        if (shape.blendMode !== null) fillPaint.setBlendMode(this.blendModeFor(shape.blendMode))
+        recording.drawPath(path, fillPaint)
         if (shape.stroke !== null && shape.stroke.width > 0) {
           recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
         }
@@ -657,6 +660,24 @@ export class EditorRenderer {
   private releaseExtraPaint(dash: number[] | undefined, paint: Paint): void {
     if (dash === undefined || dash.length === 0) return
     paint.delete()
+  }
+
+  /** Maps a document blend mode onto Skia's, for the small set Vectr supports. */
+  private blendModeFor(mode: BlendMode): CanvasBlendMode {
+    switch (mode) {
+      case 'multiply':
+        return this.kit.BlendMode.Multiply
+      case 'screen':
+        return this.kit.BlendMode.Screen
+      case 'overlay':
+        return this.kit.BlendMode.Overlay
+      case 'darken':
+        return this.kit.BlendMode.Darken
+      case 'lighten':
+        return this.kit.BlendMode.Lighten
+      default:
+        return this.kit.BlendMode.SrcOver
+    }
   }
 
   /** One-pixel selection outline, drawn independently of zoom. */

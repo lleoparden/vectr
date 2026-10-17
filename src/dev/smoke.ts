@@ -12,11 +12,11 @@
 
 import { createEllipse, createGroup, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
 import { nodeSize, type LayerNode } from '../doc/types.ts'
-import { marqueeHitTest } from '../doc/hitTest.ts'
+import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
-import { placeImage, runEditorAction } from '../app/actions.ts'
+import { placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
 import {
   newDocument,
   openDocument,
@@ -232,6 +232,68 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
     `${topLayer.type} "${topLayer.name}" at the top`,
   )
 
+  // Phase 2.1 (issue #64): direct selection, hierarchy drilling, the lasso, and a live corner
+  // radius. The document is rebuilt so the assertions do not depend on the steps above.
+  newDocument()
+  const nestedGroup = createGroup('Smoke Nested Group')
+  const nestedRect = createRect('Smoke Nested Rect', 60, 60, 120, 120)
+  store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [nestedGroup] },
+    'smoke nested group',
+  )
+  store.dispatch(
+    { type: 'insertNodes', parentId: nestedGroup.id, index: 0, nodes: [nestedRect] },
+    'smoke nested rect',
+  )
+
+  const objectHit = hitTest(store.getState().document, { x: 100, y: 100 })
+  const leafHit = hitTest(store.getState().document, { x: 100, y: 100 }, { deep: true })
+  record(
+    'direct selection reaches a nested leaf',
+    objectHit === nestedGroup.id && leafHit === nestedRect.id,
+    `object hit ${objectHit === nestedGroup.id ? 'group' : objectHit}, leaf hit ${leafHit === nestedRect.id ? 'rect' : leafHit}`,
+  )
+
+  const drilled = hierarchySelection(store.getState().document, { x: 100, y: 100 }, [nestedGroup.id])
+  store.setSelection(drilled === null ? [] : [drilled])
+  record(
+    'double-click drills one level into the group',
+    drilled === nestedRect.id && store.getState().selection[0] === nestedRect.id,
+    `drilled to ${drilled === nestedRect.id ? 'the nested rect' : String(drilled)}`,
+  )
+
+  const lassoed = lassoHitTest(store.getState().document, [
+    { x: 40, y: 40 },
+    { x: 220, y: 40 },
+    { x: 220, y: 220 },
+    { x: 40, y: 220 },
+  ])
+  record(
+    'lasso selects what its path touches',
+    lassoed.length === 1 && lassoed[0] === nestedGroup.id,
+    `${lassoed.length} object(s) touched`,
+  )
+
+  store.setSelection([nestedRect.id])
+  const depthBeforeRadius = store.getState().undoDepth
+  setSelectionCornerRadius(999)
+  const rounded = findNode(store.getState().document, nestedRect.id)
+  record(
+    'corner radius clamps to half the shorter side as one entry',
+    rounded !== null &&
+      rounded.type === 'rect' &&
+      rounded.cornerRadius === 60 &&
+      store.getState().undoDepth === depthBeforeRadius + 1,
+    rounded !== null && rounded.type === 'rect' ? `radius ${rounded.cornerRadius}` : 'no rect',
+  )
+  store.undo()
+  const unrounded = findNode(store.getState().document, nestedRect.id)
+  record(
+    'undo restores the previous corner radius',
+    unrounded !== null && unrounded.type === 'rect' && unrounded.cornerRadius === 0,
+    unrounded !== null && unrounded.type === 'rect' ? `radius ${unrounded.cornerRadius}` : 'no rect',
+  )
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 
@@ -261,6 +323,11 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
   documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 0, nodes: [rect, group] })
   documentStore.dispatch({ type: 'insertNodes', parentId: group.id, index: 0, nodes: [inner] })
   documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 2, nodes: [text] })
+  // The edited corner radius must survive save/reopen (issue #64).
+  const radiusEdit = documentStore.dispatch(
+    { type: 'setCornerRadius', nodeId: rect.id, cornerRadius: 24 },
+    'corner radius',
+  )
   const png = await makeSmokePng()
   const placed = png === null ? null : await placeImage('round-trip.png', 'image/png', png)
   const manifestBefore = serializeDocument(documentStore.getState().document).manifest
@@ -296,6 +363,12 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
       reopened.assets.length === 1 &&
       documentStore.getState().document.root.children.some((node) => node.type === 'text'),
     `${reopened.assets.length} assets`,
+  )
+  const reopenedRect = findNode(reopened, rect.id)
+  record(
+    'reopen restores the edited corner radius',
+    radiusEdit.ok && reopenedRect !== null && reopenedRect.type === 'rect' && reopenedRect.cornerRadius === 24,
+    reopenedRect !== null && reopenedRect.type === 'rect' ? `radius ${reopenedRect.cornerRadius}` : 'no rect',
   )
   record(
     'a reopened document resaves byte-identically',
@@ -722,14 +795,21 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     placeImage?.textContent?.trim() === 'Place image' && placeLinkedImage?.textContent?.trim() === 'Link',
     `embed ${placeImage === null ? 'missing' : 'present'}, link ${placeLinkedImage === null ? 'missing' : 'present'}`,
   )
-  // 1. The palette groups Rectangle and Ellipse into one slot with a flyout, like Illustrator.
+  // 1. The palette groups the arrow pair and the shape tools into slots with flyouts, like
+  // Illustrator, and gives the Lasso its own slot (issue #64).
   const slots = document.querySelectorAll('[data-tool-slot]')
   const shapeFlyout = document.querySelector('[data-tool-flyout="shape"]')
   const shapeSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="shape"]')
+  const selectFlyout = document.querySelector('[data-tool-flyout="select"]')
+  const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
-    'the palette groups the shape tools into one slot with a flyout',
-    slots.length === 3 && shapeFlyout !== null && shapeSlot?.title?.includes('Shape Tool') === true,
-    `${slots.length} slots, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, slot labelled ${JSON.stringify(shapeSlot?.title)}`,
+    'the palette groups the arrow pair and the shape tools into slots with flyouts',
+    slots.length === 4 &&
+      selectFlyout !== null &&
+      shapeFlyout !== null &&
+      shapeSlot?.title?.includes('Shape Tool') === true &&
+      lassoSlot?.title === 'Lasso Tool (Q)',
+    `${slots.length} slots, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
   )
 
   // 2. Clicking the Type tool must change the bar to the Type tool's controls.

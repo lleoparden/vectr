@@ -40,6 +40,26 @@ export function IconSelect(props: IconProps) {
   )
 }
 
+/** Direct Selection: the same arrow, unwelded — Illustrator's black/white arrow pair, drawn here. */
+export function IconDirectSelect(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3.2 1.6 L3.2 13.2 L6.3 10.2 L8.5 14.6 L10.4 13.7 L8.2 9.3 L12.6 9.3 Z" />
+    </Icon>
+  )
+}
+
+/** Lasso: a freehand loop with the tail a drag leaves behind. */
+export function IconLasso(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7.4 3.1a4.6 3.6 0 1 0 2.2 6.9c1.1.5 2.2.4 3-0.3" />
+      <path d="M9.6 9.7c0.6 1.4 0.2 2.6-0.9 3.4" />
+      <circle cx="7.4" cy="6.7" r="0.5" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
 export function IconRect(props: IconProps) {
   return (
     <Icon {...props}>

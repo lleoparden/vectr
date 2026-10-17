@@ -85,7 +85,7 @@ test('modifiers must match exactly and Command acts as Control', () => {
   assert.equal(matchShortcut(chordFromEvent({ key: 'a', ctrlKey: true, shiftKey: true })), 'select.deselect')
   assert.notEqual(matchShortcut(chordFromEvent({ key: 'a', ctrlKey: true, shiftKey: true })), 'select.all')
   assert.equal(matchShortcut(chordFromEvent({ key: 'a', metaKey: true })), 'select.all', 'macOS Command')
-  assert.equal(matchShortcut(chordFromEvent({ key: 'q' })), null, 'unbound keys stay unbound')
+  assert.equal(matchShortcut(chordFromEvent({ key: 'w' })), null, 'unbound keys stay unbound')
   assert.equal(matchShortcut(chordFromEvent({ key: 'z' })), null, 'Ctrl+Z must not fire from bare Z')
 })
 
@@ -410,7 +410,7 @@ test('layer rows follow the tree, respect collapse, and inherit flags', () => {
 })
 
 test('the palette groups the shape tools the way Illustrator does', () => {
-  assert.equal(TOOL_GROUPS.length, 3, 'three palette slots: selection, shapes, type')
+  assert.equal(TOOL_GROUPS.length, 4, 'four palette slots: arrows, lasso, shapes, type')
   const shape = groupFor('rect')
   assert.equal(shape.id, 'shape')
   assert.equal(groupFor('ellipse').id, 'shape', 'every shape lives in one group')
@@ -421,7 +421,14 @@ test('the palette groups the shape tools the way Illustrator does', () => {
   )
   assert.equal(memberFor('ellipse').action, 'tool.ellipse')
   assert.equal(memberFor('line').action, 'tool.line')
-  assert.throws(() => groupFor('lasso' as 'rect'), /No tool group holds lasso/)
+  // Illustrator's top slot is the black/white arrow pair; the Lasso keeps its own slot and Q.
+  assert.deepEqual(
+    groupFor('select').members.map((member) => member.tool),
+    ['select', 'directSelect'],
+    'Selection and Direct Selection share one slot',
+  )
+  assert.equal(groupFor('lasso').id, 'lasso')
+  assert.equal(memberFor('lasso').action, 'tool.lasso')
 
   const remembersEllipse = { ...INITIAL_CREATION_DEFAULTS, shapeTool: 'ellipse' as const }
   assert.equal(
@@ -430,7 +437,11 @@ test('the palette groups the shape tools the way Illustrator does', () => {
     'an inactive group shows the member last picked',
   )
   assert.equal(displayToolFor(shape, 'rect', remembersEllipse), 'rect', 'an active group shows the tool in use')
-  assert.equal(displayToolFor(groupFor('select'), 'text', remembersEllipse), 'select', 'single-tool groups are stable')
+  assert.equal(
+    displayToolFor(groupFor('select'), 'text', remembersEllipse),
+    'select',
+    'an inactive arrow slot shows the Selection tool',
+  )
 })
 
 test('picking a shape member anywhere remembers it for the palette', () => {

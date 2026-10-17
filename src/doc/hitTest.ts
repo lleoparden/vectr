@@ -12,7 +12,7 @@
  * - Groups are hit when any descendant is hit, so an empty group is never hit.
  */
 
-import { findNode, worldTransform } from './document.ts'
+import { findNode, findParent, worldTransform } from './document.ts'
 import { isGroup, type Document, type LayerNode, type NodeId } from './types.ts'
 
 export type Point = { x: number; y: number }
@@ -151,4 +151,133 @@ export function sceneAnchor(document: Document, nodeId: NodeId): Point | null {
   if (world === null) return null
   if (isGroup(node)) return { x: world.x, y: world.y }
   return { x: world.x + (node.width * world.scaleX) / 2, y: world.y + (node.height * world.scaleY) / 2 }
+}
+
+/**
+ * Even-odd point-in-polygon test for the Lasso tool (Phase 2.1, issue #64). A point exactly on the
+ * path counts as inside, so a lasso drawn tightly around an object's corner still catches it.
+ */
+export function polygonContains(points: Point[], point: Point): boolean {
+  if (points.length < 3) return false
+  let inside = false
+  for (let index = 0, previous = points.length - 1; index < points.length; previous = index, index += 1) {
+    const a = points[index]
+    const b = points[previous]
+    if (pointOnSegment(a, b, point)) return true
+    const crosses = a.y > point.y !== b.y > point.y
+    if (crosses && point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x) inside = !inside
+  }
+  return inside
+}
+
+const EPSILON = 1e-9
+
+function pointOnSegment(a: Point, b: Point, point: Point): boolean {
+  const cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x)
+  if (Math.abs(cross) > EPSILON) return false
+  return (
+    point.x >= Math.min(a.x, b.x) - EPSILON &&
+    point.x <= Math.max(a.x, b.x) + EPSILON &&
+    point.y >= Math.min(a.y, b.y) - EPSILON &&
+    point.y <= Math.max(a.y, b.y) + EPSILON
+  )
+}
+
+function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
+  const direction = (p: Point, q: Point, r: Point) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x)
+  const d1 = direction(c, d, a)
+  const d2 = direction(c, d, b)
+  const d3 = direction(a, b, c)
+  const d4 = direction(a, b, d)
+  return ((d1 > EPSILON && d2 < -EPSILON) || (d1 < -EPSILON && d2 > EPSILON)) &&
+    ((d3 > EPSILON && d4 < -EPSILON) || (d3 < -EPSILON && d4 > EPSILON))
+}
+
+/**
+ * True when a closed path touches a rectangle. "Touches" is the rule Vectr records for the lasso: a
+ * rectangle corner inside the path, a path vertex inside the rectangle, or an edge crossing — so a
+ * path drawn across an object's middle selects it, which is broader than Illustrator's
+ * enclosed-path lasso and is recorded as a divergence in `docs/DECISIONS.md`.
+ */
+export function polygonIntersectsBounds(
+  points: Point[],
+  bounds: { x: number; y: number; width: number; height: number },
+): boolean {
+  if (points.length === 0) return false
+  const corners: Point[] = [
+    { x: bounds.x, y: bounds.y },
+    { x: bounds.x + bounds.width, y: bounds.y },
+    { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+    { x: bounds.x, y: bounds.y + bounds.height },
+  ]
+  for (const corner of corners) {
+    if (polygonContains(points, corner)) return true
+  }
+  for (const point of points) {
+    if (
+      point.x >= bounds.x - EPSILON &&
+      point.x <= bounds.x + bounds.width + EPSILON &&
+      point.y >= bounds.y - EPSILON &&
+      point.y <= bounds.y + bounds.height + EPSILON
+    ) {
+      return true
+    }
+  }
+  if (points.length === 1) return false
+  for (let index = 0; index < points.length; index += 1) {
+    const a = points[index]
+    const b = points[(index + 1) % points.length]
+    for (let side = 0; side < 4; side += 1) {
+      if (segmentsCross(a, b, corners[side], corners[(side + 1) % 4])) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Ids touched by a Lasso path, in paint order. Collapsed to the top-level object unless `deep`
+ * is set, so the Lasso selects objects the way the Selection tool does.
+ */
+export function lassoHitTest(document: Document, points: Point[], options: HitOptions = {}): NodeId[] {
+  const ids: NodeId[] = []
+  const seen = new Set<NodeId>()
+  for (const entry of placedLeaves(document)) {
+    if (entry.locked && options.includeLocked !== true) continue
+    if (!polygonIntersectsBounds(points, placedBounds(entry))) continue
+    const id = options.deep === true ? entry.node.id : entry.root
+    if (seen.has(id)) continue
+    seen.add(id)
+    ids.push(id)
+  }
+  return ids
+}
+
+/**
+ * The top-level-to-leaf chain of ids under a scene point, or null when nothing is hit. The chain is
+ * what makes double-click hierarchy drilling aware of how deeply an object is nested.
+ */
+function hitChain(document: Document, point: Point): NodeId[] | null {
+  const leaf = hitTest(document, point, { deep: true })
+  if (leaf === null) return null
+  const chain: NodeId[] = []
+  let current: NodeId | null = leaf
+  while (current !== null) {
+    chain.unshift(current)
+    const parent = findParent(document, current)
+    current = parent === null || parent.id === document.root.id ? null : parent.id
+  }
+  return chain
+}
+
+/**
+ * What a double-click on the canvas selects: Illustrator's one-level-at-a-time descent. With
+ * nothing selected the first level in from the top-level object is chosen; a second double-click
+ * with that group selected descends again; a leaf cannot go deeper.
+ */
+export function hierarchySelection(document: Document, point: Point, selection: NodeId[]): NodeId | null {
+  const chain = hitChain(document, point)
+  if (chain === null) return null
+  const index = selection.length === 1 ? chain.indexOf(selection[0]) : -1
+  const next = index >= 0 ? Math.min(index + 1, chain.length - 1) : Math.min(1, chain.length - 1)
+  return chain[next]
 }

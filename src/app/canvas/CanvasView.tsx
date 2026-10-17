@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createShape, createText, estimateTextSize, findNode, shapeLabel, worldTransform } from '../../doc/document.ts'
 import type { ShapeKind } from '../../doc/document.ts'
-import { hitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
+import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
 import { clampCornerRadius, outlinePoints } from '../../doc/shapeGeometry.ts'
 import { boxFor, constrainEnd, dragIsBigEnough, lineFrom } from './shapeDrag.ts'
 import { isText, type NodeId, type Transform } from '../../doc/types.ts'
@@ -32,10 +32,13 @@ type Gesture =
   | { kind: 'none' }
   | { kind: 'create'; tool: ShapeKind; start: Point; current: Point; shift: boolean }
   | { kind: 'move'; start: Point; current: Point; originals: Map<string, Transform> }
-  | { kind: 'marquee'; start: Point; current: Point }
+  | { kind: 'marquee'; start: Point; current: Point; deep: boolean }
+  | { kind: 'lasso'; points: Point[] }
   | { kind: 'pan'; startClient: Point; panStart: Point }
 
 const MIN_DRAG = 4
+/** Enough samples for a smooth lasso without letting a long drag grow the path unbounded. */
+const MAX_LASSO_POINTS = 2000
 
 /** The shape a tool draws, or `null` for the tools that are not shapes. */
 export function shapeKindForTool(tool: Tool): ShapeKind | null {
@@ -76,6 +79,7 @@ export function CanvasView() {
   const [ready, setReady] = useState(false)
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
+  const [lassoPath, setLassoPath] = useState<Point[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
   const [editing, setEditing] = useState<{ nodeId: NodeId; text: string } | null>(null)
@@ -243,6 +247,13 @@ export function CanvasView() {
     }
     if (event.button !== 0) return
 
+    // The Lasso collects a freehand path; what it selects is decided on release.
+    if (state.tool === 'lasso') {
+      gestureRef.current = { kind: 'lasso', points: [start] }
+      setLassoPath([start])
+      return
+    }
+
     const shapeKind = shapeKindForTool(state.tool)
     if (shapeKind !== null) {
       gestureRef.current = { kind: 'create', tool: shapeKind, start, current: start, shift: event.shiftKey }
@@ -281,9 +292,12 @@ export function CanvasView() {
       return
     }
 
-    const hit = hitTest(state.document, start)
+    // Direct Selection reaches the leaf under the pointer; the Selection tool stops at the
+    // top-level object, which is Illustrator's black-arrow/white-arrow distinction.
+    const deep = state.tool === 'directSelect'
+    const hit = hitTest(state.document, start, deep ? { deep: true } : {})
     if (hit === null) {
-      gestureRef.current = { kind: 'marquee', start, current: start }
+      gestureRef.current = { kind: 'marquee', start, current: start, deep }
       return
     }
     if (event.shiftKey || event.metaKey || event.ctrlKey) documentStore.toggleSelection(hit)
@@ -333,6 +347,12 @@ export function CanvasView() {
       setOverlay({ kind: next.tool, start: next.start, current: next.current, shift: next.shift })
       return
     }
+    if (gesture.kind === 'lasso') {
+      const points = gesture.points.length >= MAX_LASSO_POINTS ? gesture.points : [...gesture.points, current]
+      gestureRef.current = { kind: 'lasso', points }
+      setLassoPath(points)
+      return
+    }
     gestureRef.current = { ...gesture, current }
     setOverlay({
       kind: 'rect',
@@ -346,20 +366,37 @@ export function CanvasView() {
     const gesture = gestureRef.current
     gestureRef.current = { kind: 'none' }
     setOverlay(null)
+    setLassoPath(null)
     canvasRef.current?.releasePointerCapture(event.pointerId)
 
     if (gesture.kind === 'move') {
       documentStore.commitTransaction()
       return
     }
+    if (gesture.kind === 'lasso') {
+      const ids = lassoHitTest(state.document, gesture.points)
+      if (event.shiftKey) {
+        // Shift adds to the selection, the way it does for a click or a marquee.
+        const merged = [...documentStore.getState().selection]
+        for (const id of ids) if (!merged.includes(id)) merged.push(id)
+        documentStore.setSelection(merged)
+      } else {
+        documentStore.setSelection(ids)
+      }
+      return
+    }
     if (gesture.kind === 'marquee') {
       documentStore.setSelection(
-        marqueeHitTest(state.document, {
-          x: Math.min(gesture.start.x, gesture.current.x),
-          y: Math.min(gesture.start.y, gesture.current.y),
-          width: Math.abs(gesture.current.x - gesture.start.x),
-          height: Math.abs(gesture.current.y - gesture.start.y),
-        }),
+        marqueeHitTest(
+          state.document,
+          {
+            x: Math.min(gesture.start.x, gesture.current.x),
+            y: Math.min(gesture.start.y, gesture.current.y),
+            width: Math.abs(gesture.current.x - gesture.start.x),
+            height: Math.abs(gesture.current.y - gesture.start.y),
+          },
+          { deep: gesture.deep },
+        ),
       )
       return
     }
@@ -433,10 +470,17 @@ export function CanvasView() {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onDoubleClick={(event) => {
-          // Double-clicking a text object with the Selection tool edits it, as in Illustrator.
-          const hit = hitTest(documentStore.getState().document, toScene(event), { deep: true })
-          const node = hit === null ? null : findNode(documentStore.getState().document, hit)
-          if (node !== null && isText(node)) startEditingText(node.id)
+          // Illustrator's double-click descends one level into the group under the pointer, and
+          // opens a text object it reaches. Shape and lasso tools have no double-click meaning.
+          const document = documentStore.getState().document
+          const target = hierarchySelection(document, toScene(event), documentStore.getState().selection)
+          if (target === null) return
+          const node = findNode(document, target)
+          if (node !== null && isText(node)) {
+            startEditingText(node.id)
+            return
+          }
+          documentStore.setSelection([target])
         }}
         onContextMenu={(event) => {
           event.preventDefault()
@@ -474,6 +518,22 @@ export function CanvasView() {
           panX={state.viewport.panX}
           panY={state.viewport.panY}
         />
+      )}
+      {lassoPath !== null && lassoPath.length > 1 && (
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" data-lasso-preview>
+          <polygon
+            points={lassoPath
+              .map((point) => {
+                const screen = toScreen({ x: point.x, y: point.y, width: 0, height: 0 })
+                return `${screen.x},${screen.y}`
+              })
+              .join(' ')}
+            fill="rgba(124,108,245,0.12)"
+            stroke="rgba(124,108,245,0.9)"
+            strokeWidth={1}
+            strokeDasharray="4 3"
+          />
+        </svg>
       )}
       <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] text-neutral-300">
         {stats === null

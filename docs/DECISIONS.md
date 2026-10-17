@@ -1521,3 +1521,59 @@ Two honest limits are part of the decision rather than hidden behind it:
   lists here are the authority; the catalog and `docs/PROGRESS.md` now point at them instead of
   restating a number.
 
+## 2026-10-17 — Selection modes, lasso, and a live corner radius (Phase 2.1, issue #64)
+
+Phase 2 starts here. The owner's instruction: start Phase 2, ship each issue as its own pull
+request, and an agent may merge once it has reviewed the change properly. This slice is first in
+the dependency order because it needs none of the four open Phase 2 decisions.
+
+### Two arrows, one slot
+
+`A` is Direct Selection and selects the deepest leaf under the pointer; `V` stays the Selection
+tool and keeps returning the top-level object. They share one palette slot with a flyout because
+that is Illustrator's own black-arrow/white-arrow button — the familiar control in the familiar
+place. The Direct Selection marquee selects leaves rather than whole groups, which is what makes a
+nested object reachable without first entering the group.
+
+### Double-click descends one level, not all the way
+
+`hierarchySelection` computes the top-level-to-leaf chain under the pointer and moves one step in.
+With nothing selected, clicking an object two groups deep selects the group that contains it; a
+second double-click selects the object; a third changes nothing. That is Illustrator's descent,
+and it is deliberately *not* "select the deepest leaf", which would make a single double-click feel
+unpredictable on a deeply nested document. A double-click that lands on a text object still opens
+the inline editor, which is what the canvas already did for text before this slice.
+
+### The lasso's rule, stated rather than implied
+
+A freehand path selects every visible, unlocked leaf whose world bounds it touches: a corner of
+the object inside the path, a path vertex inside the object, or an edge crossing. Illustrator's
+lasso is closer to "what is enclosed by the path", so a path drawn across an object's middle
+selects it in Vectr but would not in Illustrator. The reason is honest: Vectr's selection model is
+box-based (bounds, marquee, thumbnails, hit testing all agree on the box), and a
+touched-bounds test is the rule that composes with it. It is recorded as a divergence, not as a
+bug, and it is what the catalog entry and the unit tests state.
+
+### The radius is a command, not a control
+
+`setCornerRadius` is a real document command with an exact inverse, so typing a radius is one undo
+step and the same edit is reachable from the Control panel, from Properties, and later from an
+agent. The UI clamps the typed value to half the shorter side, which is what Illustrator does when
+a live corner is dragged past the middle; the command itself refuses a value in that range
+(`invalid-index`) rather than silently clamping, so a caller that is not the UI cannot write a
+document that `validateDocument` would then reject.
+
+### Divergences recorded in this slice
+
+- **Direct selection is object-level, not anchor-level.** Illustrator's white arrow also selects
+  path anchors and handles; Vectr has no Bézier paths yet (PATH-02), so the tool selects whole
+  objects. The tool, its key, its slot, and its drill behavior match; the granularity does not.
+- **No Group Selection tool.** Illustrator's third arrow member is the Group Selection tool;
+  double-click drilling covers the same intent for now.
+- **The lasso's touched-bounds rule** is broader than Illustrator's enclosed-path rule, as above.
+- **The corner radius has no on-canvas widget.** Illustrator draws live corner handles on a
+  selected rectangle; Vectr edits the value in the Control panel and Properties only.
+- **`Q` and `A` are Illustrator's keys**, so they are `illustratorDefault: true`; nothing new was
+  invented for this slice.
+
+

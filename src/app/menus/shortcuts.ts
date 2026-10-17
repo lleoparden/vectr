@@ -33,8 +33,11 @@ export type ShortcutSpec = {
 }
 
 export const SHORTCUTS: readonly ShortcutSpec[] = [
-  // Tools (Illustrator: V = Selection, M = Rectangle, L = Ellipse, T = Type).
+  // Tools (Illustrator: V = Selection, A = Direct Selection, Q = Lasso, M = Rectangle, L = Ellipse,
+  // T = Type).
   { id: 'tool.select', chord: { key: 'v' }, illustratorDefault: true },
+  { id: 'tool.directSelect', chord: { key: 'a' }, illustratorDefault: true },
+  { id: 'tool.lasso', chord: { key: 'q' }, illustratorDefault: true },
   { id: 'tool.rect', chord: { key: 'm' }, illustratorDefault: true },
   { id: 'tool.roundedRect', chord: { key: 'j' }, illustratorDefault: false, note: 'Illustrator has no key for the rounded rectangle tool, which Vectr does' },
   { id: 'tool.ellipse', chord: { key: 'l' }, illustratorDefault: true },

@@ -1,6 +1,50 @@
 # Progress
 
 
+## Phase 2.1 — selection modes, lasso, and a live corner radius (2026-10-17, issue #64)
+
+Phase 2 is under way. The owner's instruction was to start it, ship each issue as its own pull
+request, and merge what has been reviewed properly. This is the first slice of the dependency order
+in `docs/PLAN.md`; it needs none of the four open Phase 2 decisions.
+
+**What now works**
+
+- **Direct Selection (`A`)** selects the deepest leaf under the pointer, and its marquee selects
+  leaves rather than whole groups. Selection (`V`) still returns the top-level object. The two share
+  Illustrator's black/white arrow palette slot with a flyout.
+- **Double-click nests one level at a time.** `hierarchySelection` walks the top-level-to-leaf chain
+  and descends one step, so a second double-click reaches the child and a leaf stops. A double-click
+  that lands on a text object still opens the inline editor.
+- **Lasso (`Q`)** selects every visible, unlocked object its freehand path touches — corner inside
+  the path, path vertex inside the object, or an edge crossing — with Shift adding to the selection.
+  Its own palette slot, its own preview, and Illustrator's own key.
+- **The corner radius is now editable on an existing rectangle.** `setCornerRadius` is a document
+  command with an exact inverse; the Control panel's `Corners` field and a new Properties field edit
+  it, both clamped to half the shorter side. A locked rectangle, a non-finite value, a negative one,
+  and one past the clamp are all refused by the command with their own codes.
+
+**Evidence**
+
+- `npm run typecheck` clean, `npm run build` clean, `npm test` **156/156** (11 new in
+  `tests/selection.test.ts`: polygon containment including a concave path, the lasso's touched-bounds
+  rule with deep/collapsed/locked/hidden cases, hierarchy drilling at four depths, the radius command
+  with every refusal and an exact inverse, the clamp-and-undo control path, the palette grouping, the
+  two chords, and the radius field's presence/absence rules).
+- Packaged `electron . --smoke=stress` on the production bundle, with `ELECTRON_RUN_AS_NODE` cleared:
+  **94 steps across seven reports, all passing** — `[vectr-smoke]` 26/26 (five new: direct selection
+  reaches a nested leaf, double-click drills one level, the lasso selects what its path touches,
+  corner radius clamps as one entry, undo restores the previous radius), `[vectr-file]` 20/20 (new:
+  reopen restores the edited corner radius 24), `[vectr-text]` 12/12, `[vectr-ui]` 8/8 (the palette
+  slot assertion now expects four slots and the Lasso's `Q`), `[vectr-path]` 9/9, `[vectr-memory]`
+  11/11, `[vectr-stress]` 8/8.
+- The run also settles the environment question from the records correction: `npm run smoke` does
+  work here once `ELECTRON_RUN_AS_NODE=1` is cleared; the earlier attempt was Electron running as
+  Node, and a second attempt without that flag had simply not finished before it was sampled.
+
+**Recorded limits** (also in `docs/DECISIONS.md` and `PATH-02`): no anchor-level selection or Group
+Selection tool, no corner widget on the canvas, and the lasso's rule is the touched-bounds test
+rather than Illustrator's enclosed-path test.
+
 ## Records corrected: stale Phase 1 statements, and no more divergence counting (2026-10-17, docs)
 
 The owner asked for a read-through of the rules, plans, and progress records. Reading them against

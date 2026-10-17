@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { relinkImageFromDialog, setImageMaskFromDialog } from '../actions.ts'
+import { relinkImageFromDialog, setImageMaskFromDialog, setSelectionCornerRadius } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -72,6 +72,25 @@ export function PropertiesPanel() {
       <Row label="H" value={bounds === null ? '—' : round(bounds.height > 0 ? bounds.height : size.height)} />
       <Row label="Rotation" value={`${round(node.transform.rotation)}°`} />
       <Row label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
+      {node.type === 'rect' && (
+        // Illustrator's Properties panel edits the rectangle's live corner radius; Vectr offers
+        // the same value here and in the Control panel, both clamped to half the shorter side.
+        <div className="flex items-center justify-between gap-3 px-2 py-[3px]">
+          <label className="text-ui-xs text-ink-faint" htmlFor="vectr-corner-radius">
+            Corners
+          </label>
+          <input
+            id="vectr-corner-radius"
+            type="number"
+            min={0}
+            max={Math.min(node.width, node.height) / 2}
+            step={1}
+            value={round(node.cornerRadius)}
+            className="w-16 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+            onChange={(event) => setSelectionCornerRadius(Number(event.currentTarget.value))}
+          />
+        </div>
+      )}
       {isText(node) && (
         <>
           <Row label="Font" value={node.fontFamily} />

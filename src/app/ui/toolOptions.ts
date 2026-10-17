@@ -12,12 +12,12 @@
  */
 
 import type { EditorActionId } from '../actions.ts'
-import { worldBounds, type ShapeKind } from '../../doc/document.ts'
+import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'text'
-export type ToolGroupId = 'select' | 'shape' | 'text'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text'
+export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'text'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
 
@@ -38,8 +38,15 @@ export const TOOL_GROUPS: ToolGroup[] = [
   {
     id: 'select',
     label: 'Selection Tool',
-    members: [{ tool: 'select', label: 'Selection Tool', action: 'tool.select' }],
+    // Illustrator's top slot is the black/white arrow pair: Selection and Direct Selection share
+    // one button with a flyout, and V/A are their keys.
+    members: [
+      { tool: 'select', label: 'Selection Tool', action: 'tool.select' },
+      { tool: 'directSelect', label: 'Direct Selection Tool', action: 'tool.directSelect' },
+    ],
   },
+  // The Lasso keeps Illustrator's own palette slot and its Q key rather than joining the arrows.
+  { id: 'lasso', label: 'Lasso Tool', members: [{ tool: 'lasso', label: 'Lasso Tool', action: 'tool.lasso' }] },
   {
     id: 'shape',
     label: 'Shape Tool',
@@ -116,10 +123,23 @@ export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
   const { tool, selection, document, defaults, canRun } = input
   const group = groupFor(tool)
 
-  if (tool === 'select') {
-    const controls: ToolOptionControl[] = [{ kind: 'label', text: 'Selection Tool' }]
+  if (tool === 'lasso') {
+    return [
+      { kind: 'label', text: 'Lasso Tool' },
+      { kind: 'hint', text: 'Drag a freehand path to select every object it touches.' },
+    ]
+  }
+
+  if (tool === 'select' || tool === 'directSelect') {
+    const direct = tool === 'directSelect'
+    const controls: ToolOptionControl[] = [{ kind: 'label', text: direct ? 'Direct Selection Tool' : 'Selection Tool' }]
     if (selection.length === 0) {
-      controls.push({ kind: 'hint', text: 'Nothing selected — click an object, or drag a marquee.' })
+      controls.push({
+        kind: 'hint',
+        text: direct
+          ? 'Nothing selected — click a nested object to select just it, or drag a marquee.'
+          : 'Nothing selected — click an object, or drag a marquee.',
+      })
       return controls
     }
     controls.push({
@@ -134,6 +154,20 @@ export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
         controls.push({ kind: 'readout', label: 'Y', value: round(bounds.y) })
         controls.push({ kind: 'readout', label: 'W', value: round(bounds.width) })
         controls.push({ kind: 'readout', label: 'H', value: round(bounds.height) })
+      }
+      // Illustrator's Control panel offers the live corner radius of the selected rectangle, and
+      // refuses to pretend an ellipse or a multi-selection has one (issue #64).
+      const target = findNode(document, selection[0])
+      if (target !== null && target.type === 'rect') {
+        controls.push({
+          kind: 'number',
+          id: 'selection.cornerRadius',
+          label: 'Corners',
+          value: Math.round(target.cornerRadius),
+          min: 0,
+          max: Math.floor(Math.min(target.width, target.height) / 2),
+          step: 1,
+        })
       }
     }
     controls.push({ kind: 'separator' })

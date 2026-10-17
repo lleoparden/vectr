@@ -16,7 +16,18 @@ import { History } from '../doc/history.ts'
 import { createDocument, paintOrder } from '../doc/document.ts'
 import { isGroup, type Document, type NodeId } from '../doc/types.ts'
 
-export type Tool = 'select' | 'rect' | 'roundedRect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'arc' | 'text'
+export type Tool =
+  | 'select'
+  | 'directSelect'
+  | 'lasso'
+  | 'rect'
+  | 'roundedRect'
+  | 'ellipse'
+  | 'line'
+  | 'polygon'
+  | 'star'
+  | 'arc'
+  | 'text'
 export type Viewport = { zoom: number; panX: number; panY: number }
 export type CommandError = { code: string; message: string; command: Command }
 

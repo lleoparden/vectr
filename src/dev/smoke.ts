@@ -16,6 +16,7 @@ import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../do
 import { scaleFactors, scaledTransform, unionBounds } from '../app/editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
 import { SNAP_PIXELS, snapBox, snapTargets } from '../app/editing/snapping.ts'
+import { deepHitWithin, groupToIsolate } from '../app/editing/isolation.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
@@ -445,6 +446,30 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
   )
   record('a drag outside the threshold is not snapped', outside.dx === 0 && outside.dy === 0, 'dx ' + outside.dx)
   record('the page is a snap target', page !== undefined && page.width > 0, page === undefined ? 'no page' : page.width + ' wide')
+
+
+  // Phase 2.8 (issue #71): isolation limits selection to one group's subtree.
+  newDocument()
+  const island = createGroup('Smoke Island')
+  const islandChild = createRect('Island Child', 20, 20, 60, 60)
+  const islandOutsider = createRect('Island Outsider', 400, 400, 60, 60)
+  store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [island, islandOutsider] },
+    'smoke isolation prep',
+  )
+  store.dispatch({ type: 'insertNodes', parentId: island.id, index: 0, nodes: [islandChild] }, 'smoke island child')
+  const insideIsolation = deepHitWithin(store.getState().document, island.id, { x: 40, y: 40 })
+  const outsideIsolation = deepHitWithin(store.getState().document, island.id, { x: 420, y: 420 })
+  record(
+    'isolation reaches the group and nothing outside it',
+    insideIsolation === islandChild.id && outsideIsolation === null,
+    'inside ' + (insideIsolation === islandChild.id ? 'child' : String(insideIsolation)) + ', outside ' + String(outsideIsolation),
+  )
+  record(
+    'isolating a child targets its parent group',
+    groupToIsolate(store.getState().document, [islandChild.id]) === island.id,
+    'group lookup ok',
+  )
 
 
   return { passed: steps.every((step) => step.ok), steps }

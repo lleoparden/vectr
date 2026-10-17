@@ -27,6 +27,7 @@ import {
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
+import { groupToIsolate } from './editing/isolation.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
 import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
 import type { LayerRow } from './panels/layerRows.ts'
@@ -86,6 +87,8 @@ export const ACTION_IDS = [
   'object.arrangeBackward',
   'object.arrangeBack',
   'object.duplicate',
+  'object.isolate',
+  'object.exitIsolation',
   'object.alignLeft',
   'object.alignCenterH',
   'object.alignRight',
@@ -156,6 +159,8 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'object.arrangeBackward': 'Send Backward',
   'object.arrangeBack': 'Send to Back',
   'object.duplicate': 'Duplicate',
+  'object.isolate': 'Isolate Selection',
+  'object.exitIsolation': 'Exit Isolation Mode',
   'object.alignLeft': 'Horizontal Align Left',
   'object.alignCenterH': 'Horizontal Align Center',
   'object.alignRight': 'Horizontal Align Right',

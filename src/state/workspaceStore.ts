@@ -68,6 +68,8 @@ export type WorkspaceState = {
   creationDefaults: CreationDefaults
   /** The artboard the status bar, Fit Artboard, and new objects use; null means the first one. */
   activeArtboardId: string | null
+  /** The group being edited in isolation mode, or null (session state, issue #71). */
+  isolatedGroupId: string | null
   /** Smart Guides: snap drags to page and object edges (session state, issue #68). */
   smartGuides: boolean
 }
@@ -112,6 +114,7 @@ export class WorkspaceStore {
       preferencesOpen: false,
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
       activeArtboardId: null,
+      isolatedGroupId: null,
       smartGuides: true,
     }
   }
@@ -205,6 +208,12 @@ export class WorkspaceStore {
   /** Updates what the next drawn object uses; the tool options bar and the tools share this. */
   setCreationDefaults(patch: Partial<CreationDefaults>) {
     this.update({ creationDefaults: { ...this.state.creationDefaults, ...patch } })
+  }
+
+  /** Enters or leaves isolation mode; it is view state, so it is never persisted. */
+  setIsolatedGroup(isolatedGroupId: string | null) {
+    if (this.state.isolatedGroupId === isolatedGroupId) return
+    this.update({ isolatedGroupId })
   }
 
   /** Turns snapping on or off for the session; never persisted. */

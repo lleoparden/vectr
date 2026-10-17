@@ -86,6 +86,8 @@ export const MENU_BAR: MenuSpec[] = [
           { kind: 'command', id: 'object.distributeV', label: 'Distribute Vertical Centers' },
         ],
       },
+      { kind: 'command', id: 'object.isolate', label: 'Isolate Selection' },
+      { kind: 'command', id: 'object.exitIsolation', label: 'Exit Isolation Mode' },
       { kind: 'command', id: 'object.group', label: 'Group' },
       { kind: 'command', id: 'object.ungroup', label: 'Ungroup' },
       { kind: 'separator' },

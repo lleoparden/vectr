@@ -21,6 +21,7 @@ import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
+import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
 import { artboardRects } from '../../doc/artboards.ts'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
@@ -344,7 +345,11 @@ export function CanvasView() {
     // Direct Selection reaches the leaf under the pointer; the Selection tool stops at the
     // top-level object, which is Illustrator's black-arrow/white-arrow distinction.
     const deep = state.tool === 'directSelect'
-    const hit = hitTest(state.document, start, deep ? { deep: true } : {})
+    // Isolation mode (issue #71): a click resolves to the deepest leaf inside the isolated group.
+    const isolatedGroup = workspaceStore.getState().isolatedGroupId
+    const hit = isolatedGroup === null
+      ? hitTest(state.document, start, deep ? { deep: true } : {})
+      : deepHitWithin(state.document, isolatedGroup, start)
     if (hit === null) {
       gestureRef.current = { kind: 'marquee', start, current: start, deep }
       return
@@ -444,7 +449,7 @@ export function CanvasView() {
         for (const id of ids) if (!merged.includes(id)) merged.push(id)
         documentStore.setSelection(merged)
       } else {
-        documentStore.setSelection(ids)
+        documentStore.setSelection(withinIsolation(state.document, workspaceStore.getState().isolatedGroupId, ids))
       }
       return
     }

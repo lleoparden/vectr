@@ -13,6 +13,7 @@ import { useEffect } from 'react'
 import { canRunAction, nudgeSelection, runEditorAction } from '../actions.ts'
 import { chordFromEvent, matchShortcut } from './shortcuts.ts'
 import { documentStore } from '../../state/documentStore.ts'
+import { workspaceStore } from '../../state/workspaceStore.ts'
 
 /** Illustrator's nudge steps: one scene unit, or ten with Shift held. */
 const NUDGE_STEP = 1

@@ -1749,3 +1749,17 @@ Implementation follows the contract recorded above, with two decisions worth nam
   opacity, which is what Illustrator's Transparency panel does for separate objects; a group's opacity
   multiplies into its children without changing their stored values.
 
+## 2026-10-17 — Isolation is workspace state (Phase 2.8, issue #71)
+
+- **Isolation is a session pointer, not document data.** The file never records that you were editing
+  inside a group; reopening lands at document level. That matches how the viewport and tool behave and
+  keeps the compiler reading a plain tree.
+- **It is enforced by filtering, not by a second selection model.** One helper (`withinIsolation`) trims
+  click, marquee, and lasso results, and one (`deepHitWithin`) resolves clicks to leaves inside the
+  subtree; everything downstream — the command path, history, the renderer — sees ordinary ids.
+- **The isolated group itself is not selectable**, so a click cannot silently re-select the container you
+  just entered. Escape leaves isolation before it clears anything else.
+- **Divergence recorded:** Illustrator enters isolation by double-clicking an object and shows a
+  breadcrumb with Back/Forward; Vectr enters from Object ▸ Isolate Selection (the double-click there still
+  drills one level in the hierarchy) and shows the group's name in the status bar.
+

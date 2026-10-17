@@ -27,7 +27,7 @@ import {
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
-import type { StrokeCap, StrokeJoin } from '../doc/types.ts'
+import type { FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import { groupToIsolate } from './editing/isolation.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
 import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
@@ -779,6 +779,32 @@ export function setSelectionStroke(patch: { color?: string; width?: number; cap?
     if (join !== undefined) stroke.join = join
     return { ...node.style, stroke }
   }, 'stroke')
+}
+
+/**
+ * A two-stop linear gradient across the node's box, from an angle in degrees (issue #70). Angles
+ * are measured the way Illustrator's gradient tool reports them: 0 runs left to right, 90 runs
+ * bottom to top.
+ */
+export function linearGradientFrom(angleDegrees: number, fromColor: string, toColor: string): FillGradient {
+  const radians = (Math.max(-360, Math.min(360, angleDegrees)) * Math.PI) / 180
+  const dx = Math.cos(radians) / 2
+  const dy = Math.sin(radians) / 2
+  return {
+    type: 'linear',
+    stops: [
+      { offset: 0, color: fromColor },
+      { offset: 1, color: toColor },
+    ],
+    // Scene y grows downward, so the vertical component is flipped: 90 degrees runs bottom to top.
+    from: { x: 0.5 - dx, y: 0.5 + dy },
+    to: { x: 0.5 + dx, y: 0.5 - dy },
+  }
+}
+
+/** Applies or removes a gradient fill on the selection, one undo entry. */
+export function setSelectionGradient(gradient: FillGradient | null): void {
+  applySelectionStyle((node) => ({ ...node.style, gradient }), 'gradient')
 }
 
 /** Sets the selection's opacity (0–1) as one undo entry; the renderer already applies it. */

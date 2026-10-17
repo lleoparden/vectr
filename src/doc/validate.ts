@@ -59,6 +59,31 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
       )
     }
   }
+  if (!isGroup(node)) {
+    const gradient = node.style.gradient ?? null
+    if (gradient !== null) {
+      if (gradient.type !== 'linear') {
+        return fail('invalid-index', `Node ${node.id} has an unsupported gradient type.`, node.id)
+      }
+      if (gradient.stops.length < 2 || gradient.stops.length > 8) {
+        return fail('invalid-index', `Gradient needs two to eight stops.`, node.id)
+      }
+      for (const stop of gradient.stops) {
+        if (!Number.isFinite(stop.offset) || stop.offset < 0 || stop.offset > 1) {
+          return fail('non-finite', `Gradient ${node.id} has a stop outside 0..1.`, node.id)
+        }
+        if (!/^#[0-9a-fA-F]{6}$/.test(stop.color)) {
+          return fail('invalid-index', `Gradient ${node.id} has an unusable colour.`, node.id)
+        }
+      }
+      if (![gradient.from.x, gradient.from.y, gradient.to.x, gradient.to.y].every((value) => Number.isFinite(value))) {
+        return fail('non-finite', `Gradient ${node.id} has non-finite endpoints.`, node.id)
+      }
+      if (gradient.from.x === gradient.to.x && gradient.from.y === gradient.to.y) {
+        return fail('invalid-index', `Gradient ${node.id} has identical endpoints.`, node.id)
+      }
+    }
+  }
   const CAPS = new Set(['butt', 'round', 'square'])
   const JOINS = new Set(['miter', 'round', 'bevel'])
   if (!isGroup(node)) {

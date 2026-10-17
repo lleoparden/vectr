@@ -1828,3 +1828,18 @@ Implementation follows the contract above. Three decisions worth naming:
   naive copy would point at the original's child — a cross-tree reference that would clip the copy to
   something it does not own. This is the one place where ids-as-references bites, and it has a test.
 
+## 2026-10-17 — Linear gradient fills (Phase 2.7, issue #70)
+
+- **A gradient is a paint definition, not a new node kind.** It lives on the style as normalised stop
+  offsets and unit endpoints, so the file stays renderer-independent and the same definition can later
+  drive the compiler's CSS or SVG output without translation.
+- **The solid fill is kept as the fallback.** A gradient augments `fill` rather than replacing it, so a
+  renderer or exporter that cannot do gradients still draws the right colour instead of nothing.
+- **Angle 90 runs bottom to top**, matching Illustrator's gradient tool; scene y grows downward, so the
+  vertical component is flipped once, in `linearGradientFrom`, and the tests pin it.
+- **Only two stops in the UI, up to eight in the model.** The document accepts multi-stop gradients from
+  any caller (and the compiler will need them), but the panel offers a start and end colour plus an angle
+  rather than a stop editor it cannot yet draw honestly.
+- **No blend modes yet.** `APP-01` needs a limited set chosen deliberately; that is its own slice, not a
+  free extra on the gradient work.
+

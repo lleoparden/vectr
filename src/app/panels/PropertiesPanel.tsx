@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, setSelectionFill, setSelectionOpacity, setSelectionStroke } from '../actions.ts'
+import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, linearGradientFrom, setSelectionFill, setSelectionGradient, setSelectionOpacity, setSelectionStroke } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -155,6 +155,41 @@ export function PropertiesPanel() {
               className="h-5 w-8 rounded-ui border border-hairline bg-chrome-sunken"
               onBlur={(event) => setSelectionFill(event.currentTarget.value)}
             />
+          </label>
+          <label className="col-span-2 flex items-center gap-2 text-ui-xs text-ink-faint">
+            <input
+              type="checkbox"
+              aria-label="Linear gradient fill"
+              defaultChecked={node.style.gradient !== undefined && node.style.gradient !== null}
+              onChange={(event) =>
+                setSelectionGradient(
+                  event.currentTarget.checked
+                    ? linearGradientFrom(90, node.style.fill, '#ffffff')
+                    : null,
+                )
+              }
+            />
+            Linear gradient
+            {node.style.gradient !== undefined && node.style.gradient !== null && (
+              <input
+                type="number"
+                aria-label="Gradient angle"
+                min={-360}
+                max={360}
+                step={15}
+                defaultValue={90}
+                className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+                onBlur={(event) =>
+                  setSelectionGradient(
+                    linearGradientFrom(
+                      Number(event.currentTarget.value),
+                      node.style.gradient?.stops[0]?.color ?? node.style.fill,
+                      node.style.gradient?.stops[1]?.color ?? '#ffffff',
+                    ),
+                  )
+                }
+              />
+            )}
           </label>
           <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
             Stroke

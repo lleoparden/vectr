@@ -463,7 +463,7 @@ export class EditorRenderer {
         const stroke = shape.stroke ?? { color: shape.fill, width: 2 }
         recording.drawPath(path, this.paintFor('stroke', stroke.color, stroke.width, shape.opacity))
       } else {
-        recording.drawPath(path, this.paintFor('fill', shape.fill, 0, shape.opacity))
+        recording.drawPath(path, this.fillPaintFor(shape))
         if (shape.stroke !== null && shape.stroke.width > 0) {
           recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
         }
@@ -606,6 +606,25 @@ export class EditorRenderer {
       paint.setStrokeWidth(strokeWidth)
     }
     this.paintCache.set(key, paint)
+    return paint
+  }
+
+/**
+ * The fill paint for a shape: a solid colour, or a linear gradient built in the node's own box
+ * (issue #70). A gradient paint is created per recorded shape and released straight after the
+ * recording call, which stores the paint by value — so no gradient shader outlives the bucket.
+ */
+  private fillPaintFor(shape: SceneShape): Paint {
+    if (shape.gradient === null) return this.paintFor('fill', shape.fill, 0, shape.opacity)
+    const colors = shape.gradient.stops.map((stop) => this.color(stop.color))
+    const positions = shape.gradient.stops.map((stop) => stop.offset)
+    const start: number[] = [shape.gradient.from.x * shape.width, shape.gradient.from.y * shape.height]
+    const end: number[] = [shape.gradient.to.x * shape.width, shape.gradient.to.y * shape.height]
+    const shader = this.kit.Shader.MakeLinearGradient(start, end, colors, positions, this.kit.TileMode.Clamp)
+    const paint = new this.kit.Paint()
+    paint.setAntiAlias(true)
+    paint.setShader(shader)
+    if (shape.opacity < 1) paint.setAlphaf(Math.round(shape.opacity * 100) / 100)
     return paint
   }
 

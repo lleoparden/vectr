@@ -1509,4 +1509,15 @@ Two honest limits are part of the decision rather than hidden behind it:
 - Chrome hierarchy is refined through existing tokens and compact surface/focus/active states only.
   Floating/resizable panels, rulers, guides, grids, and unbuilt Appearance/Align/Transform controls
   remain out of scope.
+- **Status (recorded 2026-10-16):** merged as PR #63. The branch head passed `npm run typecheck`,
+  `npm test` (145/145), `npm run build`, and the packaged `npm run smoke` run including both image
+  controls. Normal- and high-DPI Windows desktop visual inspection was **not** performed — the
+  available UI-automation environment exposed no native desktop window — and it remains a recorded
+  verification gap on the pull request rather than a completed check.
+- **Divergence counts are no longer asserted.** Earlier sections in this file stated that
+  "fourteen", "sixteen", "eighteen", and "nineteen" divergences remained live. Each figure was
+  accurate for the slice that wrote it and stale as soon as the next slice closed or opened a
+  difference, and the catalog and progress record quoted two different stale figures at once. The
+  lists here are the authority; the catalog and `docs/PROGRESS.md` now point at them instead of
+  restating a number.
 

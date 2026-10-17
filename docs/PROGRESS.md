@@ -1,6 +1,40 @@
 # Progress
 
 
+## Records corrected: stale Phase 1 statements, and no more divergence counting (2026-10-17, docs)
+
+The owner asked for a read-through of the rules, plans, and progress records. Reading them against
+the code found six statements that had drifted; this pass corrects the record only. No product
+code, document format, command, or behavior changed.
+
+1. **The UI-01 entry said the shell refinement was still unmerged** — "normal/high-DPI desktop
+   inspection remains required before the slice is merged". It was merged as PR #63. The entry now
+   records the merge, the checks that actually ran at the branch head, and the one check that did
+   **not** run: the desktop visual pass PR #63 itself lists as unavailable.
+2. **The "Known issues" block was Phase-1-era.** It claimed nothing was persisted, the layer tree
+   was read-only, `cornerRadius` was modelled but not drawn, and the File menu was absent; all four
+   had shipped. It is rewritten to the product's actual limits, split into what is not built yet,
+   verification gaps, and accepted limits.
+3. **`README.md` advertised 119 unit tests and a 37-step smoke run.** `npm test` is 145/145 as of
+   this pass, and the hard-coded smoke step count is gone: it changes whenever a slice adds a step,
+   and the README is not where that number is maintained.
+4. **The catalog** listed `duplicate` as still planned on `SEL-03` although `object.duplicate` ships
+   from four surfaces as one undo step, and recorded `Escape` as a deselect after the conformance
+   pass made it a cancel key.
+5. **`DOC-01` still said format version 2 was current.** `FORMAT_VERSION` is 3 after IMAGE-01 added
+   the link mode, normalized crop, and mask reference; documents at v1, v2, and v3 all open.
+6. **Divergence counts contradicted each other** — sixteen in `DECISIONS.md`, nineteen in the
+   catalog, fourteen and eighteen in different parts of this file. Rather than compute a seventh
+   number that would drift the same way, the catalog, this record, and the decision log now point
+   at the per-slice lists in `docs/DECISIONS.md` as the authority.
+
+**Verification.** `npm run typecheck`, `npm run build`, and `npm test` (**145/145**) all passed in
+this session on this branch's tree. `npm run smoke` was
+attempted and **did not complete**: `ELECTRON_RUN_AS_NODE=1` is set in this shell, so `electron .`
+ran as plain Node, and with that cleared the app launched and rendered but had not finished the run
+after several minutes here. No packaged evidence is claimed. The README now documents the
+`ELECTRON_RUN_AS_NODE` trap and no longer quotes a step count.
+
 ## Autosave, crash recovery, preferences, and the memory budget (2026-10-14, owner spec)
 
 The owner set the autosave rules, delegated the memory number, and approved the next capability
@@ -641,40 +675,76 @@ renderer, a working layer tree, and a project format the compiler can read.
 
 ## Known issues
 
-- No automated end-to-end test covers the GUI. The editor smoke run
-  (`electron . --smoke=stress`) is the current evidence path; a GUI test harness is
-  an open choice.
-- Graphify is installed, but no knowledge graph exists until source code is added.
-- The layer list is read-only until #20: reorder, group/ungroup, multi-select, and
-  nesting are not interactive yet.
-- `cornerRadius` is in the document model but a rectangle still draws with square
-  corners until a later slice adds rounded-rect rendering.
-- Nothing is persisted yet: the document lives in memory until #19 adds new/open/
-  save with a versioned manifest and asset directory.
-- Full-document SVG misses the stress interaction target. CanvasKit is measured and
-  the accepted recorded-picture path is inside budget up to 1,000 live layers, but
-  10,000 loose always-visible primitives remain a published limit (`PERF-01`).
-- CanvasKit raises the measured peak whole-app working set to 817 MiB on the
-  combined fixture run (four processes, GPU process 280 MiB), so the shell memory
-  question stays open alongside the renderer decision.
-- The deferred Tauri comparison still cannot build on this machine (no MSVC linker);
-  it is non-blocking and the temporary harness sits outside the repo.
-- `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation)
-  remain untracked working files.
-- The shell now follows the UI direction, with fourteen live divergences from Illustrator
-  (`docs/DECISIONS.md`, UI shell alignment). The load-bearing ones: Properties, Appearance,
-  and Color are read-only because style and transform commands do not exist yet; the File menu
-  is absent until #19 adds documents; there are no rulers, guides, or saved workspaces; panel
-  thumbnails, the target/locate column, and dragging a layer into another layer are unbuilt.
-  Five divergences have been closed since #28: the per-node undo aggregation (#34), Escape
-  deselecting, the missing Alt menu mnemonics, the read-only layer tree (#20), and the missing
-  context menus (#20).
+The shipped product's current limits. Each is either a capability Vectr does not have yet or a
+verification gap; none is a silent failure.
+
+**Not built yet**
+
+- Rulers, guides, grids, snapping, Smart Guides, and multiple artboards (`CAN-01`, `CAN-02`;
+  Phase 2).
+- Direct selection, lasso, anchor-level editing, and pen/Bézier paths (`SEL-01`, `PATH-02`).
+- Object transforms — move, scale, rotate, reflect, shear, and numeric X/Y/W/H editing — plus
+  align and distribute (`SEL-02`, `SEL-03`). The clipboard is absent: Ctrl+C / Ctrl+X / Ctrl+V
+  and Ctrl+D are unbound, so copy, cut, paste, and Illustrator's paste offset do not exist.
+  Duplicate does exist — the Layers panel foot, its flyout, the canvas and row context menus, and
+  the Control panel's Selection row — but with no Object-menu item and no chord, since
+  Illustrator's Ctrl+D is Transform Again.
+- Appearance beyond a fill and the Line tool's stroke weight: stroke alignment, caps, joins,
+  dashes, opacity, blend modes, gradients, and named swatches (`PAINT-01`–`PAINT-03`,
+  `APP-01`). Properties and Appearance therefore report geometry and stroke as read-only values
+  rather than offering controls that would change nothing.
+- Isolation mode, vector clipping masks, compound paths, and Pathfinder-style booleans
+  (`DOC-02`, `APP-02`, `PATH-04`, `BOOL-01`).
+- Area text, text on a path, threaded text, and character/paragraph styles (`TYPE-01`–`TYPE-03`).
+- Compiled React/Tailwind output itself: `COMP-01` and `COMP-02` are deferred until the core
+  parity gate, although the document model is already the compiler's intended input.
+
+**Verification gaps**
+
+- No external GUI automation harness. Interaction evidence comes from `npm run smoke`, which
+  drives the real DOM with scripted pointer and key events; native dialogs, true OS-level input,
+  and the window close guard are covered by their pure logic and by construction rather than by
+  driving the window.
+- Platform coverage is Windows only. macOS and Linux build and launch are unverified, which is
+  why catalog rows stay `building` rather than `verified`.
+- No knowledge graph exists (`graphify-out/graph.json` is absent), so graph-first source
+  exploration is unavailable until one is generated.
+- The deferred Tauri comparison still cannot build on this machine (no MSVC linker). It is
+  non-blocking and its temporary harness sits outside the repository.
+
+**Accepted limits, recorded so they are not mistaken for defects**
+
+- `PERF-01` is amended, not met: the frozen 1,000-shape document renders at p95 1.0–1.3 ms, but
+  10,000 loose always-visible primitives run 82–90 ms against the 33 ms gate. Revisit triggers
+  are recorded in `docs/PARITY_CATALOG.md`.
+- CanvasKit does not return its WASM and GPU allocations promptly, so a session that closes a
+  large document sits at its high-water mark until the window restarts. The recorded budgets
+  (600 MiB idle, 1,200 MiB stress) are asserted in the packaged `[vectr-memory]` report, and the
+  decoded-image cache is bounded and returns to 0 after close.
+- Recovery keeps one rolling snapshot with no merge, so a crash after a long unsaved session can
+  lose state from before that session's last snapshot.
+- One editor window and one document at a time; no tabs.
+- Deliberate Illustrator divergences are listed in `docs/DECISIONS.md`, one list per slice that
+  added one. The record deliberately does not assert a running total: the counts stated here and
+  in the catalog drifted every time a slice closed or opened a difference, so they now point at
+  the lists instead of restating a number.
+- `.ecc/tmp/*` scratch files and `.ecc/issues/*.md` (issue bodies used for creation) are
+  untracked working files.
 
 ## UI-01 modern Illustrator shell refinement (2026-10-16, issue #62)
 
-The approved UI-01 slice now gives the existing editor a clearer modern-Illustrator hierarchy:
-layered chrome, restrained hover/active/focus states, a quiet tool rail, and visibly separated dock
-tabs, without changing fixed shell geometry or command behavior. The Control panel now has a visible
-**Place image** / **Link** pair that delegates to the existing embed and linked image flows rather
-than pretending images are a persistent drawing tool. Automated type/test evidence is recorded on
-the issue branch; normal/high-DPI desktop inspection remains required before the slice is merged.
+**Merged** as PR [#63](https://github.com/lleoparden/vectr/pull/63) (merge commit `7d849ed`).
+The slice gave the existing editor a clearer modern-Illustrator hierarchy — layered chrome,
+restrained hover/active/focus states, a quiet tool rail, and visibly separated dock tabs — without
+changing the fixed shell geometry or any command behavior, and put a visible **Place image** /
+**Link** pair in the Control panel that delegates to the existing embed and linked image flows
+instead of pretending images are a persistent drawing tool.
+
+**Evidence at the branch head:** `npm run typecheck`, `npm run build`, `npm test` (145/145), and
+`npm run smoke` including the packaged UI steps for both image controls, plus `git diff --check`.
+
+**Recorded verification gap:** normal- and high-DPI Windows desktop visual inspection was **not**
+performed — the available UI-automation environment exposed no native desktop window to inspect.
+The merge rested on the packaged smoke evidence, and a visual pass at the minimum supported desktop
+width (contrast, and the new control pair not clipping) is still outstanding. It is recorded on the
+pull request as well, so it is not mistaken for a completed check.

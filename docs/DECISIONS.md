@@ -1733,6 +1733,13 @@ Implementation follows the contract recorded above, with two decisions worth nam
   they are recorded as remaining on `CAN-02` rather than guessed at. Guide objects you can place (the
   ruler-guide workflow) also remain, since no ruler exists yet.
 
+## 2026-10-17 — Stroke colour joins the paint controls (Phase 2.6, issue #69)
+
+- A stroke now has its own colour field next to its weight. Changing only the colour keeps the weight,
+  and changing only the weight keeps the colour: the helper fills in whichever half the caller left
+  out, so one control can never silently reset the other.
+- The colour defaults to the fill when a node has no stroke yet, which means turning a stroke on starts
+  from the object's own colour rather than an arbitrary black.
 ## 2026-10-17 — Opacity editing, and why it needed no renderer work (Phase 2.6, issue #69)
 
 - `style.opacity` was already serialized, multiplied into the scene, and applied by the recorder — groups

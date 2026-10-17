@@ -4,7 +4,7 @@ import assert from "node:assert/strict"
 import { applyCommand } from "../src/doc/commands.ts"
 import { createDocument, createRect, findNode } from "../src/doc/document.ts"
 import { documentStore } from "../src/state/documentStore.ts"
-import { setSelectionFill, setSelectionStroke } from "../src/app/actions.ts"
+import { setSelectionFill, setSelectionOpacity, setSelectionStroke } from "../src/app/actions.ts"
 import type { Document, GroupNode, LayerNode } from "../src/doc/types.ts"
 
 function inserted(document: Document, nodes: LayerNode[]): Document {
@@ -80,4 +80,20 @@ test("a fill change on several objects is one entry, and a locked object is refu
   setSelectionFill("#abcdef")
   assert.equal(documentStore.getState().lastError?.code, "locked")
   documentStore.clearError()
+})
+
+test("opacity is clamped to 0-1 and is one entry for the whole selection", () => {
+  const { a, b } = fixture()
+  documentStore.setSelection([a.id, b.id])
+  const depth = documentStore.getState().undoDepth
+  setSelectionOpacity(0.4)
+  const node = findNode(documentStore.getState().document, a.id)
+  assert.ok(node !== null && node.type !== "group")
+  if (node !== null && node.type !== "group") assert.equal(node.style.opacity, 0.4)
+  assert.equal(documentStore.getState().undoDepth, depth + 1, "a multi-object opacity change is one entry")
+
+  setSelectionOpacity(5)
+  const clamped = findNode(documentStore.getState().document, a.id)
+  assert.ok(clamped !== null && clamped.type !== "group")
+  if (clamped !== null && clamped.type !== "group") assert.equal(clamped.style.opacity, 1, "clamped to 1")
 })

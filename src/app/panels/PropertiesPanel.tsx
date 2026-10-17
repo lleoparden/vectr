@@ -159,6 +159,13 @@ export function PropertiesPanel() {
           <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
             Stroke
             <input
+              type="color"
+              aria-label="Stroke colour"
+              defaultValue={node.style.stroke === null ? node.style.fill : node.style.stroke.color}
+              className="h-5 w-8 rounded-ui border border-hairline bg-chrome-sunken"
+              onBlur={(event) => setSelectionStroke({ color: event.currentTarget.value })}
+            />
+            <input
               type="number"
               min={0}
               max={100}

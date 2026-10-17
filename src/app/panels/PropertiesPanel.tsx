@@ -227,6 +227,26 @@ export function PropertiesPanel() {
           </label>
           <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
             Join
+        <div className="px-2 py-1">
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Dashes
+            <input
+              type="text"
+              aria-label="Dash pattern"
+              placeholder="solid"
+              defaultValue={(node.style.stroke?.dash ?? []).join(' ')}
+              className="w-24 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+              onBlur={(event) => {
+                const dash = event.currentTarget.value
+                  .split(/[ ,]+/)
+                  .filter((part) => part.length > 0)
+                  .map(Number)
+                  .filter((value) => Number.isFinite(value) && value > 0)
+                setSelectionStroke({ dash })
+              }}
+            />
+          </label>
+        </div>
             <select
               aria-label="Stroke join"
               defaultValue={node.style.stroke?.join ?? 'miter'}

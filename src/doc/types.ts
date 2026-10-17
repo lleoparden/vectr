@@ -32,6 +32,8 @@ export type Stroke = {
   width: number
   cap?: StrokeCap
   join?: StrokeJoin
+  /** Dash pattern in scene units, on/off alternating; absent or empty means a solid stroke. */
+  dash?: number[]
 }
 
 /** A linear gradient in the node's own box, normalised 0..1 (issue #70). */

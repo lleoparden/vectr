@@ -148,3 +148,34 @@ test("a document with an unsupported stroke cap is refused at the boundary", () 
   const result = validateDocument(document)
   assert.equal(result.ok ? "" : (result as { issue: { code: string } }).issue.code, "invalid-index")
 })
+
+test("a dash pattern is stored, cleared, and validated", () => {
+  const { a } = fixture()
+  documentStore.setSelection([a.id])
+  setSelectionStroke({ width: 2, dash: [6, 3] })
+  const dashed = findNode(documentStore.getState().document, a.id)
+  assert.ok(dashed !== null && dashed.type !== "group")
+  if (dashed !== null && dashed.type !== "group") assert.deepEqual(dashed.style.stroke?.dash, [6, 3])
+
+  setSelectionStroke({ dash: [] })
+  const solid = findNode(documentStore.getState().document, a.id)
+  assert.ok(solid !== null && solid.type !== "group")
+  if (solid !== null && solid.type !== "group") {
+    assert.equal(solid.style.stroke?.dash, undefined, "an empty pattern means solid, not an empty array")
+    assert.equal(solid.style.stroke?.width, 2, "clearing the dashes keeps the weight")
+  }
+})
+
+test("an unusable dash pattern is refused at the boundary", () => {
+  let document = createDocument("Dashes")
+  const rect = createRect("A", 0, 0, 10, 10)
+  document = inserted(document, [rect])
+  const node = document.root.children[0]
+  if (node.type === "group") throw new Error("expected a leaf")
+  node.style = { ...node.style, stroke: { color: "#000000", width: 1, dash: [6, -2] } }
+  assert.equal(validateDocument(document).ok, false, "a negative dash is refused")
+  node.style = { ...node.style, stroke: { color: "#000000", width: 1, dash: new Array(9).fill(1) } }
+  assert.equal(validateDocument(document).ok, false, "more than eight entries is refused")
+  node.style = { ...node.style, stroke: { color: "#000000", width: 1, dash: [6, 3] } }
+  assert.equal(validateDocument(document).ok, true, "a plain on/off pattern is fine")
+})

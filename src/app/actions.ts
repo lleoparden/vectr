@@ -767,7 +767,7 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
 }
 
 /** Applies a stroke colour and weight to the selected shapes and text as one undo entry (PAINT-01). */
-export function setSelectionStroke(patch: { color?: string; width?: number; cap?: StrokeCap; join?: StrokeJoin }): void {
+export function setSelectionStroke(patch: { color?: string; width?: number; cap?: StrokeCap; join?: StrokeJoin; dash?: number[] }): void {
   applySelectionStyle((node) => {
     const current = node.style.stroke ?? { color: node.style.fill, width: 1 }
     const width = patch.width === undefined ? current.width : Math.max(0, Math.min(100, patch.width))
@@ -777,6 +777,9 @@ export function setSelectionStroke(patch: { color?: string; width?: number; cap?
     const join = patch.join ?? current.join
     if (cap !== undefined) stroke.cap = cap
     if (join !== undefined) stroke.join = join
+    const dash = patch.dash ?? current.dash
+    if (dash !== undefined && dash.length > 0) stroke.dash = dash
+    if (patch.dash !== undefined && patch.dash.length === 0) delete stroke.dash
     return { ...node.style, stroke }
   }, 'stroke')
 }

@@ -129,3 +129,66 @@ export function starPoints(box: ShapeBox, points: number, innerRadius: number): 
   }
   return result
 }
+
+/**
+ * The outline of any leaf as a closed polygon, for vector clipping (issue #71).
+ *
+ * Curves are sampled (an ellipse at 64 points, a rounded corner at 4), which is the same trade the
+ * arc tool already makes, and it keeps clipping to one code path the renderer, the hit test, and the
+ * tests can all share. Text and images clip to their box: Vectr has no glyph or alpha silhouette to
+ * clip by, and a box is what the user sees selected.
+ */
+export function clipPolygon(shape: {
+  kind: string
+  width: number
+  height: number
+  cornerRadius?: number
+  sides?: number
+  points?: number
+  innerRadius?: number
+  startAngle?: number
+  sweepAngle?: number
+  lineFrom?: 'top-left' | 'top-right'
+  pie?: boolean
+}): Point[] {
+  const box = { width: shape.width, height: shape.height }
+  if (shape.kind === 'ellipse') {
+    const points: Point[] = []
+    const rx = shape.width / 2
+    const ry = shape.height / 2
+    for (let index = 0; index < 64; index += 1) {
+      const angle = (index * 2 * Math.PI) / 64
+      points.push({ x: rx + rx * Math.cos(angle), y: ry + ry * Math.sin(angle) })
+    }
+    return points
+  }
+  if (shape.kind === 'rect' || shape.kind === 'text' || shape.kind === 'image') {
+    const radius = shape.kind === 'rect' ? clampCornerRadius(shape.width, shape.height, shape.cornerRadius ?? 0) : 0
+    if (radius <= 0) {
+      return [
+        { x: 0, y: 0 },
+        { x: box.width, y: 0 },
+        { x: box.width, y: box.height },
+        { x: 0, y: box.height },
+      ]
+    }
+    const points: Point[] = []
+    const corner = (cx: number, cy: number, start: number) => {
+      for (let step = 0; step <= 4; step += 1) {
+        const angle = ((start + (90 * step) / 4) * Math.PI) / 180
+        points.push({ x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) })
+      }
+    }
+    corner(radius, radius, 180)
+    corner(box.width - radius, radius, 270)
+    corner(box.width - radius, box.height - radius, 0)
+    corner(radius, box.height - radius, 90)
+    return points
+  }
+  return outlinePoints(shape) ?? [
+    { x: 0, y: 0 },
+    { x: box.width, y: 0 },
+    { x: box.width, y: box.height },
+    { x: 0, y: box.height },
+  ]
+}

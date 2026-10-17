@@ -38,7 +38,7 @@ import fontUrl from '../assets/fonts/Inter-Variable.ttf?url'
 import type { NodeId } from '../doc/types.ts'
 import { DEFAULT_FONT_FAMILY } from '../doc/document.ts'
 import { clampCornerRadius, outlinePoints } from '../doc/shapeGeometry.ts'
-import type { Scene, SceneShape } from './scene.ts'
+import type { Scene, SceneClip, SceneShape } from './scene.ts'
 
 export type EditorRendererInfo = {
   backend: 'webgl' | 'cpu-fallback'
@@ -424,12 +424,32 @@ export class EditorRenderer {
     }
   }
 
+  /** Builds a shape's clip polygon as a Skia path in world coordinates. */
+  private clipPathFor(clip: SceneClip): Path {
+    const builder = new this.kit.PathBuilder()
+    const first = clip.points[0]
+    if (first === undefined) return builder.detach()
+    builder.moveTo(clip.x + first.x * clip.scaleX, clip.y + first.y * clip.scaleY)
+    for (const point of clip.points.slice(1)) {
+      builder.lineTo(clip.x + point.x * clip.scaleX, clip.y + point.y * clip.scaleY)
+    }
+    builder.close()
+    return builder.detach()
+  }
+
   private recordBucket(bucket: Bucket): void {
     const recorder = new this.kit.PictureRecorder()
     const recording = recorder.beginRecording(this.kit.XYWHRect(0, 0, 4096, 4096))
     for (let index = 0; index < bucket.shapes.length; index += 1) {
       const shape = bucket.shapes[index]
       const path = bucket.paths[index]
+      // A clipped shape draws inside its group's clip, resolved to world space by the scene
+      // builder (issue #71). The clip wraps this shape's own save/restore, so paint state cannot
+      // leak between shapes.
+      if (shape.clip !== null) {
+        recording.save()
+        recording.clipPath(this.clipPathFor(shape.clip), this.kit.ClipOp.Intersect, true)
+      }
       recording.save()
       recording.translate(shape.x, shape.y)
       if (shape.scaleX !== 1 || shape.scaleY !== 1) recording.scale(shape.scaleX, shape.scaleY)
@@ -449,6 +469,7 @@ export class EditorRenderer {
         }
       }
       recording.restore()
+      if (shape.clip !== null) recording.restore()
     }
     bucket.picture?.delete()
     bucket.picture = recorder.finishRecordingAsPicture()

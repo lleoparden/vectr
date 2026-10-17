@@ -171,6 +171,11 @@ export function validateDocument(document: Document): ValidationResult {
       if (geometry !== null) return geometry
       return ok
     }
+    if (node.clipChildId !== undefined && node.clipChildId !== null) {
+      if (!node.children.some((child) => child.id === node.clipChildId)) {
+        return fail('invalid-parent', `Group ${node.id} clips to ${node.clipChildId}, which is not its child.`, node.id)
+      }
+    }
     const next = new Set(ancestry)
     next.add(node.id)
     for (const child of node.children) {

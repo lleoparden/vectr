@@ -14,6 +14,7 @@
 
 import { findNode, findParent, worldTransform } from './document.ts'
 import { isGroup, type Document, type LayerNode, type NodeId } from './types.ts'
+import { clipPolygon } from './shapeGeometry.ts'
 
 export type Point = { x: number; y: number }
 
@@ -23,6 +24,8 @@ export type HitOptions = {
   /** Include locked nodes (transforms are rejected separately by the command path). */
   includeLocked?: boolean
 }
+
+type PlacedClip = { points: Point[]; x: number; y: number; scaleX: number; scaleY: number }
 
 type Placed = {
   node: LayerNode
@@ -34,6 +37,8 @@ type Placed = {
   root: NodeId
   /** True when the node or any ancestor is locked, so a locked group locks its subtree. */
   locked: boolean
+  /** The clip in force for this leaf, when its group is clipped (issue #71). */
+  clip: PlacedClip | null
 }
 
 function placedChildren(
@@ -45,6 +50,7 @@ function placedChildren(
   root: NodeId,
   inheritedLocked: boolean,
   into: Placed[],
+  clip: PlacedClip | null = null,
 ): void {
   const nextX = x + node.transform.x * scaleX
   const nextY = y + node.transform.y * scaleY
@@ -52,16 +58,52 @@ function placedChildren(
   const nextScaleY = scaleY * node.transform.scaleY
   const locked = inheritedLocked || node.locked
   if (isGroup(node)) {
+    let nextClip = clip
+    const clipId = node.clipChildId ?? null
+    if (clipId !== null) {
+      const clipChild = node.children.find((child) => child.id === clipId) ?? null
+      if (clipChild !== null && clipChild.type !== 'group') {
+        nextClip = {
+          points: clipPolygon({
+            kind: clipChild.type,
+            width: clipChild.width,
+            height: clipChild.height,
+            cornerRadius: clipChild.type === 'rect' ? clipChild.cornerRadius : 0,
+            sides: clipChild.type === 'polygon' ? clipChild.sides : clipChild.type === 'star' ? clipChild.points : 0,
+            innerRadius: clipChild.type === 'star' ? clipChild.innerRadius : 0,
+            startAngle: clipChild.type === 'arc' ? clipChild.startAngle : 0,
+            sweepAngle: clipChild.type === 'arc' ? clipChild.sweepAngle : 0,
+            pie: clipChild.type === 'arc' ? clipChild.pie : false,
+            lineFrom: clipChild.type === 'line' ? clipChild.from : 'top-left',
+          }),
+          x: nextX + clipChild.transform.x * nextScaleX,
+          y: nextY + clipChild.transform.y * nextScaleY,
+          scaleX: nextScaleX * clipChild.transform.scaleX,
+          scaleY: nextScaleY * clipChild.transform.scaleY,
+        }
+      }
+    }
     for (const child of node.children) {
       if (child.hidden) continue
-      placedChildren(child, nextX, nextY, nextScaleX, nextScaleY, root, locked, into)
+      if (clipId !== null && child.id === clipId) continue
+      placedChildren(child, nextX, nextY, nextScaleX, nextScaleY, root, locked, into, nextClip)
     }
     return
   }
-  into.push({ node, x: nextX, y: nextY, scaleX: nextScaleX, scaleY: nextScaleY, root, locked })
+  into.push({ node, x: nextX, y: nextY, scaleX: nextScaleX, scaleY: nextScaleY, root, locked, clip })
 }
 
 /** Every visible leaf with its world transform, in paint order. */
+/** True when a world point is inside a placed entry's clip (always true when it has none). */
+export function insideClip(entry: Placed, point: Point): boolean {
+  if (entry.clip === null) return true
+  const local = {
+    x: (point.x - entry.clip.x) / (entry.clip.scaleX === 0 ? 1 : entry.clip.scaleX),
+    y: (point.y - entry.clip.y) / (entry.clip.scaleY === 0 ? 1 : entry.clip.scaleY),
+  }
+  return polygonContains(entry.clip.points, local)
+}
+
 export function placedLeaves(document: Document): Placed[] {
   const placed: Placed[] = []
   for (const root of document.root.children) {
@@ -97,6 +139,8 @@ export function hitTest(document: Document, point: Point, options: HitOptions = 
       y: (point.y - entry.y) / (entry.scaleY === 0 ? 1 : entry.scaleY),
     }
     if (!containsLocalPoint(entry.node, local)) continue
+    // A clipped-away point is not a hit: selecting what cannot be seen is a lie (issue #71).
+    if (!insideClip(entry, point)) continue
     if (options.deep === true) return entry.node.id
     return entry.root === entry.node.id ? entry.node.id : entry.root
   }

@@ -35,9 +35,9 @@ import type { LayerRow } from './panels/layerRows.ts'
 import { importImageBytes, pickImageFile } from './files/imageImport.ts'
 import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
-import { createGroup, createImage, type ShapeKind, type ShapeParams } from '../doc/document.ts'
+import { childIndex, createGroup, createImage, type ShapeKind, type ShapeParams } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from './canvas/viewportOps.ts'
-import { isLocked, type Command } from '../doc/commands.ts'
+import { isLocked, parentIdOf, type Command } from '../doc/commands.ts'
 
 /** Artboard ids are opaque and never reused, like node ids. */
 function newArtboardId(): string {
@@ -88,6 +88,8 @@ export const ACTION_IDS = [
   'object.arrangeBackward',
   'object.arrangeBack',
   'object.duplicate',
+  'object.makeClip',
+  'object.releaseClip',
   'object.isolate',
   'object.exitIsolation',
   'object.alignLeft',
@@ -160,6 +162,8 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'object.arrangeBackward': 'Send Backward',
   'object.arrangeBack': 'Send to Back',
   'object.duplicate': 'Duplicate',
+  'object.makeClip': 'Make Clipping Mask',
+  'object.releaseClip': 'Release Clipping Mask',
   'object.isolate': 'Isolate Selection',
   'object.exitIsolation': 'Exit Isolation Mode',
   'object.alignLeft': 'Horizontal Align Left',

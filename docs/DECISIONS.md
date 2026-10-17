@@ -1813,3 +1813,18 @@ changes the *shape* of persisted data, so both decisions are recorded before cod
   different validation (a dash array must be finite, positive, and bounded). Recorded as remaining rather
   than approximated with a stroke width change.
 
+## 2026-10-17 — Vector clipping shipped (Phase 2.8, issue #71)
+
+Implementation follows the contract above. Three decisions worth naming:
+
+- **Curves are sampled, not exact.** An ellipse clip is 64 points and a rounded corner is four per
+  corner. The renderer, the hit test, and the cheap tests all use the same polygon, so what is drawn and
+  what is clickable agree — which matters more than sub-pixel exactness at this stage. Recorded as a
+  limit rather than hidden.
+- **One clip in force per shape.** A clipped group inside another clipped group takes the inner clip,
+  not the intersection. Intersecting clips need an ordered stack the document does not have yet, and
+  nobody has asked for it.
+- **Duplicating a clipped group re-points the clip at the copied child.** A clip is an id reference, so a
+  naive copy would point at the original's child — a cross-tree reference that would clip the copy to
+  something it does not own. This is the one place where ids-as-references bites, and it has a test.
+

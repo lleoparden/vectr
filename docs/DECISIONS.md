@@ -1843,3 +1843,17 @@ Implementation follows the contract above. Three decisions worth naming:
 - **No blend modes yet.** `APP-01` needs a limited set chosen deliberately; that is its own slice, not a
   free extra on the gradient work.
 
+## 2026-10-17 — Dashed strokes (Phase 2.6, issue #69)
+
+- **An absent dash array means solid.** Clearing the field stores no `dash` key at all rather than an empty
+  array, so the renderer's plain path stays the common case and the file does not accumulate `dash: []`.
+- **Dashed paints bypass the paint cache.** A dash effect is pattern-specific, so a paint cached by colour
+  and width would give one shape another shape's dashes; the dashed paint is created for the recorded
+  shape and released immediately after the recording call, which keeps the leak bound at one paint per
+  recorded shape rather than one per frame.
+- **Bounds, not just finiteness:** at most eight entries, each positive and at most 1000, because a zero or
+  negative interval is meaningless to Skia and an unbounded pattern would be a hand-edited file's way of
+  making the renderer allocate forever.
+- **No presets.** Illustrator's dashed presets are a Swatches-panel feature, and Vectr has no stroke panel
+  yet; a text field that takes `6 3` is honest about what it stores instead of inventing preset names.
+

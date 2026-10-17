@@ -91,6 +91,14 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
     if (stroke !== null && stroke.cap !== undefined && !CAPS.has(stroke.cap)) {
       return fail('invalid-index', `Node ${node.id} has an unsupported stroke cap.`, node.id)
     }
+    if (stroke !== null && stroke.dash !== undefined && stroke.dash.length > 0) {
+      if (stroke.dash.length > 8) {
+        return fail('invalid-index', `Node ${node.id} has too many dash entries.`, node.id)
+      }
+      if (!stroke.dash.every((value) => Number.isFinite(value) && value > 0 && value <= 1000)) {
+        return fail('non-finite', `Node ${node.id} has an unusable dash pattern.`, node.id)
+      }
+    }
     if (stroke !== null && stroke.join !== undefined && !JOINS.has(stroke.join)) {
       return fail('invalid-index', `Node ${node.id} has an unsupported stroke join.`, node.id)
     }

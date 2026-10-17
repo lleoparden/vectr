@@ -628,6 +628,37 @@ export class EditorRenderer {
     return paint
   }
 
+/**
+ * The stroke paint for a shape: the cached paint when it is plain, or a fresh one when a dash
+ * pattern needs a path effect (issue #69) — a dash effect is pattern-specific, so caching it by
+ * colour and width would hand one shape another shape's dashes.
+ */
+  private strokePaintFor(shape: SceneShape, stroke: { color: string; width: number; cap?: StrokeCap; join?: StrokeJoin; dash?: number[] }): Paint {
+    if (stroke.dash === undefined || stroke.dash.length === 0) {
+      return this.paintFor('stroke', stroke.color, stroke.width, shape.opacity, { cap: stroke.cap, join: stroke.join })
+    }
+    const paint = new this.kit.Paint()
+    paint.setAntiAlias(true)
+    paint.setColor(this.color(stroke.color))
+    if (shape.opacity < 1) paint.setAlphaf(Math.round(shape.opacity * 100) / 100)
+    paint.setStyle(this.kit.PaintStyle.Stroke)
+    paint.setStrokeWidth(stroke.width)
+    if (stroke.cap !== undefined) {
+      paint.setStrokeCap(stroke.cap === 'round' ? this.kit.StrokeCap.Round : stroke.cap === 'square' ? this.kit.StrokeCap.Square : this.kit.StrokeCap.Butt)
+    }
+    if (stroke.join !== undefined) {
+      paint.setStrokeJoin(stroke.join === 'round' ? this.kit.StrokeJoin.Round : stroke.join === 'bevel' ? this.kit.StrokeJoin.Bevel : this.kit.StrokeJoin.Miter)
+    }
+    paint.setPathEffect(this.kit.PathEffect.MakeDash(stroke.dash.slice(), 0))
+    return paint
+  }
+
+  /** Frees the paint a dashed shape created, since it never entered the cache. */
+  private releaseExtraPaint(dash: number[] | undefined, paint: Paint): void {
+    if (dash === undefined || dash.length === 0) return
+    paint.delete()
+  }
+
   /** One-pixel selection outline, drawn independently of zoom. */
   private selectionPaintFor(zoom: number): Paint {
     const key = `selection:${zoom}`

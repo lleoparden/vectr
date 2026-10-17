@@ -25,6 +25,7 @@ import {
   type PlanStep,
 } from './editing/arrange.ts'
 import { planDrop } from './editing/layerDrag.ts'
+import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import type { LayerRow } from './panels/layerRows.ts'
 import { importImageBytes, pickImageFile } from './files/imageImport.ts'
 import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
@@ -464,6 +465,72 @@ export function setToolTextSize(fontSize: number): void {
     (node) => ({ ...node, fontSize, lineHeight: (node.lineHeight / node.fontSize) * fontSize }),
     'set font size',
   )
+}
+
+/**
+ * Moves the selection by a scene delta — Illustrator's arrow-key nudge (Phase 2.2, issue #65).
+ * Every selected object moves in one transaction, so a nudge is one undo entry, and a locked
+ * object is refused by the command path rather than skipped silently.
+ */
+export function nudgeSelection(dx: number, dy: number): void {
+  if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) return
+  const { document, selection } = documentStore.getState()
+  const targets = selection
+    .map((id) => findNode(document, id))
+    .filter((node): node is LayerNode => node !== null)
+  if (targets.length === 0) return
+  documentStore.beginTransaction('nudge')
+  let changed = false
+  for (const node of targets) {
+    const result = documentStore.dispatch({
+      type: 'setTransform',
+      nodeId: node.id,
+      transform: nudgedTransform(node.transform, dx, dy),
+    })
+    if (result.ok) changed = true
+  }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
+}
+
+/**
+ * Sets the selection's world box, which is what the Properties panel's X/Y/W/H fields edit
+ * (Phase 2.2). Position is a move; size is a scale about the top-left corner, so the arithmetic
+ * lives in the transform planner rather than in the panel.
+ */
+export function setSelectionBounds(patch: { x?: number; y?: number; width?: number; height?: number }): void {
+  const { document, selection } = documentStore.getState()
+  const box = unionBounds(document, selection)
+  if (box === null) return
+  const targets = selection
+    .map((id) => findNode(document, id))
+    .filter((node): node is LayerNode => node !== null)
+  if (targets.length === 0) return
+
+  const dx = patch.x !== undefined && Number.isFinite(patch.x) ? patch.x - box.x : 0
+  const dy = patch.y !== undefined && Number.isFinite(patch.y) ? patch.y - box.y : 0
+  const sx =
+    patch.width !== undefined && Number.isFinite(patch.width) && patch.width > 0 && box.width > 0
+      ? patch.width / box.width
+      : 1
+  const sy =
+    patch.height !== undefined && Number.isFinite(patch.height) && patch.height > 0 && box.height > 0
+      ? patch.height / box.height
+      : 1
+  if (dx === 0 && dy === 0 && sx === 1 && sy === 1) return
+
+  documentStore.beginTransaction('transform selection')
+  let changed = false
+  for (const node of targets) {
+    const next =
+      sx === 1 && sy === 1
+        ? { ...node.transform, x: node.transform.x + dx, y: node.transform.y + dy }
+        : { ...node.transform, ...scaledTransform(node.transform, { x: box.x + dx, y: box.y + dy }, sx, sy) }
+    const result = documentStore.dispatch({ type: 'setTransform', nodeId: node.id, transform: next })
+    if (result.ok) changed = true
+  }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
 }
 
 /** Alignment for the next text object, or for the selected text. */

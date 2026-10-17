@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { relinkImageFromDialog, setImageMaskFromDialog, setSelectionCornerRadius } from '../actions.ts'
+import { relinkImageFromDialog, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -46,6 +46,23 @@ function CropInput({ label, value, onCommit }: { label: string; value: number; o
   )
 }
 
+/** One editable X/Y/W/H field; committing on blur keeps a typed value from being one edit per keystroke. */
+function BoxField({ label, value, onCommit }: { label: string; value: number; onCommit: (value: number) => void }) {
+  return (
+    <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+      {label}
+      <input
+        type="number"
+        step={1}
+        defaultValue={round(value)}
+        aria-label={`${label} of the selection`}
+        className="w-14 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+        onBlur={(event) => onCommit(Number(event.currentTarget.value))}
+      />
+    </label>
+  )
+}
+
 export function PropertiesPanel() {
   const state = useEditorState()
   const id = state.selection[0]
@@ -66,10 +83,23 @@ export function PropertiesPanel() {
       <Row label="Name" value={node.name} />
       <Row label="Kind" value={isText(node) ? 'text' : isGroup(node) ? `group of ${node.children.length}` : node.type} />
       <Row label="Id" value={id} />
-      <Row label="X" value={bounds === null ? '—' : round(bounds.x)} />
-      <Row label="Y" value={bounds === null ? '—' : round(bounds.y)} />
-      <Row label="W" value={bounds === null ? '—' : round(bounds.width > 0 ? bounds.width : size.width)} />
-      <Row label="H" value={bounds === null ? '—' : round(bounds.height > 0 ? bounds.height : size.height)} />
+      {bounds === null ? (
+        <>
+          <Row label="X" value="—" />
+          <Row label="Y" value="—" />
+          <Row label="W" value={round(size.width)} />
+          <Row label="H" value={round(size.height)} />
+        </>
+      ) : (
+        // Illustrator's Transform values, editable: position is a move and size is a scale about
+        // the box's top-left corner (Phase 2.2, issue #65). One commit per field, one undo step.
+        <div className="grid grid-cols-2 gap-1 px-2 py-1">
+          <BoxField label="X" value={bounds.x} onCommit={(x) => setSelectionBounds({ x })} />
+          <BoxField label="Y" value={bounds.y} onCommit={(y) => setSelectionBounds({ y })} />
+          <BoxField label="W" value={bounds.width} onCommit={(width) => setSelectionBounds({ width })} />
+          <BoxField label="H" value={bounds.height} onCommit={(height) => setSelectionBounds({ height })} />
+        </div>
+      )}
       <Row label="Rotation" value={`${round(node.transform.rotation)}°`} />
       <Row label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
       {node.type === 'rect' && (

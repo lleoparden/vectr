@@ -19,6 +19,8 @@ import { canvasContextItems } from '../menus/contextMenus.ts'
 import { placeImage } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
+import { SelectionOverlay } from './SelectionOverlay.tsx'
+import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
 import { getActiveRenderer, setActiveRenderer } from '../../render/activeRenderer.ts'
 import { assetRegistry } from '../../state/assetRegistry.ts'
@@ -80,6 +82,8 @@ export function CanvasView() {
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
   const [lassoPath, setLassoPath] = useState<Point[] | null>(null)
+  /** The scale gesture's starting box and transforms, captured once so every move is absolute. */
+  const scaleRef = useRef<{ handle: HandleId; box: Rect; originals: Map<string, Transform> } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
   const [editing, setEditing] = useState<{ nodeId: NodeId; text: string } | null>(null)
@@ -166,6 +170,12 @@ export function CanvasView() {
     height: rect.height * state.viewport.zoom,
   })
 
+  /** The selection box the handles are drawn on, or null when the active tool has no box. */
+  const selectionBox =
+    (state.tool === 'select' || state.tool === 'directSelect') && state.selection.length > 0
+      ? unionBounds(state.document, state.selection)
+      : null
+
   /** Measured box when the renderer has the font, otherwise the shared estimate. */
   function textBoxFor(fontFamily: string, fontSize: number, lineHeight: number, text: string) {
     const measured = getActiveRenderer()?.measureTextBox(fontFamily, fontSize, lineHeight, text) ?? null
@@ -232,6 +242,41 @@ export function CanvasView() {
     const size = textBoxFor(node.fontFamily, node.fontSize, node.lineHeight, text)
     const { zoom } = state.viewport
     return { width: size.width * world.scaleX * zoom, height: size.height * world.scaleY * zoom }
+  }
+
+  /**
+   * A handle drag scales the selection about its opposite corner (Phase 2.2, issue #65). The
+   * starting box and every transform are captured once, so each move computes absolute values from
+   * the gesture's start rather than compounding — the same rule the drag-move gesture uses.
+   */
+  function startScale(handle: HandleId) {
+    const current = documentStore.getState()
+    const box = unionBounds(current.document, current.selection)
+    if (box === null) return
+    const originals = new Map<string, Transform>()
+    for (const id of current.selection) {
+      const node = findNode(current.document, id)
+      if (node !== null && !node.locked) originals.set(id, { ...node.transform })
+    }
+    if (originals.size === 0) return
+    documentStore.beginTransaction('scale')
+    scaleRef.current = { handle, box, originals }
+  }
+
+  function moveScale(handle: HandleId, point: Point, modifiers: { constrain: boolean; fromCenter: boolean }) {
+    const gesture = scaleRef.current
+    if (gesture === null) return
+    const factors = scaleFactors(gesture.handle, gesture.box, point, modifiers)
+    for (const [id, original] of gesture.originals) {
+      const next = scaledTransform(original, factors.anchor, factors.sx, factors.sy)
+      documentStore.dispatch({ type: 'setTransform', nodeId: id, transform: { ...original, ...next } })
+    }
+  }
+
+  function endScale() {
+    if (scaleRef.current === null) return
+    scaleRef.current = null
+    documentStore.commitTransaction()
   }
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -586,6 +631,18 @@ export function CanvasView() {
             />
           )
         })()}
+      {selectionBox !== null && (
+        <SelectionOverlay
+          box={selectionBox}
+          zoom={state.viewport.zoom}
+          panX={state.viewport.panX}
+          panY={state.viewport.panY}
+          toScene={toScene}
+          onScaleStart={startScale}
+          onScaleMove={moveScale}
+          onScaleEnd={endScale}
+        />
+      )}
       <ContextMenu menu={menu} onClose={() => setMenu(null)} />
     </div>
   )

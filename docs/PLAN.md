@@ -26,6 +26,13 @@ The issue and pull-request flow is defined in
 
 ## Phase 2 issue tracking
 
+**Status: delivered with recorded gaps (2026-10-17).** All eight slices shipped a branch, pull request,
+catalog/progress update, self-review, and a packaged run: #64→#75 (+#76), #65→#77, #66→#78, #67→#80
+(+contract #79), #68→#83 (+contract #81), #69→#82/#84/#85/#88/#91, #70→#90/#92, #71→#86/#89 (+contract
+#87). Issues #67, #69, and #70 stay open because acceptance items remain (artboard tool/rulers/grids,
+stroke alignment/width profiles, radial and multi-stop gradients); `docs/PROGRESS.md` carries the
+criterion-by-criterion audit and the five named gaps.
+
 - Epic: [#5 Phase 2 — Core vector illustration](https://github.com/lleoparden/vectr/issues/5)
 - Planning method: ECC architecture decomposition on 2026-10-16. It keeps every
   change on the existing validated document/command/history path instead of

@@ -1,66 +1,77 @@
 /**
- * Properties panel (issue #28).
+ * Properties panel (issue #28, rebuilt in the UI pass).
  *
- * Read-only for now: it reports what is selected and where it is, using the document
- * model's own world bounds. Editing values needs new commands that arrive with the
- * transform work in #20 and later, and the UI direction prefers an honest read-only
- * panel over inert-looking editable fields.
+ * The panel the user lives in, so it is the one that has to feel immediate: every field writes to the
+ * document as you type or drag, and a whole edit session is still one undo entry (the field opens a
+ * transaction on focus and closes it on blur — see `ui/fields.tsx`).
+ *
+ * Layout rules that keep it from scrolling sideways: one fixed label column, controls that shrink
+ * (`min-w-0`), and no element with an intrinsic width wider than the dock. The body is a vertical
+ * scroll area only.
  */
 
-import { findNode, worldBounds } from '../../doc/document.ts'
+import { findNode, worldBounds, DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { isGroup, isImage, isText, nodeSize } from '../../doc/types.ts'
+import type { BlendMode } from '../../doc/types.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
-import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, linearGradientFrom, setSelectionBlendMode, setSelectionFill, setSelectionGradient, setSelectionOpacity, setSelectionStroke } from '../actions.ts'
+import {
+  artboardList,
+  linearGradientFrom,
+  relinkImageFromDialog,
+  runEditorAction,
+  setActiveArtboard,
+  setActiveArtboardSize,
+  setImageMaskFromDialog,
+  setSelectionBlendMode,
+  setSelectionBounds,
+  setSelectionCornerRadius,
+  setSelectionFill,
+  setSelectionGradient,
+  setSelectionOpacity,
+  setSelectionStroke,
+  gradientAngle,
+} from '../actions.ts'
+import {
+  ButtonRow,
+  ColorField,
+  NumberField,
+  PanelButton,
+  PercentField,
+  Readout,
+  Section,
+  SelectField,
+  TextField,
+  ToggleField,
+} from '../ui/fields.tsx'
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 px-2 py-[3px]">
-      <span className="text-ui-xs text-ink-faint">{label}</span>
-      <span className="truncate text-ui-xs text-ink-muted">{value}</span>
-    </div>
-  )
+const CAPS = ['butt', 'round', 'square'] as const
+const JOINS = ['miter', 'round', 'bevel'] as const
+const BLENDS: readonly BlendMode[] = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten']
+
+const BODY = 'min-h-0 flex-1 overflow-y-auto overflow-x-hidden'
+
+function round(value: number): number {
+  return Number.isInteger(value) ? value : Math.round(value * 100) / 100
 }
 
-function round(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2)
-}
-
-function CropInput({ label, value, onCommit }: { label: string; value: number; onCommit: (value: number) => void }) {
-  return (
-    <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-      {label}
-      <input
-        type="number"
-        min={0}
-        max={1}
-        step={0.01}
-        defaultValue={round(value)}
-        className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-        onBlur={(event) => onCommit(Number(event.currentTarget.value))}
-      />
-    </label>
-  )
-}
-
-/** One editable X/Y/W/H field; committing on blur keeps a typed value from being one edit per keystroke. */
-function BoxField({ label, value, onCommit }: { label: string; value: number; onCommit: (value: number) => void }) {
-  return (
-    <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-      {label}
-      <input
-        type="number"
-        step={1}
-        defaultValue={round(value)}
-        aria-label={`${label} of the selection`}
-        className="w-14 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-        onBlur={(event) => onCommit(Number(event.currentTarget.value))}
-      />
-    </label>
-  )
+/** The document's own colours, offered first in every colour popover. */
+function documentColors(assetsDocument: ReturnType<typeof useEditorState>['document']): string[] {
+  const colors: string[] = []
+  const walk = (nodes: typeof assetsDocument.root.children) => {
+    for (const node of nodes) {
+      if (node.type === 'group') {
+        walk(node.children)
+        continue
+      }
+      colors.push(node.style.fill)
+      if (node.style.stroke !== null) colors.push(node.style.stroke.color)
+    }
+  }
+  walk(assetsDocument.root.children)
+  return colors
 }
 
 export function PropertiesPanel() {
@@ -75,341 +86,280 @@ export function PropertiesPanel() {
     const pages = artboardList()
     const active = pages.find((page) => page.active) ?? pages[0]
     return (
-      <div className="min-h-0 flex-1 overflow-auto py-1">
-        <p className="px-2 pb-1 text-ui-xs text-ink-faint">No selection.</p>
-        <p className="px-2 py-[3px] text-ui-xs text-ink-muted">Artboards</p>
-        {pages.map((page) => (
-          <button
-            key={page.id}
-            type="button"
-            aria-pressed={page.active}
-            onClick={() => setActiveArtboard(page.id)}
-            className={"flex w-full items-center justify-between gap-2 px-2 py-[3px] text-left text-ui-xs " + (page.active ? "bg-accent-soft text-ink" : "text-ink-muted hover:bg-chrome-hover")}
-          >
-            <span className="truncate">{page.name}</span>
-            <span className="text-ink-faint">
-              {page.width}×{page.height}
-            </span>
-          </button>
-        ))}
-        {active !== undefined && (
-          <div className="grid grid-cols-2 gap-1 px-2 py-1">
-            <BoxField label="W" value={active.width} onCommit={(width) => setActiveArtboardSize({ width })} />
-            <BoxField label="H" value={active.height} onCommit={(height) => setActiveArtboardSize({ height })} />
+      <div className={BODY} data-panel-body="properties">
+        <Section title="Document">
+          <p className="text-ui-xs text-ink-muted">Nothing selected.</p>
+          <p className="text-ui-xs text-ink-faint">Click an object, or a layer in the Layers panel.</p>
+        </Section>
+        <Section title="Artboards">
+          <div className="flex flex-col gap-0.5">
+            {pages.map((page) => (
+              <button
+                key={page.id}
+                type="button"
+                aria-pressed={page.active}
+                onClick={() => setActiveArtboard(page.id)}
+                className={
+                  'flex min-w-0 items-center justify-between gap-2 rounded-ui px-1.5 py-1 text-left text-ui-xs transition-colors ' +
+                  (page.active
+                    ? 'bg-accent-soft text-ink shadow-[inset_2px_0_0_var(--color-accent)]'
+                    : 'text-ink-muted hover:bg-chrome-hover hover:text-ink')
+                }
+              >
+                <span className="min-w-0 flex-1 truncate">{page.name}</span>
+                <span className="shrink-0 tabular-nums text-[10px] text-ink-faint">
+                  {page.width}×{page.height}
+                </span>
+              </button>
+            ))}
           </div>
-        )}
-        <div className="flex gap-2 px-2 py-1">
-          <button
-            type="button"
-            className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover"
-            onClick={() => runEditorAction('artboard.new')}
-          >
-            New Artboard
-          </button>
-          <button
-            type="button"
-            className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover disabled:opacity-40"
-            disabled={pages.length <= 1}
-            onClick={() => runEditorAction('artboard.delete')}
-          >
-            Delete Artboard
-          </button>
-        </div>
+          {active !== undefined && (
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
+              <NumberField label="W" value={active.width} min={1} onChange={(width) => setActiveArtboardSize({ width })} />
+              <NumberField label="H" value={active.height} min={1} onChange={(height) => setActiveArtboardSize({ height })} />
+            </div>
+          )}
+          <ButtonRow>
+            <PanelButton tone="accent" onClick={() => runEditorAction('artboard.new')}>
+              New artboard
+            </PanelButton>
+            <PanelButton disabled={pages.length <= 1} onClick={() => runEditorAction('artboard.delete')}>
+              Delete
+            </PanelButton>
+          </ButtonRow>
+        </Section>
       </div>
     )
   }
 
   const size = nodeSize(node)
+  const leaf = !isGroup(node)
+  const stroke = leaf ? node.style.stroke : null
+  const gradient = leaf ? (node.style.gradient ?? null) : null
+  const colors = documentColors(state.document)
+
   return (
-    <div className="min-h-0 flex-1 overflow-auto py-1">
-      <Row label="Name" value={node.name} />
-      <Row label="Kind" value={isText(node) ? 'text' : isGroup(node) ? `group of ${node.children.length}` : node.type} />
-      <Row label="Id" value={id} />
-      {bounds === null ? (
-        <>
-          <Row label="X" value="—" />
-          <Row label="Y" value="—" />
-          <Row label="W" value={round(size.width)} />
-          <Row label="H" value={round(size.height)} />
-        </>
-      ) : (
-        // Illustrator's Transform values, editable: position is a move and size is a scale about
-        // the box's top-left corner (Phase 2.2, issue #65). One commit per field, one undo step.
-        <div className="grid grid-cols-2 gap-1 px-2 py-1">
-          <BoxField label="X" value={bounds.x} onCommit={(x) => setSelectionBounds({ x })} />
-          <BoxField label="Y" value={bounds.y} onCommit={(y) => setSelectionBounds({ y })} />
-          <BoxField label="W" value={bounds.width} onCommit={(width) => setSelectionBounds({ width })} />
-          <BoxField label="H" value={bounds.height} onCommit={(height) => setSelectionBounds({ height })} />
-        </div>
-      )}
-      <Row label="Rotation" value={`${round(node.transform.rotation)}°`} />
-      <Row label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
-      {!isGroup(node) && (
-        <div className="grid grid-cols-2 gap-1 px-2 py-1">
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Fill
-            <input
-              type="color"
-              aria-label="Fill colour"
-              defaultValue={node.style.fill}
-              className="h-5 w-8 rounded-ui border border-hairline bg-chrome-sunken"
-              onBlur={(event) => setSelectionFill(event.currentTarget.value)}
-            />
-          </label>
-          <label className="col-span-2 flex items-center gap-2 text-ui-xs text-ink-faint">
-            <input
-              type="checkbox"
-              aria-label="Linear gradient fill"
-              defaultChecked={node.style.gradient !== undefined && node.style.gradient !== null}
-              onChange={(event) =>
+    <div className={BODY} data-panel-body="properties">
+      <Section title={node.name}>
+        <Readout label="Kind" value={isText(node) ? 'text' : isGroup(node) ? `group of ${node.children.length}` : node.type} />
+      </Section>
+
+      <Section title="Transform">
+        {bounds === null ? (
+          <>
+            <Readout label="X" value="—" />
+            <Readout label="Y" value="—" />
+            <Readout label="W" value={String(round(size.width))} />
+            <Readout label="H" value={String(round(size.height))} />
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-1.5">
+            <NumberField label="X" value={bounds.x} onChange={(x) => setSelectionBounds({ x })} />
+            <NumberField label="Y" value={bounds.y} onChange={(y) => setSelectionBounds({ y })} />
+            <NumberField label="W" value={bounds.width} min={1} onChange={(width) => setSelectionBounds({ width })} />
+            <NumberField label="H" value={bounds.height} min={1} onChange={(height) => setSelectionBounds({ height })} />
+          </div>
+        )}
+        {node.type === 'rect' && (
+          <NumberField
+            label="Corners"
+            value={node.cornerRadius}
+            min={0}
+            max={Math.min(node.width, node.height) / 2}
+            onChange={(radius) => setSelectionCornerRadius(radius)}
+          />
+        )}
+        <Readout label="Rotation" value={`${round(node.transform.rotation)}°`} />
+        <Readout label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
+      </Section>
+
+      {leaf && (
+        <Section title="Fill">
+          <ColorField
+            label="Fill"
+            value={node.style.fill}
+            suggestions={colors}
+            onChange={(color) => setSelectionFill(color)}
+          />
+          <ToggleField
+            label="Linear gradient"
+            checked={gradient !== null}
+            onChange={(checked) =>
+              setSelectionGradient(checked ? linearGradientFrom(90, node.style.fill, '#ffffff') : null)
+            }
+          />
+          {gradient !== null && (
+            <NumberField
+              label="Angle"
+              value={gradientAngle(gradient)}
+              min={-360}
+              max={360}
+              step={15}
+              suffix="°"
+              onChange={(angle) =>
                 setSelectionGradient(
-                  event.currentTarget.checked
-                    ? linearGradientFrom(90, node.style.fill, '#ffffff')
-                    : null,
+                  linearGradientFrom(angle, gradient.stops[0]?.color ?? node.style.fill, gradient.stops[1]?.color ?? '#ffffff'),
                 )
               }
             />
-            Linear gradient
-            {node.style.gradient !== undefined && node.style.gradient !== null && (
-              <input
-                type="number"
-                aria-label="Gradient angle"
-                min={-360}
-                max={360}
-                step={15}
-                defaultValue={90}
-                className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-                onBlur={(event) =>
-                  setSelectionGradient(
-                    linearGradientFrom(
-                      Number(event.currentTarget.value),
-                      node.style.gradient?.stops[0]?.color ?? node.style.fill,
-                      node.style.gradient?.stops[1]?.color ?? '#ffffff',
-                    ),
-                  )
-                }
-              />
-            )}
-          </label>
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Stroke
-            <input
-              type="color"
-              aria-label="Stroke colour"
-              defaultValue={node.style.stroke === null ? node.style.fill : node.style.stroke.color}
-              className="h-5 w-8 rounded-ui border border-hairline bg-chrome-sunken"
-              onBlur={(event) => setSelectionStroke({ color: event.currentTarget.value })}
-            />
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={0.5}
-              aria-label="Stroke weight"
-              defaultValue={node.style.stroke === null ? 0 : node.style.stroke.width}
-              className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-              onBlur={(event) => setSelectionStroke({ width: Number(event.currentTarget.value) })}
-            />
-          </label>
-        <div className="grid grid-cols-2 gap-1 px-2 py-1">
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Cap
-            <select
-              aria-label="Stroke cap"
-              defaultValue={node.style.stroke?.cap ?? 'butt'}
-              className="rounded-ui border border-hairline bg-chrome-sunken text-ui-xs text-ink"
-              onBlur={(event) => setSelectionStroke({ cap: event.currentTarget.value as 'butt' | 'round' | 'square' })}
-            >
-              <option value="butt">Butt</option>
-              <option value="round">Round</option>
-              <option value="square">Square</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Join
-        <div className="px-2 py-1">
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Dashes
-            <input
-              type="text"
-              aria-label="Dash pattern"
-              placeholder="solid"
-              defaultValue={(node.style.stroke?.dash ?? []).join(' ')}
-              className="w-24 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-              onBlur={(event) => {
-                const dash = event.currentTarget.value
+          )}
+          <PercentField label="Opacity" value={node.style.opacity} onChange={(percent) => setSelectionOpacity(percent / 100)} />
+          <SelectField label="Blend" value={node.style.blendMode ?? 'normal'} options={BLENDS} onChange={(mode) => setSelectionBlendMode(mode)} />
+        </Section>
+      )}
+
+      {leaf && (
+        <Section title="Stroke">
+          <ColorField
+            label="Colour"
+            value={stroke === null ? node.style.fill : stroke.color}
+            suggestions={colors}
+            onChange={(color) => setSelectionStroke({ color })}
+          />
+          <NumberField
+            label="Weight"
+            value={stroke === null ? 0 : stroke.width}
+            min={0}
+            max={100}
+            step={0.5}
+            onChange={(width) => setSelectionStroke({ width })}
+          />
+          <div className="grid grid-cols-2 gap-1.5">
+            <SelectField label="Cap" value={stroke?.cap ?? 'butt'} options={CAPS} onChange={(cap) => setSelectionStroke({ cap })} />
+            <SelectField label="Join" value={stroke?.join ?? 'miter'} options={JOINS} onChange={(join) => setSelectionStroke({ join })} />
+          </div>
+          <TextField
+            label="Dashes"
+            value={(stroke?.dash ?? []).join(' ')}
+            placeholder="solid"
+            onChange={(value) =>
+              setSelectionStroke({
+                dash: value
                   .split(/[ ,]+/)
                   .filter((part) => part.length > 0)
                   .map(Number)
-                  .filter((value) => Number.isFinite(value) && value > 0)
-                setSelectionStroke({ dash })
-              }}
-            />
-          </label>
-        </div>
-        <div className="px-2 py-1">
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Blend
-            <select
-              aria-label="Blend mode"
-              defaultValue={node.style.blendMode ?? 'normal'}
-              className="rounded-ui border border-hairline bg-chrome-sunken text-ui-xs text-ink"
-              onBlur={(event) => setSelectionBlendMode(event.currentTarget.value as 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten')}
-            >
-              <option value="normal">Normal</option>
-              <option value="multiply">Multiply</option>
-              <option value="screen">Screen</option>
-              <option value="overlay">Overlay</option>
-              <option value="darken">Darken</option>
-              <option value="lighten">Lighten</option>
-            </select>
-          </label>
-        </div>
-            <select
-              aria-label="Stroke join"
-              defaultValue={node.style.stroke?.join ?? 'miter'}
-              className="rounded-ui border border-hairline bg-chrome-sunken text-ui-xs text-ink"
-              onBlur={(event) => setSelectionStroke({ join: event.currentTarget.value as 'miter' | 'round' | 'bevel' })}
-            >
-              <option value="miter">Miter</option>
-              <option value="round">Round</option>
-              <option value="bevel">Bevel</option>
-            </select>
-          </label>
-        </div>
-        </div>
+                  .filter((entry) => Number.isFinite(entry) && entry > 0),
+              })
+            }
+          />
+        </Section>
       )}
 
-      {!isGroup(node) && (
-        <div className="px-2 py-1">
-          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
-            Opacity
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={5}
-              aria-label="Opacity percent"
-              defaultValue={Math.round(node.style.opacity * 100)}
-              className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-              onBlur={(event) => setSelectionOpacity(Number(event.currentTarget.value) / 100)}
-            />
-          </label>
-        </div>
-      )}
-      {node.type === 'rect' && (
-        // Illustrator's Properties panel edits the rectangle's live corner radius; Vectr offers
-        // the same value here and in the Control panel, both clamped to half the shorter side.
-        <div className="flex items-center justify-between gap-3 px-2 py-[3px]">
-          <label className="text-ui-xs text-ink-faint" htmlFor="vectr-corner-radius">
-            Corners
-          </label>
-          <input
-            id="vectr-corner-radius"
-            type="number"
-            min={0}
-            max={Math.min(node.width, node.height) / 2}
-            step={1}
-            value={round(node.cornerRadius)}
-            className="w-16 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-            onChange={(event) => setSelectionCornerRadius(Number(event.currentTarget.value))}
-          />
-        </div>
-      )}
       {isText(node) && (
-        <>
-          <Row label="Font" value={node.fontFamily} />
-          <div className="flex items-center justify-between gap-3 px-2 py-[3px]">
-            <label className="text-ui-xs text-ink-faint" htmlFor="vectr-font-size">
-              Size
-            </label>
-            <input
-              id="vectr-font-size"
-              type="number"
-              min={1}
-              max={1000}
-              step={1}
-              value={round(node.fontSize)}
-              className="w-16 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
-              onChange={(event) => {
-                const fontSize = Number(event.currentTarget.value)
-                const lineHeight = node.fontSize > 0 ? (node.lineHeight / node.fontSize) * fontSize : fontSize * 1.2
-                documentStore.dispatch(
-                  {
-                    type: 'setTextStyle',
-                    nodeId: node.id,
-                    fontSize,
-                    fontFamily: node.fontFamily,
-                    align: node.align,
-                    lineHeight,
-                  },
-                  'set font size',
-                )
-              }}
-            />
-          </div>
-          <Row label="Align" value={node.align} />
-          <Row label="Lines" value={String(node.text.split('\n').length)} />
-          <Row label="Characters" value={String(node.text.length)} />
+        <Section title="Type">
+          <Readout label="Font" value={node.fontFamily} />
+          <NumberField
+            label="Size"
+            value={node.fontSize}
+            min={1}
+            max={1000}
+            onChange={(fontSize) => {
+              const lineHeight = node.fontSize > 0 ? (node.lineHeight / node.fontSize) * fontSize : fontSize * 1.2
+              documentStore.dispatch(
+                {
+                  type: 'setTextStyle',
+                  nodeId: node.id,
+                  fontSize,
+                  fontFamily: node.fontFamily,
+                  align: node.align,
+                  lineHeight,
+                },
+                'set font size',
+              )
+            }}
+          />
+          <SelectField
+            label="Align"
+            value={node.align}
+            options={['left' as const, 'center' as const, 'right' as const]}
+            onChange={(align) =>
+              documentStore.dispatch(
+                {
+                  type: 'setTextStyle',
+                  nodeId: node.id,
+                  fontSize: node.fontSize,
+                  fontFamily: node.fontFamily,
+                  align,
+                  lineHeight: node.lineHeight,
+                },
+                'align text',
+              )
+            }
+          />
+          <Readout label="Lines" value={String(node.text.split('\n').length)} />
           {node.fontFamily.toLowerCase() !== DEFAULT_FONT_FAMILY.toLowerCase() && (
-            <p role="status" className="px-2 pt-1 text-ui-xs text-danger">
+            <p role="status" className="rounded-ui bg-danger/15 px-1.5 py-1 text-[10px] leading-snug text-danger">
               {node.fontFamily} is not installed; {DEFAULT_FONT_FAMILY} is drawn instead.
             </p>
           )}
-        </>
+        </Section>
       )}
-      {isImage(node) &&
-        (() => {
-          const asset = state.document.assets.find((entry) => entry.id === node.assetId) ?? null
-          return (
-            <>
-              <Row label="Asset" value={asset === null ? node.assetId : asset.id.slice(0, 23) + '…'} />
-              <Row label="Type" value={asset?.mimeType ?? 'missing'} />
-              <Row label="File size" value={asset === null ? '—' : formatByteLength(asset.byteLength)} />
-              <Row label="Pixels" value={asset === null ? '—' : `${asset.width} × ${asset.height}`} />
-              <Row label="Storage" value={asset?.sourcePath === undefined ? 'Embedded' : 'Linked'} />
-              {asset?.sourcePath !== undefined && <Row label="Link" value={asset.sourcePath} />}
-              {asset?.sourcePath !== undefined && !assetRegistry.has(asset.id) && (
-                <p role="status" className="px-2 pt-1 text-ui-xs text-danger">
-                  The linked file is missing or has changed. Relink it to restore pixels.
-                </p>
-              )}
-              <div className="flex gap-2 px-2 py-1">
-                <button className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover" onClick={() => void relinkImageFromDialog(node.id)}>
-                  Relink…
-                </button>
-                <button className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover" onClick={() => void setImageMaskFromDialog(node.id)}>
-                  {node.maskAssetId === null ? 'Add mask…' : 'Replace mask…'}
-                </button>
-                {node.maskAssetId !== null && (
-                  <button className="rounded-ui border border-hairline px-2 py-1 text-ui-xs text-ink hover:bg-chrome-hover" onClick={() => documentStore.dispatch({ type: 'setImageMask', nodeId: node.id, maskAssetId: null }, 'remove image mask')}>
-                    Remove mask
-                  </button>
+
+      {isImage(node) && (
+        <Section title="Image">
+          {(() => {
+            const asset = state.document.assets.find((entry) => entry.id === node.assetId) ?? null
+            return (
+              <>
+                <Readout label="Asset" value={asset === null ? node.assetId.slice(0, 16) + '…' : asset.id.slice(10, 26)} />
+                <Readout label="Type" value={asset?.mimeType ?? 'missing'} />
+                <Readout label="Size" value={asset === null ? '—' : formatByteLength(asset.byteLength)} />
+                <Readout label="Pixels" value={asset === null ? '—' : `${asset.width} × ${asset.height}`} />
+                <Readout label="Storage" value={asset?.sourcePath === undefined ? 'Embedded' : 'Linked'} />
+                {asset?.sourcePath !== undefined && <Readout label="Link" value={asset.sourcePath} />}
+                {asset?.sourcePath !== undefined && !assetRegistry.has(asset.id) && (
+                  <p role="status" className="rounded-ui bg-danger/15 px-1.5 py-1 text-[10px] leading-snug text-danger">
+                    The linked file is missing or changed. Relink to restore pixels.
+                  </p>
                 )}
-              </div>
-              <div className="px-2 py-1">
-                <p className="pb-1 text-ui-xs text-ink-faint">Crop</p>
-                <div className="grid grid-cols-2 gap-1">
+                <ButtonRow>
+                  <PanelButton onClick={() => void relinkImageFromDialog(node.id)}>Relink…</PanelButton>
+                  <PanelButton onClick={() => void setImageMaskFromDialog(node.id)}>
+                    {node.maskAssetId === null ? 'Add mask…' : 'Replace mask…'}
+                  </PanelButton>
+                  {node.maskAssetId !== null && (
+                    <PanelButton
+                      onClick={() =>
+                        documentStore.dispatch({ type: 'setImageMask', nodeId: node.id, maskAssetId: null }, 'remove image mask')
+                      }
+                    >
+                      Remove mask
+                    </PanelButton>
+                  )}
+                </ButtonRow>
+                <div className="grid grid-cols-2 gap-1.5 pt-1">
                   {(['x', 'y', 'width', 'height'] as const).map((key) => (
-                    <CropInput
+                    <NumberField
                       key={key}
-                      label={key === 'width' ? 'W' : key === 'height' ? 'H' : key.toUpperCase()}
+                      label={key === 'width' ? 'Crop W' : key === 'height' ? 'Crop H' : `Crop ${key.toUpperCase()}`}
                       value={node.crop[key]}
-                      onCommit={(value) => documentStore.dispatch({ type: 'setImageCrop', nodeId: node.id, crop: { ...node.crop, [key]: value } }, 'crop image')}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onChange={(value) =>
+                        documentStore.dispatch(
+                          { type: 'setImageCrop', nodeId: node.id, crop: { ...node.crop, [key]: value } },
+                          'crop image',
+                        )
+                      }
                     />
                   ))}
                 </div>
-              </div>
-              {asset === null && (
-                <p role="status" className="px-2 pt-1 text-ui-xs text-danger">
-                  This image is not linked to an asset in the document.
-                </p>
-              )}
-            </>
-          )
-        })()}
-      <Row label="Flags" value={`${node.hidden ? 'hidden ' : ''}${node.locked ? 'locked' : ''}`.trim() || 'none'} />
-      {state.selection.length > 1 && <Row label="Also selected" value={`${state.selection.length - 1} more`} />}
+                {asset === null && (
+                  <p role="status" className="rounded-ui bg-danger/15 px-1.5 py-1 text-[10px] leading-snug text-danger">
+                    This image is not linked to an asset in the document.
+                  </p>
+                )}
+              </>
+            )
+          })()}
+        </Section>
+      )}
+
+      <Section title="Layer">
+        <Readout label="Flags" value={[node.hidden ? 'hidden' : '', node.locked ? 'locked' : ''].filter(Boolean).join(', ') || 'none'} />
+        {state.selection.length > 1 && <Readout label="Also" value={`${state.selection.length - 1} more selected`} />}
+      </Section>
     </div>
   )
 }

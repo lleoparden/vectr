@@ -217,7 +217,7 @@ export function LayersPanel() {
           ref={listRef}
           role="tree"
           aria-label="Layers"
-          className="min-h-0 flex-1 overflow-auto py-1"
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1"
           onKeyDown={onKeyDown}
         >
           {rows.map((row) => (

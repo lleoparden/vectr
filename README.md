@@ -13,11 +13,15 @@ document. The exit evidence and the recorded gaps are in [`docs/PROGRESS.md`](do
 ```bash
 npm install
 npm start          # build and launch the desktop editor
-npm test           # 119 unit tests (node:test)
+npm test           # 145 unit tests (node:test)
 npm run typecheck  # tsc --noEmit
 npm run build      # vite build
-npm run smoke      # build and run the packaged evidence run (37 recorded steps)
+npm run smoke      # build and run the packaged evidence run (one JSON report per area)
 ```
+
+If `npm run smoke` fails with `Cannot read properties of undefined (reading 'whenReady')`, the shell
+has `ELECTRON_RUN_AS_NODE=1` set, so `electron` is running as plain Node instead of launching the
+app. Clear it for the run (`$env:ELECTRON_RUN_AS_NODE=''` in PowerShell); it is not a Vectr bug.
 
 `npm run benchmark` packages the app and runs the recorded renderer benchmark; it is only needed
 when renderer numbers are being re-measured.

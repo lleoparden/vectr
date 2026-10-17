@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius } from '../actions.ts'
+import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, setSelectionFill, setSelectionStroke } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -144,6 +144,34 @@ export function PropertiesPanel() {
       )}
       <Row label="Rotation" value={`${round(node.transform.rotation)}°`} />
       <Row label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
+      {!isGroup(node) && (
+        <div className="grid grid-cols-2 gap-1 px-2 py-1">
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Fill
+            <input
+              type="color"
+              aria-label="Fill colour"
+              defaultValue={node.style.fill}
+              className="h-5 w-8 rounded-ui border border-hairline bg-chrome-sunken"
+              onBlur={(event) => setSelectionFill(event.currentTarget.value)}
+            />
+          </label>
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Stroke
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              aria-label="Stroke weight"
+              defaultValue={node.style.stroke === null ? 0 : node.style.stroke.width}
+              className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+              onBlur={(event) => setSelectionStroke({ width: Number(event.currentTarget.value) })}
+            />
+          </label>
+        </div>
+      )}
+
       {node.type === 'rect' && (
         // Illustrator's Properties panel edits the rectangle's live corner radius; Vectr offers
         // the same value here and in the Control panel, both clamped to half the shorter side.

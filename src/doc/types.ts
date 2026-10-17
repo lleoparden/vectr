@@ -34,10 +34,16 @@ export type Stroke = {
   join?: StrokeJoin
 }
 
+/** A linear gradient in the node's own box, normalised 0..1 (issue #70). */
+export type GradientStop = { offset: number; color: string }
+export type FillGradient = { type: 'linear'; stops: GradientStop[]; from: { x: number; y: number }; to: { x: number; y: number } }
+
 export type Style = {
   /** CSS hex color, for example `#4f7cff`. */
   fill: string
   stroke: Stroke | null
+  /** When set, it paints the fill and `fill` is the fallback colour (issue #70). */
+  gradient?: FillGradient | null
   /** 0..1, applied to the node and its subtree. */
   opacity: number
 }

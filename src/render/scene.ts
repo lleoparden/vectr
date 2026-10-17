@@ -8,6 +8,7 @@
 
 import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
 import { clipPolygon } from '../doc/shapeGeometry.ts'
+import type { FillGradient } from '../doc/types.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
@@ -51,6 +52,8 @@ export type SceneShape = {
   sweepAngle: number
   pie: boolean
   fill: string
+  /** Linear gradient paint for the fill, or null for a solid fill (issue #70). */
+  gradient: FillGradient | null
   stroke: { color: string; width: number } | null
   opacity: number
   /** Present exactly when `kind` is `text`. */
@@ -142,6 +145,7 @@ function walkShapes(
     sweepAngle: node.type === 'arc' ? node.sweepAngle : 0,
     pie: node.type === 'arc' ? node.pie : false,
     fill: node.style.fill,
+    gradient: node.style.gradient ?? null,
     stroke: node.style.stroke,
     opacity: opacity * node.style.opacity,
     text: isText(node)

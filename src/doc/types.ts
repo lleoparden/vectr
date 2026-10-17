@@ -149,6 +149,11 @@ export type GroupNode = BaseNode & {
   type: 'group'
   /** Paint order: the last child is drawn on top. */
   children: LayerNode[]
+  /**
+   * A direct child whose geometry clips this group's other children (issue #71). Null means no
+   * clip. The clip object keeps its own style and transform and is not drawn on its own.
+   */
+  clipChildId?: string | null
 }
 
 export type LayerNode =

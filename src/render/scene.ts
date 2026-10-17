@@ -7,6 +7,7 @@
  */
 
 import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
+import { clipPolygon } from '../doc/shapeGeometry.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
@@ -16,6 +17,15 @@ export type SceneText = {
   fontFamily: string
   align: TextAlign
   lineHeight: number
+}
+
+/** A group's clip, resolved to world space so the recorder needs no tree knowledge (issue #71). */
+export type SceneClip = {
+  points: Array<{ x: number; y: number }>
+  x: number
+  y: number
+  scaleX: number
+  scaleY: number
 }
 
 export type SceneShape = {
@@ -47,6 +57,8 @@ export type SceneShape = {
   text: SceneText | null
   /** Present exactly when `kind` is `image`: the asset the renderer must draw. */
   assetId: string | null
+  /** The clip in force for this shape, or null (issue #71). */
+  clip: SceneClip | null
   /** Image-only source crop and optional raster alpha mask. */
   crop: ImageCrop | null
   maskAssetId: string | null
@@ -70,6 +82,7 @@ function walkShapes(
   opacity: number,
   root: NodeId,
   into: SceneShape[],
+  clip: SceneClip | null = null,
 ): void {
   const nextX = x + node.transform.x * scaleX
   const nextY = y + node.transform.y * scaleY
@@ -77,9 +90,37 @@ function walkShapes(
   const nextScaleY = scaleY * node.transform.scaleY
   if (isGroup(node)) {
     const nextOpacity = opacity * 1
+    // A clipped group resolves its clip child to world space once; its children inherit it.
+    let nextClip = clip
+    const clipId = node.clipChildId ?? null
+    if (clipId !== null) {
+      const clipChild = node.children.find((child) => child.id === clipId) ?? null
+      if (clipChild !== null && clipChild.type !== 'group') {
+        nextClip = {
+          points: clipPolygon({
+            kind: clipChild.type,
+            width: clipChild.width,
+            height: clipChild.height,
+            cornerRadius: clipChild.type === 'rect' ? clipChild.cornerRadius : 0,
+            sides: clipChild.type === 'polygon' ? clipChild.sides : clipChild.type === 'star' ? clipChild.points : 0,
+            innerRadius: clipChild.type === 'star' ? clipChild.innerRadius : 0,
+            startAngle: clipChild.type === 'arc' ? clipChild.startAngle : 0,
+            sweepAngle: clipChild.type === 'arc' ? clipChild.sweepAngle : 0,
+            pie: clipChild.type === 'arc' ? clipChild.pie : false,
+            lineFrom: clipChild.type === 'line' ? clipChild.from : 'top-left',
+          }),
+          x: nextX + clipChild.transform.x * nextScaleX,
+          y: nextY + clipChild.transform.y * nextScaleY,
+          scaleX: nextScaleX * clipChild.transform.scaleX,
+          scaleY: nextScaleY * clipChild.transform.scaleY,
+        }
+      }
+    }
     for (const child of node.children) {
       if (child.hidden) continue
-      walkShapes(child, nextX, nextY, nextScaleX, nextScaleY, nextOpacity, root, into)
+      // The clip object itself is not drawn: it defines the mask.
+      if (clipId !== null && child.id === clipId) continue
+      walkShapes(child, nextX, nextY, nextScaleX, nextScaleY, nextOpacity, root, into, nextClip)
     }
     return
   }
@@ -112,6 +153,7 @@ function walkShapes(
           lineHeight: node.lineHeight,
         }
       : null,
+    clip,
     assetId: node.type === 'image' ? node.assetId : null,
     crop: node.type === 'image' ? { ...node.crop } : null,
     maskAssetId: node.type === 'image' ? node.maskAssetId : null,

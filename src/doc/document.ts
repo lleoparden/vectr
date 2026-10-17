@@ -380,6 +380,7 @@ export function createGroup(name: string): GroupNode {
     locked: false,
     hidden: false,
     children: [],
+    clipChildId: null,
   }
 }
 

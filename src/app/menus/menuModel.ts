@@ -86,6 +86,8 @@ export const MENU_BAR: MenuSpec[] = [
           { kind: 'command', id: 'object.distributeV', label: 'Distribute Vertical Centers' },
         ],
       },
+      { kind: 'command', id: 'object.makeClip', label: 'Make Clipping Mask' },
+      { kind: 'command', id: 'object.releaseClip', label: 'Release Clipping Mask' },
       { kind: 'command', id: 'object.isolate', label: 'Isolate Selection' },
       { kind: 'command', id: 'object.exitIsolation', label: 'Exit Isolation Mode' },
       { kind: 'command', id: 'object.group', label: 'Group' },

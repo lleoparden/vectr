@@ -45,6 +45,8 @@ export type Command =
   | { type: 'renameNode'; nodeId: NodeId; name: string }
   /** Editable rounded corner on an existing rectangle (Phase 2.1, issue #64). */
   | { type: 'setCornerRadius'; nodeId: NodeId; cornerRadius: number }
+  /** Makes a direct child clip its group's other children, or releases the clip (issue #71). */
+  | { type: 'setClip'; groupId: NodeId; clipChildId: NodeId | null }
   /** Artboards are document data (Phase 2.4, issue #67); positions are derived, never stored. */
   | { type: 'addArtboard'; artboard: Artboard; index: number }
   | { type: 'removeArtboard'; artboardId: string }
@@ -317,6 +319,26 @@ export function applyCommand(document: Document, command: Command): CommandResul
           ),
         }),
         inverse: { type: 'setArtboard', artboardId: artboard.id, name: artboard.name, width: artboard.width, height: artboard.height },
+      }
+    }
+
+    case 'setClip': {
+      const group = findNode(document, command.groupId)
+      if (group === null) return rejected('absent-node', `Group ${command.groupId} does not exist.`)
+      if (!isGroup(group)) return rejected('invalid-parent', `Node ${command.groupId} is not a group.`)
+      if (isLocked(document, command.groupId)) return rejected('locked', `Group ${command.groupId} is locked.`)
+      const previous = group.clipChildId ?? null
+      if (command.clipChildId !== null && !group.children.some((child) => child.id === command.clipChildId)) {
+        return rejected('invalid-parent', `Node ${command.clipChildId} is not a child of group ${command.groupId}.`)
+      }
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, group.id, (current) =>
+            current.type === 'group' ? { ...current, clipChildId: command.clipChildId } : current,
+          ),
+        ),
+        inverse: { type: 'setClip', groupId: group.id, clipChildId: previous },
       }
     }
 

@@ -27,7 +27,7 @@ import {
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
-import type { FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
+import type { BlendMode, FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import { groupToIsolate } from './editing/isolation.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
 import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
@@ -808,6 +808,11 @@ export function linearGradientFrom(angleDegrees: number, fromColor: string, toCo
 /** Applies or removes a gradient fill on the selection, one undo entry. */
 export function setSelectionGradient(gradient: FillGradient | null): void {
   applySelectionStyle((node) => ({ ...node.style, gradient }), 'gradient')
+}
+
+/** Sets how the selection's fill composites, as one undo entry (issue #71). */
+export function setSelectionBlendMode(mode: BlendMode): void {
+  applySelectionStyle((node) => ({ ...node.style, blendMode: mode }), 'blend mode')
 }
 
 /** Sets the selection's opacity (0–1) as one undo entry; the renderer already applies it. */

@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, linearGradientFrom, setSelectionFill, setSelectionGradient, setSelectionOpacity, setSelectionStroke } from '../actions.ts'
+import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, linearGradientFrom, setSelectionBlendMode, setSelectionFill, setSelectionGradient, setSelectionOpacity, setSelectionStroke } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -245,6 +245,24 @@ export function PropertiesPanel() {
                 setSelectionStroke({ dash })
               }}
             />
+          </label>
+        </div>
+        <div className="px-2 py-1">
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Blend
+            <select
+              aria-label="Blend mode"
+              defaultValue={node.style.blendMode ?? 'normal'}
+              className="rounded-ui border border-hairline bg-chrome-sunken text-ui-xs text-ink"
+              onBlur={(event) => setSelectionBlendMode(event.currentTarget.value as 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten')}
+            >
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="darken">Darken</option>
+              <option value="lighten">Lighten</option>
+            </select>
           </label>
         </div>
             <select

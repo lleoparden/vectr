@@ -1857,3 +1857,17 @@ Implementation follows the contract above. Three decisions worth naming:
 - **No presets.** Illustrator's dashed presets are a Swatches-panel feature, and Vectr has no stroke panel
   yet; a text field that takes `6 3` is honest about what it stores instead of inventing preset names.
 
+## 2026-10-17 — A deliberately small blend-mode set (Phase 2.7/APP-01)
+
+- **Six modes, not Illustrator's full list.** Normal, multiply, screen, overlay, darken, lighten cover the
+  compositing people actually reach for in illustration work, and each maps to one Skia enum. Shipping the
+  whole list would promise behaviour nobody has verified against the renderer or the future compiler.
+- **The mode lives on the style and defaults to absent.** No file gains a `blendMode` key until someone
+  chooses one, so old documents composite exactly as before, and the compiler can treat absence as the
+  normal case.
+- **It applies to the fill paint only.** Strokes and text keep normal compositing, because blending a stroke
+  against its own fill is a different model (an isolation group in Illustrator) and that is recorded as
+  remaining rather than half-built.
+- **Unknown modes are refused at the boundary**, so a hand-edited file cannot reach `setBlendMode` with
+  something the renderer would silently treat as normal.
+

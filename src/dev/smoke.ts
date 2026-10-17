@@ -13,10 +13,11 @@
 import { createEllipse, createGroup, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
 import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
+import { scaleFactors, scaledTransform, unionBounds } from '../app/editing/transform.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
-import { placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
+import { nudgeSelection, placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
 import {
   newDocument,
   openDocument,
@@ -292,6 +293,57 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
     'undo restores the previous corner radius',
     unrounded !== null && unrounded.type === 'rect' && unrounded.cornerRadius === 0,
     unrounded !== null && unrounded.type === 'rect' ? `radius ${unrounded.cornerRadius}` : 'no rect',
+  )
+
+  // Phase 2.2 (issue #65): the selection box, a handle scale, and the arrow nudge.
+  const scaleTarget = createRect('Smoke Scale', 60, 60, 120, 120)
+  store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [scaleTarget] },
+    'smoke scale prep',
+  )
+  store.setSelection([scaleTarget.id])
+  const selectionBox = unionBounds(store.getState().document, [scaleTarget.id])
+  record(
+    'the selection box matches the object',
+    selectionBox !== null && selectionBox.width === 120 && selectionBox.height === 120,
+    selectionBox === null ? 'no box' : `${selectionBox.width}×${selectionBox.height} at ${selectionBox.x},${selectionBox.y}`,
+  )
+
+  const scaleGesture = scaleFactors('se', selectionBox ?? { x: 0, y: 0, width: 1, height: 1 }, { x: 240, y: 240 }, {})
+  const depthBeforeScale = store.getState().undoDepth
+  store.beginTransaction('scale')
+  store.dispatch({
+    type: 'setTransform',
+    nodeId: scaleTarget.id,
+    transform: {
+      ...scaleTarget.transform,
+      ...scaledTransform(scaleTarget.transform, scaleGesture.anchor, scaleGesture.sx, scaleGesture.sy),
+    },
+  })
+  store.commitTransaction()
+  const scaledNode = findNode(store.getState().document, scaleTarget.id)
+  record(
+    'a handle drag scales about the fixed corner as one entry',
+    store.getState().undoDepth === depthBeforeScale + 1 &&
+      scaledNode !== null &&
+      scaledNode.type !== 'group' &&
+      Math.abs(scaledNode.transform.scaleX - 1.5) < 1e-6 &&
+      scaledNode.transform.x === 60,
+    scaledNode !== null && scaledNode.type !== 'group'
+      ? `scale ${scaledNode.transform.scaleX.toFixed(2)} at x ${scaledNode.transform.x}`
+      : 'no node',
+  )
+
+  const depthBeforeNudge = store.getState().undoDepth
+  nudgeSelection(0, 10)
+  const nudged = findNode(store.getState().document, scaleTarget.id)
+  record(
+    'an arrow nudge is one entry',
+    store.getState().undoDepth === depthBeforeNudge + 1 &&
+      nudged !== null &&
+      nudged.type !== 'group' &&
+      nudged.transform.y === 70,
+    nudged !== null && nudged.type !== 'group' ? `y ${nudged.transform.y}` : 'no node',
   )
 
   return { passed: steps.every((step) => step.ok), steps }

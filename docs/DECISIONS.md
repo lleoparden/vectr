@@ -1576,6 +1576,43 @@ document that `validateDocument` would then reject.
 - **`Q` and `A` are Illustrator's keys**, so they are `illustratorDefault: true`; nothing new was
   invented for this slice.
 
+## 2026-10-17 — Move and scale, and why rotate is not in this slice (Phase 2.2, issue #65)
+
+### The box is the selection's world union
+
+`unionBounds` composes the same `worldBounds` the hit test and the renderer use, and expands a
+group to the union of its leaves because a group has no box of its own. That keeps one definition
+of "where the selection is": the handles, the Properties fields, the tool options readouts, and the
+hit test cannot disagree.
+
+### A scale is one `setTransform` per object
+
+`scaleFactors` and `scaledTransform` are pure; the canvas captures each transform once at the start
+of a handle drag and re-computes absolute values on every move inside one transaction. That is the
+same rule the drag-move gesture already used, so a 200-move scale is one compact history entry
+rather than two hundred, and Undo restores the pre-gesture box exactly.
+
+### The arrow keys are transforms, not menu commands
+
+Illustrator's arrows work in every tool and have no menu item, so they are handled beside the chord
+table rather than in it — but they still dispatch `setTransform` through the store, so the keyboard
+has no second path to the document. The handler ignores events another surface already handled,
+which is what keeps the Layers panel's arrow-key navigation working.
+
+### Why rotate, reflect, and shear are not here
+
+The scene builder does not carry `rotation`, and the hit test is axis-aligned. A rotate control
+added today would move the selection box while the artwork stayed put — a control that lies, which
+the UI direction explicitly rejects ("read-only fields remain honest rather than becoming inert
+inputs"). Those three need the rotation matrix in the scene, an inverse-rotation hit test, rotated
+bounds for the box and the thumbnails, and a rotated selection outline. That is a slice of its own,
+recorded as remaining on `SEL-02` rather than half-shipped.
+
+Deliberate limits of the shipped half, stated rather than implied: a nested node inside a *scaled*
+group scales in its own local units (no group can be scaled yet), the box does not rotate, and
+constrain/from-centre are key modifiers rather than sticky tool options.
+
+
 ## 2026-10-17 — The lasso now matches Illustrator: enclosed, not touched
 
 The owner asked for Illustrator's exact lasso rule. This replaces the touched-bounds rule recorded above,

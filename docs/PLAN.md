@@ -132,6 +132,27 @@ exact within-the-path rule.
 for direct selection of a nested leaf, double-click drilling, a lasso selection, a radius edit with
 undo, and save/reopen of the edited radius; typecheck, tests, build, and the packaged run.
 
+## Approved — Phase 2.2 transform controls (issue #65, started 2026-10-17)
+
+**Tracking:** [#65](https://github.com/lleoparden/vectr/issues/65). Second slice of Phase 2, still before
+any of the four open decisions.
+
+**Scope.** A selection bounding box with eight scale handles, Properties X/Y/W/H editing, and arrow-key
+nudging. Every value goes through the existing `setTransform` command inside one transaction per gesture,
+so history, save/reopen, hit testing, and the renderer agree by construction.
+
+**Semantics.** Scale anchors at the opposite corner (Alt: the centre); Shift takes the dominant factor for
+both axes; an edge handle scales only its own axis; a drag can never collapse a node below a hundredth of
+its size. Position is a move; a size edit scales about the box's top-left corner.
+
+**Explicitly out, with the reason recorded.** Rotate, reflect, and shear: the scene builder carries no
+rotation and the hit test is axis-aligned, so they need a rotation slice (scene, inverse-rotation hit test,
+rotated bounds and outline) before a control for them can be honest.
+
+**Evidence.** Unit tests for the box, the handle maths, constraints, the collapse guard, and the store-level
+one-entry behavior; packaged smoke steps for the box, a handle scale, and a nudge; typecheck, tests, build,
+smoke.
+
 ## Phase 0 — Reference catalog and platform decision
 
 - [x] Approve Electron + React + TypeScript as the proposed desktop direction:

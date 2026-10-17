@@ -1763,3 +1763,39 @@ Implementation follows the contract recorded above, with two decisions worth nam
   breadcrumb with Back/Forward; Vectr enters from Object ▸ Isolate Selection (the double-click there still
   drills one level in the hierarchy) and shows the group's name in the status bar.
 
+## 2026-10-17 — The clipping contract, and the format-version policy it needs (issue #71)
+
+Vector clipping is the last unbuilt piece of Phase 2, and it is the first addition since v3 that
+changes the *shape* of persisted data, so both decisions are recorded before code.
+
+### Clipping
+
+- **A clip is a group-owned relationship, not a new node kind.** The group carries
+  `clipChildId: string | null`, naming one of its own children; that child's geometry clips its
+  siblings. Illustrator's "Make Clipping Mask" wraps the topmost object of a selection and clips the
+  rest to it, which is exactly this: the clip object is a child like any other, and the relationship is
+  the group's.
+- **One clip per group, and only a direct child.** A nested chain of clips would need an ordering model
+  nobody has asked for, and a reference to a non-child could point at a subtree the group does not own.
+  Validation rejects both.
+- **The clip object itself is not drawn on its own**, but it keeps its own style and transform, so
+  releasing the mask restores exactly what was there.
+- **Release** is the same command with `null`, so release is an exact inverse of make.
+- **Hit testing follows the clip**: a point clipped away is not a hit, because selecting something you
+  cannot see is the same lie as drawing something you cannot see.
+- **Not in this slice:** compound paths, clipping a whole document, clipping by a stroke's outline, and
+  the `APP-01` opacity/blend work. Raster masks on images already ship and are unchanged.
+
+### Format version 4
+
+- `clipChildId` is persisted, so `FORMAT_VERSION` moves to 4 and `SUPPORTED_FORMAT_VERSION_LIST` becomes
+  `[1, 2, 3, 4]`.
+- **v1–v3 files open unchanged**: the reader treats a missing `clipChildId` as `null`, so no migration
+  function is needed and no existing document changes shape on disk until it is edited and saved.
+- **The version bumps once, for the whole of Phase 2's remaining persisted work** (clip now; stroke caps,
+  joins and dashes when they land). Bumping per feature would churn every file three times for no
+  reader benefit, since each addition is optional-field shaped and the same rule — absent means default —
+  covers all of them.
+- **The validation boundary checks the reference**: a clip id must name a direct child of the group that
+  carries it, so a hand-edited file cannot create a clip that the renderer or the hit test would misread.
+

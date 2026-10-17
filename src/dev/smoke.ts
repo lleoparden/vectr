@@ -346,6 +346,56 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
     nudged !== null && nudged.type !== 'group' ? `y ${nudged.transform.y}` : 'no node',
   )
 
+  // Phase 2.3 (issue #66): align, distribute, and the Vectr clipboard.
+  const alignA = createRect('Smoke Align A', 0, 0, 100, 100)
+  const alignB = createRect('Smoke Align B', 300, 200, 60, 60)
+  const alignC = createRect('Smoke Align C', 600, 80, 40, 40)
+  store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [alignA, alignB, alignC] },
+    'smoke align prep',
+  )
+  store.setSelection([alignA.id, alignB.id])
+  runEditorAction('object.alignLeft')
+  const leftEdges = [alignA.id, alignB.id].map((id) => findNode(store.getState().document, id)?.transform.x)
+  record(
+    'align left puts both objects on one edge',
+    leftEdges[0] === 0 && leftEdges[1] === 0,
+    'x ' + leftEdges.join(', '),
+  )
+
+  store.setSelection([alignA.id, alignB.id, alignC.id])
+  runEditorAction('object.distributeH')
+  const centres = [alignA, alignB, alignC].map((node) => {
+    const live = findNode(store.getState().document, node.id)
+    return live === null || live.type === 'group' ? NaN : live.transform.x + live.width / 2
+  })
+  const sorted = [...centres].sort((a, b) => a - b)
+  record(
+    'distribute spaces the middle object evenly',
+    Math.abs(sorted[1] - (sorted[0] + sorted[2]) / 2) < 1e-6,
+    centres.map((value) => value.toFixed(1)).join(', '),
+  )
+
+  store.setSelection([alignA.id])
+  const originalX = findNode(store.getState().document, alignA.id)?.transform.x ?? 0
+  const originalY = findNode(store.getState().document, alignA.id)?.transform.y ?? 0
+  runEditorAction('edit.copy')
+  const beforePaste = store.getState().document.root.children.length
+  const depthBeforePaste = store.getState().undoDepth
+  runEditorAction('edit.paste')
+  const pastedId = store.getState().selection[0]
+  const pasted = pastedId === undefined ? null : findNode(store.getState().document, pastedId)
+  record(
+    'copy and paste offset the copy as one entry',
+    store.getState().document.root.children.length === beforePaste + 1 &&
+      store.getState().undoDepth === depthBeforePaste + 1 &&
+      pasted !== null &&
+      pasted.type !== 'group' &&
+      pasted.transform.x === originalX + 10 &&
+      pasted.transform.y === originalY + 10,
+    pasted !== null && pasted.type !== 'group' ? 'copy at ' + pasted.transform.x + ',' + pasted.transform.y : 'no copy',
+  )
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

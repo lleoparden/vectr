@@ -1625,3 +1625,24 @@ divergence that changed what a familiar gesture did.
 - The unit tests pin both cases, and the packaged smoke step draws an enclosing loop, so it still proves
   the gesture end to end.
 - The `SEL-01` catalog row states the enclosed rule, so the recorded behavior and the tests agree.
+
+## 2026-10-17 — Align, distribute, and a Vectr-only clipboard (Phase 2.3, issue #66)
+
+The issue left one decision to the owner: which clipboard. With Phase 2 delegated to the agent, the
+plan's recommendation is taken and recorded as a delegated decision, the same way the memory budget
+was settled.
+
+- **Vectr-only structured clipboard first.** One session slot holding JSON clones of the selected
+  subtrees. It never stores a document copy, never duplicates image bytes (a pasted image keeps its
+  content-addressed `assetId`), and never reuses node ids — `duplicateSubtree` gives every pasted node
+  a fresh id. The operating-system clipboard is later scope: it needs a validated, bounded
+  interchange format and IPC, and guessing at that would create an untrusted-input boundary for no
+  current benefit.
+- **Paste offset is 10 scene units**, Illustrator's convention, so a paste is visibly a copy.
+- **Align is against the selection's own union box**, with no key object yet; **distribute spaces
+  centres evenly** between the outermost objects, which is Illustrator's default Distribute Objects
+  behaviour. Both are recorded so a later key-object or spacing mode is an addition, not a rewrite.
+- **Locked objects are skipped, not refused.** Aligning four objects where one is locked moves the
+  three unlocked ones, which is what Clear already does and avoids a command that fails wholesale.
+- **No new document command.** Alignment and distribution are `setTransform` moves in one
+  transaction; paste is the existing `insertNodes`.

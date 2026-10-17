@@ -26,6 +26,8 @@ import {
 } from './editing/arrange.ts'
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
+import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
+import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
 import type { LayerRow } from './panels/layerRows.ts'
 import { importImageBytes, pickImageFile } from './files/imageImport.ts'
 import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
@@ -75,6 +77,18 @@ export const ACTION_IDS = [
   'object.arrangeBackward',
   'object.arrangeBack',
   'object.duplicate',
+  'object.alignLeft',
+  'object.alignCenterH',
+  'object.alignRight',
+  'object.alignTop',
+  'object.alignCenterV',
+  'object.alignBottom',
+  'object.distributeH',
+  'object.distributeV',
+  'edit.cut',
+  'edit.copy',
+  'edit.paste',
+
   'layer.new',
   'view.zoomIn',
   'view.zoomOut',
@@ -130,6 +144,17 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'object.arrangeBackward': 'Send Backward',
   'object.arrangeBack': 'Send to Back',
   'object.duplicate': 'Duplicate',
+  'object.alignLeft': 'Horizontal Align Left',
+  'object.alignCenterH': 'Horizontal Align Center',
+  'object.alignRight': 'Horizontal Align Right',
+  'object.alignTop': 'Vertical Align Top',
+  'object.alignCenterV': 'Vertical Align Center',
+  'object.alignBottom': 'Vertical Align Bottom',
+  'object.distributeH': 'Distribute Horizontal Centers',
+  'object.distributeV': 'Distribute Vertical Centers',
+  'edit.cut': 'Cut',
+  'edit.copy': 'Copy',
+  'edit.paste': 'Paste',
   'layer.new': 'New Layer',
   'view.zoomIn': 'Zoom In',
   'view.zoomOut': 'Zoom Out',
@@ -284,6 +309,32 @@ function runPlan(steps: PlanStep[] | null, label: string) {
     applied.push(result.inverse)
   }
   documentStore.commitTransaction()
+}
+
+/** Which alignment an action means; the Object menu and the tests share this table. */
+export const ALIGN_MODE: Record<
+  'object.alignLeft' | 'object.alignCenterH' | 'object.alignRight' | 'object.alignTop' | 'object.alignCenterV' | 'object.alignBottom',
+  AlignMode
+> = {
+  'object.alignLeft': 'left',
+  'object.alignCenterH': 'horizontalCenter',
+  'object.alignRight': 'right',
+  'object.alignTop': 'top',
+  'object.alignCenterV': 'verticalCenter',
+  'object.alignBottom': 'bottom',
+}
+
+/** Runs a planner's moves as one transaction, so an align or distribute is one undo entry. */
+function applyMoves(moves: AlignMove[], label: string) {
+  if (moves.length === 0) return
+  documentStore.beginTransaction(label)
+  let changed = false
+  for (const move of moves) {
+    const result = documentStore.dispatch({ type: 'setTransform', nodeId: move.nodeId, transform: move.transform })
+    if (result.ok) changed = true
+  }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
 }
 
 const ARRANGE_WHERE: Partial<Record<EditorActionId, ArrangeWhere>> = {
@@ -819,6 +870,47 @@ export function runEditorAction(id: EditorActionId): void {
       if (created.length > 0) documentStore.setSelection(created)
       return
     }
+    case 'edit.copy': {
+      const copied = copyToClipboard(editor.document, selectedIds())
+      if (copied === 0) documentStore.reportError('absent-node', 'Nothing to copy.')
+      return
+    }
+    case 'edit.cut': {
+      const copied = copyToClipboard(editor.document, selectedIds())
+      if (copied > 0) deleteUnlockedSelection()
+      return
+    }
+    case 'edit.paste': {
+      const nodes = pastedNodes()
+      if (nodes.length === 0) return
+      const document = documentStore.getState().document
+      const result = documentStore.dispatch(
+        {
+          type: 'insertNodes',
+          parentId: document.root.id,
+          index: document.root.children.length,
+          nodes,
+        },
+        'paste',
+      )
+      if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
+      return
+    }
+    case 'object.alignLeft':
+    case 'object.alignCenterH':
+    case 'object.alignRight':
+    case 'object.alignTop':
+    case 'object.alignCenterV':
+    case 'object.alignBottom':
+      applyMoves(planAlign(editor.document, selectedIds(), ALIGN_MODE[id]), 'align')
+      return
+    case 'object.distributeH':
+    case 'object.distributeV':
+      applyMoves(
+        planDistribute(editor.document, selectedIds(), id === 'object.distributeH' ? 'horizontal' : 'vertical'),
+        'distribute',
+      )
+      return
     case 'layer.new': {
       const document = documentStore.getState().document
       const layer = createGroup(`Layer ${document.root.children.length + 1}`)

@@ -1709,3 +1709,15 @@ explicit acceptance fixtures. Artboards are final after #67; guides and grids ar
   same screen distance snaps at 25% and 400%; (5) a snapped gesture is one undo entry that restores the
   exact pre-gesture transform.
 
+## 2026-10-17 — Fill and stroke weight from Properties (start of Phase 2.6, issue #69)
+
+- **No new command.** A fill or stroke edit is the existing `setStyle`, applied per object inside one
+  transaction, so a multi-object edit is one undo entry and history stays a record of document changes.
+- **Editable where the values live.** Properties, not the Control panel: the Control panel's shape row
+  already sets the *next* shape's fill, and two controls writing different defaults would be a trap.
+- **Divergences recorded:** there is no stroke colour field yet (a stroke keeps its colour and defaults to
+  the fill), and no caps, joins, dashes, alignment, or width profiles. The Appearance panel stays
+  read-only until those commands exist, rather than showing controls that do nothing.
+- **Zero means none.** A stroke weight of 0 stores `null` rather than a zero-width stroke, so the
+  renderer's existing "no stroke" path is what runs and the saved file says what it means.
+

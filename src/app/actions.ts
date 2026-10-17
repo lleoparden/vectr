@@ -11,7 +11,7 @@
  */
 
 import { findNode, paintOrder } from '../doc/document.ts'
-import { isText, supportsFill, type LayerNode, type NodeId, type ShapeNode, type TextAlign, type TextNode } from '../doc/types.ts'
+import { isText, supportsFill, type GroupNode, type LayerNode, type NodeId, type ShapeNode, type TextAlign, type TextNode , type Style } from '../doc/types.ts'
 import { documentStore, type EditorState } from '../state/documentStore.ts'
 import { workspaceStore, type PanelId } from '../state/workspaceStore.ts'
 import {
@@ -41,6 +41,9 @@ import { isLocked, type Command } from '../doc/commands.ts'
 function newArtboardId(): string {
   return 'artboard-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
 }
+
+/** Any node that carries a style (everything except a group). */
+type StyledNode = Exclude<LayerNode, GroupNode>
 
 export const ACTION_IDS = [
   'tool.select',
@@ -749,6 +752,40 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     default:
       return true
   }
+}
+
+/** Applies a stroke colour and weight to the selected shapes and text as one undo entry (PAINT-01). */
+export function setSelectionStroke(patch: { color?: string; width?: number }): void {
+  applySelectionStyle((node) => {
+    const current = node.style.stroke ?? { color: node.style.fill, width: 1 }
+    const width = patch.width === undefined ? current.width : Math.max(0, Math.min(100, patch.width))
+    return { ...node.style, stroke: width === 0 ? null : { color: patch.color ?? current.color, width } }
+  }, 'stroke')
+}
+
+/** Applies a fill colour to the selected shapes and text as one undo entry. */
+export function setSelectionFill(color: string): void {
+  applySelectionStyle((node) => ({ ...node.style, fill: color }), 'fill')
+}
+
+/**
+ * One style transaction for the whole selection: a fill or stroke edit on several objects is one
+ * history entry, and a locked object is refused by the command rather than skipped silently.
+ */
+function applySelectionStyle(next: (node: StyledNode) => Style, label: string): void {
+  const { document, selection } = documentStore.getState()
+  const targets = selection
+    .map((id) => findNode(document, id))
+    .filter((node): node is StyledNode => node !== null && node.type !== 'group')
+  if (targets.length === 0) return
+  documentStore.beginTransaction(label)
+  let changed = false
+  for (const node of targets) {
+    const result = documentStore.dispatch({ type: 'setStyle', nodeId: node.id, style: next(node) })
+    if (result.ok) changed = true
+  }
+  if (changed) documentStore.commitTransaction()
+  else documentStore.abortTransaction()
 }
 
 /** Makes an artboard the active page (session state, never persisted). */

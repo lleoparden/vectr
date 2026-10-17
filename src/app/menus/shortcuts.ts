@@ -93,6 +93,7 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'view.zoomOut', chord: { key: '-', ctrl: true }, illustratorDefault: true },
   { id: 'view.fitArtboard', chord: { key: '0', ctrl: true }, illustratorDefault: true },
   { id: 'view.actualSize', chord: { key: '1', ctrl: true }, illustratorDefault: true },
+  { id: 'view.smartGuides', chord: { key: 'u', ctrl: true }, illustratorDefault: true },
 
   // Window: Illustrator's panel shortcuts.
   { id: 'window.togglePanel.layers', chord: { key: 'f7' }, illustratorDefault: true },

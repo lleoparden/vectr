@@ -68,6 +68,8 @@ export type WorkspaceState = {
   creationDefaults: CreationDefaults
   /** The artboard the status bar, Fit Artboard, and new objects use; null means the first one. */
   activeArtboardId: string | null
+  /** Smart Guides: snap drags to page and object edges (session state, issue #68). */
+  smartGuides: boolean
 }
 
 /** What the crash dialog needs to say which file came back and from when. */
@@ -110,6 +112,7 @@ export class WorkspaceStore {
       preferencesOpen: false,
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
       activeArtboardId: null,
+      smartGuides: true,
     }
   }
 
@@ -202,6 +205,12 @@ export class WorkspaceStore {
   /** Updates what the next drawn object uses; the tool options bar and the tools share this. */
   setCreationDefaults(patch: Partial<CreationDefaults>) {
     this.update({ creationDefaults: { ...this.state.creationDefaults, ...patch } })
+  }
+
+  /** Turns snapping on or off for the session; never persisted. */
+  setSmartGuides(smartGuides: boolean) {
+    if (this.state.smartGuides === smartGuides) return
+    this.update({ smartGuides })
   }
 
   /** Remembers which page the user is working on; it is session state, never persisted. */

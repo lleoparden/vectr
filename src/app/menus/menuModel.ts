@@ -125,6 +125,7 @@ export const MENU_BAR: MenuSpec[] = [
       { kind: 'separator' },
       { kind: 'command', id: 'view.fitArtboard', label: 'Fit Artboard in Window' },
       { kind: 'command', id: 'view.actualSize', label: 'Actual Size' },
+      { kind: 'command', id: 'view.smartGuides', label: 'Smart Guides' },
     ],
   },
   {

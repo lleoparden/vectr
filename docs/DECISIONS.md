@@ -1668,3 +1668,27 @@ artboards are implemented. With Phase 2 delegated to the agent, the contract is:
   reference for Fit, placement, or the status bar, so the command refuses rather than leaving the
   editor in a state it cannot describe.
 
+## 2026-10-17 — The snapping contract, decided before slice 2.5 (issue #68)
+
+The plan requires snapping to snap against *finalized* primitives with keyboard-accessible controls and
+explicit acceptance fixtures. Artboards are final after #67; guides and grids are not built yet. So:
+
+- **Snap targets, in priority order:** the active artboard's edges and centre lines; the other objects'
+  bounding-box edges and centres; guide lines once guides exist. A target contributes both axes
+  independently, so an object can snap left-to-left on x and centre-to-centre on y in one move.
+- **One threshold, in screen pixels, not scene units:** six pixels converted by the current zoom. Snapping
+  is a gesture affordance, so it must feel the same at 25% and 400%, which scene-unit thresholds do not.
+- **Snapping is a post-gesture adjustment, not a second geometry model.** The gesture computes its raw
+  delta from the pointer, then the snapper may replace that delta with the nearest target's. The stored
+  transform is still produced by `setTransform`, still one entry per gesture, and undo restores the
+  pre-gesture value — a snap cannot appear in history as a separate change.
+- **Selected objects are not their own snap targets**, or a drag would snap to where it started.
+- **Toggles are keyboard-reachable:** Smart Guides (Ctrl+U, Illustrator's own chord) turns snapping on and
+  off for the session; it is a workspace setting, never document data.
+- **Acceptance fixtures (written before implementation):** (1) a drag within six screen pixels of an
+  artboard edge lands exactly on it and one outside the threshold moves by its raw delta; (2) two objects
+  dragged near each other's edges align exactly, and the pair snaps on both axes independently; (3) a
+  locked or hidden object neither snaps nor acts as a target; (4) the threshold scales with zoom, so the
+  same screen distance snaps at 25% and 400%; (5) a snapped gesture is one undo entry that restores the
+  exact pre-gesture transform.
+

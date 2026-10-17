@@ -6,6 +6,7 @@
  * "paint order equals layer order" acceptance criterion testable without a GPU.
  */
 
+import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
@@ -53,6 +54,8 @@ export type SceneShape = {
 
 export type Scene = {
   revision: number
+  /** Artboard pages, in document order, with their derived positions (issue #67). */
+  artboards: ArtboardRect[]
   shapes: SceneShape[]
   /** Shapes grouped by top-level root, in paint order; the renderer's buckets. */
   byRoot: Array<{ root: NodeId; shapes: SceneShape[] }>
@@ -126,7 +129,7 @@ export function buildScene(document: Document): Scene {
     shapes.push(...rootShapes)
     byRoot.push({ root: root.id, shapes: rootShapes })
   }
-  return { revision: document.revision, shapes, byRoot }
+  return { revision: document.revision, artboards: artboardRects(document), shapes, byRoot }
 }
 
 /** Root ids in paint order, matching {@link paintOrder} at the top level. */

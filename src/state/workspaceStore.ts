@@ -66,6 +66,8 @@ export type WorkspaceState = {
   preferencesOpen: boolean
   /** What the shape and text tools draw with, and which shape member is showing. */
   creationDefaults: CreationDefaults
+  /** The artboard the status bar, Fit Artboard, and new objects use; null means the first one. */
+  activeArtboardId: string | null
 }
 
 /** What the crash dialog needs to say which file came back and from when. */
@@ -107,6 +109,7 @@ export class WorkspaceStore {
       crashPrompt: null,
       preferencesOpen: false,
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
+      activeArtboardId: null,
     }
   }
 
@@ -199,6 +202,12 @@ export class WorkspaceStore {
   /** Updates what the next drawn object uses; the tool options bar and the tools share this. */
   setCreationDefaults(patch: Partial<CreationDefaults>) {
     this.update({ creationDefaults: { ...this.state.creationDefaults, ...patch } })
+  }
+
+  /** Remembers which page the user is working on; it is session state, never persisted. */
+  setActiveArtboard(activeArtboardId: string | null) {
+    if (this.state.activeArtboardId === activeArtboardId) return
+    this.update({ activeArtboardId })
   }
 
   /** Opens or closes the crash dialog; it has no other state. */

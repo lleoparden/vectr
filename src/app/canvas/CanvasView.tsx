@@ -21,6 +21,7 @@ import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
+import { artboardRects } from '../../doc/artboards.ts'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
 import { getActiveRenderer, setActiveRenderer } from '../../render/activeRenderer.ts'
 import { assetRegistry } from '../../state/assetRegistry.ts'
@@ -28,7 +29,7 @@ import { buildScene, type SceneShape } from '../../render/scene.ts'
 import { documentStore, type Tool, type Viewport } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { workspaceStore } from '../../state/workspaceStore.ts'
-import { fitArtboard, zoomAtPoint } from './viewportOps.ts'
+import { fitRect, zoomAtPoint } from './viewportOps.ts'
 
 type Gesture =
   | { kind: 'none' }
@@ -137,7 +138,7 @@ export function CanvasView() {
     // be, so the first known canvas size fits it. Later zoom is the user's to own.
     if (!fittedOnce.current && box.width > 0 && box.height > 0) {
       fittedOnce.current = true
-      documentStore.setViewport(fitArtboard(state.document.artboards[0], { width: box.width, height: box.height }))
+      documentStore.setViewport(fitRect(artboardRects(state.document)[0] ?? state.document.artboards[0], { width: box.width, height: box.height }))
     }
     const scene = buildScene(state.document)
     renderer.setScene(scene)

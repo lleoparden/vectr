@@ -23,6 +23,7 @@ import { validateDestination, validateRemovable, type ValidationCode } from './v
 import {
   isGroup,
   isText,
+  type Artboard,
   type AssetRef,
   type Document,
   type GroupNode,
@@ -44,6 +45,10 @@ export type Command =
   | { type: 'renameNode'; nodeId: NodeId; name: string }
   /** Editable rounded corner on an existing rectangle (Phase 2.1, issue #64). */
   | { type: 'setCornerRadius'; nodeId: NodeId; cornerRadius: number }
+  /** Artboards are document data (Phase 2.4, issue #67); positions are derived, never stored. */
+  | { type: 'addArtboard'; artboard: Artboard; index: number }
+  | { type: 'removeArtboard'; artboardId: string }
+  | { type: 'setArtboard'; artboardId: string; name?: string; width?: number; height?: number }
   /** Text content, with the measured box when the caller could measure (issue #16). */
   | { type: 'setText'; nodeId: NodeId; text: string; width?: number; height?: number }
   | {
@@ -256,6 +261,62 @@ export function applyCommand(document: Document, command: Command): CommandResul
         ok: true,
         document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, name }))),
         inverse: { type: 'renameNode', nodeId: command.nodeId, name: node.name },
+      }
+    }
+
+    case 'addArtboard': {
+      const artboard = command.artboard
+      if (document.artboards.some((existing) => existing.id === artboard.id)) {
+        return rejected('duplicate-id', `Artboard ${artboard.id} already exists.`)
+      }
+      if (!Number.isFinite(artboard.width) || !Number.isFinite(artboard.height) || artboard.width <= 0 || artboard.height <= 0) {
+        return rejected('non-positive-size', `Artboard ${artboard.id} needs a positive size.`)
+      }
+      const index = Math.max(0, Math.min(document.artboards.length, Math.round(command.index)))
+      const next = [...document.artboards]
+      next.splice(index, 0, clone(artboard))
+      return {
+        ok: true,
+        document: withRevision({ ...document, artboards: next }),
+        inverse: { type: 'removeArtboard', artboardId: artboard.id },
+      }
+    }
+
+    case 'removeArtboard': {
+      if (document.artboards.length <= 1) {
+        return rejected('invalid-index', 'A document needs at least one artboard.')
+      }
+      const index = document.artboards.findIndex((artboard) => artboard.id === command.artboardId)
+      if (index < 0) return rejected('absent-node', `Artboard ${command.artboardId} does not exist.`)
+      const removed = document.artboards[index]
+      return {
+        ok: true,
+        document: withRevision({ ...document, artboards: document.artboards.filter((artboard) => artboard.id !== removed.id) }),
+        inverse: { type: 'addArtboard', artboard: clone(removed), index },
+      }
+    }
+
+    case 'setArtboard': {
+      const artboard = document.artboards.find((existing) => existing.id === command.artboardId)
+      if (artboard === undefined) return rejected('absent-node', `Artboard ${command.artboardId} does not exist.`)
+      const name = command.name === undefined ? artboard.name : command.name.trim()
+      if (name.length === 0 || name.length > 128) {
+        return rejected('invalid-index', 'An artboard name must be between 1 and 128 characters.')
+      }
+      const width = command.width === undefined ? artboard.width : command.width
+      const height = command.height === undefined ? artboard.height : command.height
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return rejected('non-positive-size', `Artboard ${artboard.id} needs a positive size.`)
+      }
+      return {
+        ok: true,
+        document: withRevision({
+          ...document,
+          artboards: document.artboards.map((existing) =>
+            existing.id === artboard.id ? { ...existing, name, width, height } : existing,
+          ),
+        }),
+        inverse: { type: 'setArtboard', artboardId: artboard.id, name: artboard.name, width: artboard.width, height: artboard.height },
       }
     }
 

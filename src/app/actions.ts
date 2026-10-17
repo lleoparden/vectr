@@ -26,6 +26,7 @@ import {
 } from './editing/arrange.ts'
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
+import { artboardRect, artboardRects } from '../doc/artboards.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
 import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
 import type { LayerRow } from './panels/layerRows.ts'
@@ -33,8 +34,13 @@ import { importImageBytes, pickImageFile } from './files/imageImport.ts'
 import { newDocument, openDocument, recoverDocument, requestNewDocument, requestOpenDocument, saveDocument } from './files/fileActions.ts'
 import { assetRegistry } from '../state/assetRegistry.ts'
 import { createGroup, createImage, type ShapeKind, type ShapeParams } from '../doc/document.ts'
-import { actualSize, canvasCenter, fitArtboard, zoomByStep } from './canvas/viewportOps.ts'
+import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from './canvas/viewportOps.ts'
 import { isLocked, type Command } from '../doc/commands.ts'
+
+/** Artboard ids are opaque and never reused, like node ids. */
+function newArtboardId(): string {
+  return 'artboard-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
+}
 
 export const ACTION_IDS = [
   'tool.select',
@@ -90,6 +96,8 @@ export const ACTION_IDS = [
   'edit.paste',
 
   'layer.new',
+  'artboard.new',
+  'artboard.delete',
   'view.zoomIn',
   'view.zoomOut',
   'view.fitArtboard',
@@ -156,6 +164,8 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'edit.copy': 'Copy',
   'edit.paste': 'Paste',
   'layer.new': 'New Layer',
+  'artboard.new': 'New Artboard',
+  'artboard.delete': 'Delete Artboard',
   'view.zoomIn': 'Zoom In',
   'view.zoomOut': 'Zoom Out',
   'view.fitArtboard': 'Fit Artboard in Window',
@@ -368,7 +378,7 @@ export async function placeImage(
     return null
   }
   const ref = sourcePath === undefined ? imported.asset.ref : { ...imported.asset.ref, sourcePath }
-  const artboard = document.artboards[0]
+  const artboard = artboardRect(document, workspaceStore.getState().activeArtboardId) ?? document.artboards[0]
   const node = createImage(
     name,
     Math.max(0, (artboard.width - ref.width) / 2),
@@ -741,6 +751,32 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
   }
 }
 
+/** Makes an artboard the active page (session state, never persisted). */
+export function setActiveArtboard(artboardId: string): void {
+  workspaceStore.setActiveArtboard(artboardId)
+}
+
+/** Resizes the active page through the validated command, one undo entry per commit. */
+export function setActiveArtboardSize(patch: { width?: number; height?: number }): void {
+  const document = documentStore.getState().document
+  const active = artboardRect(document, workspaceStore.getState().activeArtboardId)
+  if (active === null) return
+  documentStore.dispatch({ type: 'setArtboard', artboardId: active.id, ...patch }, 'resize artboard')
+}
+
+/** The pages a panel lists, with the active one marked. */
+export function artboardList(): Array<{ id: string; name: string; width: number; height: number; active: boolean }> {
+  const document = documentStore.getState().document
+  const active = artboardRect(document, workspaceStore.getState().activeArtboardId)
+  return artboardRects(document).map((rect) => ({
+    id: rect.id,
+    name: rect.name,
+    width: rect.width,
+    height: rect.height,
+    active: rect.id === active?.id,
+  }))
+}
+
 /** Runs one action. Components reach the stores through this table and nowhere else. */
 export function runEditorAction(id: EditorActionId): void {
   const editor = documentStore.getState()
@@ -770,6 +806,22 @@ export function runEditorAction(id: EditorActionId): void {
     case 'tool.text':
       documentStore.setTool('text')
       return
+    case 'artboard.new': {
+      const document = documentStore.getState().document
+      const first = document.artboards[0]
+      const artboard = { id: newArtboardId(), name: 'Artboard ' + (document.artboards.length + 1), width: first.width, height: first.height }
+      const result = documentStore.dispatch({ type: 'addArtboard', artboard, index: document.artboards.length }, 'new artboard')
+      if (result.ok) workspaceStore.setActiveArtboard(artboard.id)
+      return
+    }
+    case 'artboard.delete': {
+      const document = documentStore.getState().document
+      const active = artboardRect(document, workspaceStore.getState().activeArtboardId)
+      if (active === null) return
+      const result = documentStore.dispatch({ type: 'removeArtboard', artboardId: active.id }, 'delete artboard')
+      if (result.ok) workspaceStore.setActiveArtboard(null)
+      return
+    }
     case 'file.place':
       // Importing is asynchronous (dialog, decode, hashing); failures surface through the
       // store's error path, which the canvas already renders.
@@ -937,7 +989,7 @@ export function runEditorAction(id: EditorActionId): void {
       documentStore.setViewport(zoomByStep(editor.viewport, -1, workspace.canvas))
       return
     case 'view.fitArtboard':
-      documentStore.setViewport(fitArtboard(editor.document.artboards[0], workspace.canvas))
+      documentStore.setViewport(fitRect(artboardRect(editor.document, workspace.activeArtboardId) ?? artboardRects(editor.document)[0], workspace.canvas))
       return
     case 'view.actualSize':
       documentStore.setViewport(actualSize(editor.viewport, workspace.canvas))

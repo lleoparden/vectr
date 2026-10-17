@@ -92,6 +92,15 @@ export function validateDocument(document: Document): ValidationResult {
       `Unsupported document format version ${document.formatVersion}; expected one of ${SUPPORTED_FORMAT_VERSION_LIST.join(', ')}.`,
     )
   }
+  const artboardIds = new Set<string>()
+  for (const artboard of document.artboards) {
+    if (artboardIds.has(artboard.id)) return fail('duplicate-id', `Duplicate artboard id ${artboard.id}.`)
+    artboardIds.add(artboard.id)
+    if (!Number.isFinite(artboard.width) || !Number.isFinite(artboard.height) || artboard.width <= 0 || artboard.height <= 0) {
+      return fail('non-positive-size', `Artboard ${artboard.id} has a non-positive size.`)
+    }
+    if (artboard.name.trim().length === 0) return fail('invalid-index', `Artboard ${artboard.id} has no name.`)
+  }
   const seen = new Set<NodeId>()
   const walk = (node: LayerNode, ancestry: Set<NodeId>): ValidationResult => {
     if (seen.has(node.id)) return fail('duplicate-id', `Duplicate node id ${node.id}.`, node.id)

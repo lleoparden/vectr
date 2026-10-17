@@ -18,6 +18,7 @@
  *   skipped rather than drawn wrongly.
  */
 
+import type { ArtboardRect } from '../doc/artboards.ts'
 import CanvasKitInit, {
   type Canvas,
   type CanvasKit,
@@ -85,6 +86,9 @@ export class EditorRenderer {
   private readonly substituted = new Set<string>()
   private typeface: Typeface | null = null
   /** Decoded images, one per asset id, disposed with the renderer. */
+  /** Artboard pages from the last scene, drawn under the artwork. */
+  private artboards: ArtboardRect[] = []
+
   private readonly images = new Map<string, Image>()
   private readonly missingAssets = new Set<string>()
   private buckets: Bucket[] = []
@@ -186,6 +190,7 @@ export class EditorRenderer {
    * its picture and its paths.
    */
   setScene(scene: Scene): number {
+    this.artboards = scene.artboards
     const started = performance.now()
     const previous = this.buckets
     const bucketCount = Math.max(1, Math.min(MAX_BUCKETS, scene.byRoot.length))
@@ -355,6 +360,7 @@ export class EditorRenderer {
     this.viewport = viewport
     const canvas = this.surface.getCanvas()
     canvas.clear(this.kit.WHITE)
+    this.drawArtboards(canvas)
     canvas.save()
     canvas.translate(viewport.panX, viewport.panY)
     canvas.scale(viewport.zoom, viewport.zoom)
@@ -402,6 +408,18 @@ export class EditorRenderer {
       substitutedFonts: [...this.substituted],
       missingAssets: [...this.missingAssets],
       decodedAssets: this.images.size,
+    }
+  }
+
+  /** Paints each artboard page, so multiple pages are visibly separate (issue #67). */
+  private drawArtboards(canvas: Canvas): void {
+    if (this.artboards.length === 0) return
+    const page = this.paintFor('fill', '#ffffff', 0, 1)
+    const edge = this.paintFor('stroke', '#3a3a44', 1, 1)
+    for (const artboard of this.artboards) {
+      const rect = this.kit.XYWHRect(artboard.x, artboard.y, artboard.width, artboard.height)
+      canvas.drawRect(rect, page)
+      canvas.drawRect(rect, edge)
     }
   }
 

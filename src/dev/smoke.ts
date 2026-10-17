@@ -14,6 +14,7 @@ import { createEllipse, createGroup, createRect, createText, findNode, worldBoun
 import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
 import { scaleFactors, scaledTransform, unionBounds } from '../app/editing/transform.ts'
+import { artboardRect } from '../doc/artboards.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
@@ -395,6 +396,28 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
       pasted.transform.y === originalY + 10,
     pasted !== null && pasted.type !== 'group' ? 'copy at ' + pasted.transform.x + ',' + pasted.transform.y : 'no copy',
   )
+
+  // Phase 2.4 (issue #67): artboards are document data with a derived layout.
+  newDocument()
+  const pageBefore = store.getState().document.artboards.length
+  runEditorAction('artboard.new')
+  const pagesAfter = store.getState().document.artboards.length
+  const activePage = artboardRect(store.getState().document, workspaceStore.getState().activeArtboardId)
+  record(
+    'a new artboard is added, laid out, and active',
+    pagesAfter === pageBefore + 1 && activePage !== null && activePage.x > 0,
+    activePage === null ? 'no active page' : pagesAfter + ' pages, active at x ' + activePage.x,
+  )
+
+  const depthBeforePage = store.getState().undoDepth
+  runEditorAction('artboard.delete')
+  record(
+    'deleting the active artboard is one undo entry',
+    store.getState().document.artboards.length === pageBefore &&
+      store.getState().undoDepth === depthBeforePage + 1,
+    store.getState().document.artboards.length + ' pages',
+  )
+
 
   return { passed: steps.every((step) => step.ok), steps }
 }

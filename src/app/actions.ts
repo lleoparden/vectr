@@ -765,6 +765,13 @@ export function setSelectionStroke(patch: { color?: string; width?: number }): v
   }, 'stroke')
 }
 
+/** Sets the selection's opacity (0–1) as one undo entry; the renderer already applies it. */
+export function setSelectionOpacity(opacity: number): void {
+  if (!Number.isFinite(opacity)) return
+  const clamped = Math.max(0, Math.min(1, opacity))
+  applySelectionStyle((node) => ({ ...node.style, opacity: clamped }), 'opacity')
+}
+
 /** Applies a fill colour to the selected shapes and text as one undo entry. */
 export function setSelectionFill(color: string): void {
   applySelectionStyle((node) => ({ ...node.style, fill: color }), 'fill')

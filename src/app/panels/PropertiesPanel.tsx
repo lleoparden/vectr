@@ -14,7 +14,7 @@ import { assetRegistry } from '../../state/assetRegistry.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
 import { formatByteLength } from '../../doc/assets.ts'
-import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, setSelectionFill, setSelectionStroke } from '../actions.ts'
+import { artboardList, relinkImageFromDialog, runEditorAction, setActiveArtboard, setActiveArtboardSize, setImageMaskFromDialog, setSelectionBounds, setSelectionCornerRadius, setSelectionFill, setSelectionOpacity, setSelectionStroke } from '../actions.ts'
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -179,6 +179,23 @@ export function PropertiesPanel() {
         </div>
       )}
 
+      {!isGroup(node) && (
+        <div className="px-2 py-1">
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Opacity
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={5}
+              aria-label="Opacity percent"
+              defaultValue={Math.round(node.style.opacity * 100)}
+              className="w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+              onBlur={(event) => setSelectionOpacity(Number(event.currentTarget.value) / 100)}
+            />
+          </label>
+        </div>
+      )}
       {node.type === 'rect' && (
         // Illustrator's Properties panel edits the rectangle's live corner radius; Vectr offers
         // the same value here and in the Control panel, both clamped to half the shorter side.

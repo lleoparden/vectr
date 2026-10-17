@@ -1740,4 +1740,12 @@ Implementation follows the contract recorded above, with two decisions worth nam
   out, so one control can never silently reset the other.
 - The colour defaults to the fill when a node has no stroke yet, which means turning a stroke on starts
   from the object's own colour rather than an arbitrary black.
+## 2026-10-17 — Opacity editing, and why it needed no renderer work (Phase 2.6, issue #69)
+
+- `style.opacity` was already serialized, multiplied into the scene, and applied by the recorder — groups
+  composite it multiplicatively through their children. So exposing the value was a UI and action change
+  only: `setSelectionOpacity` clamps to 0–1 and applies through one `setStyle` transaction.
+- **It is per object, not per selection.** Selecting three shapes and setting 60% sets each one's own
+  opacity, which is what Illustrator's Transparency panel does for separate objects; a group's opacity
+  multiplies into its children without changing their stored values.
 

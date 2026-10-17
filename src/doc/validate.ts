@@ -59,6 +59,17 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
       )
     }
   }
+  const CAPS = new Set(['butt', 'round', 'square'])
+  const JOINS = new Set(['miter', 'round', 'bevel'])
+  if (!isGroup(node)) {
+    const stroke = node.style.stroke
+    if (stroke !== null && stroke.cap !== undefined && !CAPS.has(stroke.cap)) {
+      return fail('invalid-index', `Node ${node.id} has an unsupported stroke cap.`, node.id)
+    }
+    if (stroke !== null && stroke.join !== undefined && !JOINS.has(stroke.join)) {
+      return fail('invalid-index', `Node ${node.id} has an unsupported stroke join.`, node.id)
+    }
+  }
   if (node.type === 'line' && node.from !== 'top-left' && node.from !== 'top-right') {
     return fail('invalid-index', `Line ${node.id} has an unsupported start corner.`, node.id)
   }

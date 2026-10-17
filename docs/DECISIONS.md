@@ -1799,3 +1799,17 @@ changes the *shape* of persisted data, so both decisions are recorded before cod
 - **The validation boundary checks the reference**: a clip id must name a direct child of the group that
   carries it, so a hand-edited file cannot create a clip that the renderer or the hit test would misread.
 
+## 2026-10-17 — Stroke caps and joins, and format version 4 (Phase 2.6, issue #69)
+
+- **Optional fields, one version bump.** `Stroke.cap` and `Stroke.join` are optional, so the reader treats
+  absence as Skia's default and a v3 file renders exactly as it did. The persisted version still moves to
+  4 — the same bump the clipping contract reserved — because the file can now contain fields a v3 reader
+  would not understand, and a reader that silently ignored them would draw the wrong outline.
+- **The renderer keeps one paint cache keyed by everything that affects a paint**, now including the cap and
+  join, so two shapes with different line ends cannot share a paint object and draw with the wrong ends.
+- **The UI commits on change**, not per keystroke, and sends only the field the user touched: the action
+  fills in the rest from the current stroke, so changing the join never resets the cap or the weight.
+- **Dashes are not here.** Skia needs a path effect for them, which is a different call on the paint and a
+  different validation (a dash array must be finite, positive, and bounded). Recorded as remaining rather
+  than approximated with a stroke width change.
+

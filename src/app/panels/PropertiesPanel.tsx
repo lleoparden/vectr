@@ -176,6 +176,34 @@ export function PropertiesPanel() {
               onBlur={(event) => setSelectionStroke({ width: Number(event.currentTarget.value) })}
             />
           </label>
+        <div className="grid grid-cols-2 gap-1 px-2 py-1">
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Cap
+            <select
+              aria-label="Stroke cap"
+              defaultValue={node.style.stroke?.cap ?? 'butt'}
+              className="rounded-ui border border-hairline bg-chrome-sunken text-ui-xs text-ink"
+              onBlur={(event) => setSelectionStroke({ cap: event.currentTarget.value as 'butt' | 'round' | 'square' })}
+            >
+              <option value="butt">Butt</option>
+              <option value="round">Round</option>
+              <option value="square">Square</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
+            Join
+            <select
+              aria-label="Stroke join"
+              defaultValue={node.style.stroke?.join ?? 'miter'}
+              className="rounded-ui border border-hairline bg-chrome-sunken text-ui-xs text-ink"
+              onBlur={(event) => setSelectionStroke({ join: event.currentTarget.value as 'miter' | 'round' | 'bevel' })}
+            >
+              <option value="miter">Miter</option>
+              <option value="round">Round</option>
+              <option value="bevel">Bevel</option>
+            </select>
+          </label>
+        </div>
         </div>
       )}
 

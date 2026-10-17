@@ -8,9 +8,9 @@
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 3
+export const FORMAT_VERSION = 4
 /** Versions this build still opens. v3 adds non-destructive image crop and mask state. */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3]
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4]
 
 export type NodeId = string
 
@@ -23,7 +23,16 @@ export type Transform = {
   scaleY: number
 }
 
-export type Stroke = { color: string; width: number }
+/** Line ends and corners, Illustrator's Stroke panel terms (issue #69). */
+export type StrokeCap = 'butt' | 'round' | 'square'
+export type StrokeJoin = 'miter' | 'round' | 'bevel'
+
+export type Stroke = {
+  color: string
+  width: number
+  cap?: StrokeCap
+  join?: StrokeJoin
+}
 
 export type Style = {
   /** CSS hex color, for example `#4f7cff`. */

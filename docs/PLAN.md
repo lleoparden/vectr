@@ -88,6 +88,50 @@ packaged smoke; and update the catalog, progress record, decision log, and
 compiler matrix in the same pull request. UI slices also record Illustrator
 mapping, deliberate Vectr differences, and unbuilt controls.
 
+## Approved — Phase 2.1 selection modes (issue #64, started 2026-10-17)
+
+**Tracking:** [#64](https://github.com/lleoparden/vectr/issues/64), a sub-issue of
+[#5 Phase 2 — Core vector illustration](https://github.com/lleoparden/vectr/issues/5). The owner
+started Phase 2 with the instruction that every issue ships as its own pull request and that
+agents may merge after reviewing. Slice order is the one recorded above: #64 is first because it
+needs none of the four open Phase 2 decisions.
+
+**Problem.** Vectr selects whole objects and can marquee, but a designer cannot select a nested
+object predictably, lasso an irregular set, or change the corner radius of a rectangle that already
+exists (`cornerRadius` is modelled and drawn, but only set at creation).
+
+**Scope.** Two more pointer tools — Direct Selection (`A`) and Lasso (`Q`) — a double-click
+hierarchy drill on the canvas, deep marquee selection for Direct Selection, a `setCornerRadius`
+command with an exact inverse, and a corner-radius control in the Control panel and Properties.
+No Bézier anchors or handles (PATH-02), no transform handles (SEL-02), no second selection store,
+and no persisted-schema change: every new edit goes through the existing command path.
+
+**Semantics.**
+- The Selection tool keeps object-level selection: a click returns the top-level ancestor.
+- Direct Selection selects the deepest leaf under the pointer; Shift toggles it; its marquee
+  selects leaves rather than top-level objects.
+- A lasso drag selects every visible unlocked leaf whose world bounds its path touches, collapsed
+  to the top-level object unless Direct Selection is the active tool.
+- Double-click with the Selection tool drills exactly one level into the group chain under the
+  pointer (Illustrator's double-click), and still opens the text editor when the target is a text
+  object.
+- Radius: `setCornerRadius { nodeId, cornerRadius }` applies to rectangles only, rejects a
+  non-finite or negative radius (`non-finite`) and one larger than half the shorter side
+  (`invalid-index`), and refuses a locked node (`locked`). The UI clamps the typed value the way
+  Illustrator does; the command still refuses bad input from any other caller.
+
+**Illustrator mapping.** Selection and Direct Selection share one palette slot with a flyout,
+which is Illustrator's black/white arrow button; Lasso keeps its own slot and its `Q` chord; the
+corner radius is edited where Illustrator's Control panel and Properties panel put it. Deliberate
+divergences, recorded in `docs/DECISIONS.md`: direct selection is object-level rather than
+anchor-level until PATH-02, and the lasso uses a touched-bounds test rather than Illustrator's
+exact within-the-path rule.
+
+**Evidence.** Unit tests for the polygon and lasso maths, hierarchy drilling, the radius command
+(inverse, refusals, clamping), the palette grouping, and the shortcut table; packaged smoke steps
+for direct selection of a nested leaf, double-click drilling, a lasso selection, a radius edit with
+undo, and save/reopen of the edited radius; typecheck, tests, build, and the packaged run.
+
 ## Phase 0 — Reference catalog and platform decision
 
 - [x] Approve Electron + React + TypeScript as the proposed desktop direction:

@@ -11,6 +11,7 @@
 import {
   canRunAction,
   runEditorAction,
+  setSelectionCornerRadius,
   setToolShapeFill,
   setToolShapeMember,
   setToolShapeParam,
@@ -71,6 +72,10 @@ function onShapeNumber(id: string, value: number) {
       return
     case 'shape.sweepAngle':
       setToolShapeParam({ sweepAngle: value })
+      return
+    case 'selection.cornerRadius':
+      // The selected rectangle's live corner, not the next shape's (issue #64).
+      setSelectionCornerRadius(value)
       return
     default:
       setToolTextSize(value)

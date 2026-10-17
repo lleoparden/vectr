@@ -35,6 +35,8 @@ import { isLocked, type Command } from '../doc/commands.ts'
 
 export const ACTION_IDS = [
   'tool.select',
+  'tool.directSelect',
+  'tool.lasso',
   'tool.rect',
   'tool.roundedRect',
   'tool.ellipse',
@@ -88,6 +90,8 @@ export type EditorActionId = (typeof ACTION_IDS)[number]
 
 export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.select': 'Selection Tool',
+  'tool.directSelect': 'Direct Selection Tool',
+  'tool.lasso': 'Lasso Tool',
   'tool.rect': 'Rectangle Tool',
   'tool.roundedRect': 'Rounded Rectangle Tool',
   'tool.ellipse': 'Ellipse Tool',
@@ -468,6 +472,25 @@ export function setToolTextAlign(align: 'left' | 'center' | 'right'): void {
   applyTextStyle((node) => ({ ...node, align }), 'align text')
 }
 
+/**
+ * The selected rectangle's corner radius (Phase 2.1, issue #64).
+ *
+ * The typed value is clamped to half the shorter side, which is what Illustrator does when you drag
+ * a live corner past the middle, and the change goes through `setCornerRadius` so it is one undo
+ * step. A selection that cannot take the edit — an ellipse, several objects, nothing — is left
+ * alone rather than reported as a failure, because the control is not offered for those.
+ */
+export function setSelectionCornerRadius(radius: number): void {
+  if (!Number.isFinite(radius)) return
+  const { document, selection } = documentStore.getState()
+  if (selection.length !== 1) return
+  const node = findNode(document, selection[0])
+  if (node === null || node.type !== 'rect') return
+  const clamped = Math.max(0, Math.min(radius, Math.min(node.width, node.height) / 2))
+  if (clamped === node.cornerRadius) return
+  documentStore.dispatch({ type: 'setCornerRadius', nodeId: node.id, cornerRadius: clamped }, 'corner radius')
+}
+
 /** Opens the platform file dialog and places whatever the user picks. */
 export async function placeImageFromDialog(linked = false): Promise<void> {
   const picked = await pickImageFile()
@@ -607,6 +630,12 @@ export function runEditorAction(id: EditorActionId): void {
   switch (id) {
     case 'tool.select':
       documentStore.setTool('select')
+      return
+    case 'tool.directSelect':
+      documentStore.setTool('directSelect')
+      return
+    case 'tool.lasso':
+      documentStore.setTool('lasso')
       return
     case 'tool.rect':
     case 'tool.roundedRect':

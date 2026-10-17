@@ -13,7 +13,9 @@ import { useEffect, useRef, useState } from 'react'
 import { runEditorAction } from '../actions.ts'
 import {
   IconArc,
+  IconDirectSelect,
   IconEllipse,
+  IconLasso,
   IconLine,
   IconPolygon,
   IconRect,
@@ -30,6 +32,8 @@ import { TOOL_GROUPS, displayToolFor, memberFor, type ToolId } from '../ui/toolO
 
 const ICONS: Record<ToolId, typeof IconSelect> = {
   select: IconSelect,
+  directSelect: IconDirectSelect,
+  lasso: IconLasso,
   rect: IconRect,
   roundedRect: IconRoundedRect,
   ellipse: IconEllipse,

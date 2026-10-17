@@ -42,6 +42,8 @@ export type Command =
   | { type: 'setStyle'; nodeId: NodeId; style: Style }
   | { type: 'setFlags'; nodeId: NodeId; locked: boolean; hidden: boolean }
   | { type: 'renameNode'; nodeId: NodeId; name: string }
+  /** Editable rounded corner on an existing rectangle (Phase 2.1, issue #64). */
+  | { type: 'setCornerRadius'; nodeId: NodeId; cornerRadius: number }
   /** Text content, with the measured box when the caller could measure (issue #16). */
   | { type: 'setText'; nodeId: NodeId; text: string; width?: number; height?: number }
   | {
@@ -254,6 +256,35 @@ export function applyCommand(document: Document, command: Command): CommandResul
         ok: true,
         document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, name }))),
         inverse: { type: 'renameNode', nodeId: command.nodeId, name: node.name },
+      }
+    }
+
+    case 'setCornerRadius': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'rect') {
+        return rejected('invalid-parent', `Node ${command.nodeId} is not a rectangle, so it has no corner radius.`)
+      }
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      const radius = command.cornerRadius
+      if (!Number.isFinite(radius) || radius < 0) {
+        return rejected('non-finite', `Corner radius ${String(radius)} is not a usable number.`)
+      }
+      const limit = Math.min(node.width, node.height) / 2
+      if (radius > limit) {
+        return rejected(
+          'invalid-index',
+          `Corner radius ${radius} is larger than half the shorter side (${limit}).`,
+        )
+      }
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) =>
+            current.type === 'rect' ? { ...current, cornerRadius: radius } : current,
+          ),
+        ),
+        inverse: { type: 'setCornerRadius', nodeId: command.nodeId, cornerRadius: node.cornerRadius },
       }
     }
 

@@ -18,6 +18,7 @@
  *   skipped rather than drawn wrongly.
  */
 
+import type { StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import CanvasKitInit, {
   type Canvas,
@@ -560,9 +561,15 @@ export class EditorRenderer {
     return path
   }
 
-  private paintFor(kind: 'fill' | 'stroke', value: string, strokeWidth = 0, opacity = 1): Paint {
+  private paintFor(
+    kind: 'fill' | 'stroke',
+    value: string,
+    strokeWidth = 0,
+    opacity = 1,
+    ends: { cap?: StrokeCap; join?: StrokeJoin } = {},
+  ): Paint {
     const rounded = Math.round(opacity * 100) / 100
-    const key = `${kind}:${value}:${strokeWidth}:${rounded}`
+    const key = `${kind}:${value}:${strokeWidth}:${rounded}:${ends.cap ?? '-'}:${ends.join ?? '-'}`
     const cached = this.paintCache.get(key)
     if (cached) return cached
     if (this.paintCache.size >= MAX_PAINTS) {

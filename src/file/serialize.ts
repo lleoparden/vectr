@@ -7,6 +7,7 @@
  */
 
 import { validateDocument } from '../doc/validate.ts'
+import { FORMAT_VERSION } from '../doc/types.ts'
 import type { AssetRef, Document, GroupNode, LayerNode } from '../doc/types.ts'
 import { MANIFEST_VERSION, canonicalJson, manifestFor, type Manifest } from './format.ts'
 
@@ -29,7 +30,7 @@ export type DeserializeResult =
   | { ok: false; code: DeserializeFailure; message: string }
 
 /** Format versions this build can open, plus the hook later migrations plug into. */
-export const SUPPORTED_FORMAT_VERSIONS = [1, 2, 3]
+export const SUPPORTED_FORMAT_VERSIONS = [1, 2, 3, 4]
 export const MIGRATIONS: Record<number, (manifest: Manifest) => Manifest> = {}
 
 /**
@@ -98,5 +99,5 @@ function upgradeImages(manifest: Manifest): Manifest {
     if (node.type !== 'image') return node
     return { ...node, crop: { x: 0, y: 0, width: 1, height: 1 }, maskAssetId: null }
   }
-  return { ...manifest, formatVersion: 3, root: upgrade(manifest.root) as GroupNode }
+  return { ...manifest, formatVersion: FORMAT_VERSION, root: upgrade(manifest.root) as GroupNode }
 }

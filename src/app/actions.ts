@@ -27,6 +27,7 @@ import {
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
+import type { StrokeCap, StrokeJoin } from '../doc/types.ts'
 import { groupToIsolate } from './editing/isolation.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
 import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
@@ -762,11 +763,17 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
 }
 
 /** Applies a stroke colour and weight to the selected shapes and text as one undo entry (PAINT-01). */
-export function setSelectionStroke(patch: { color?: string; width?: number }): void {
+export function setSelectionStroke(patch: { color?: string; width?: number; cap?: StrokeCap; join?: StrokeJoin }): void {
   applySelectionStyle((node) => {
     const current = node.style.stroke ?? { color: node.style.fill, width: 1 }
     const width = patch.width === undefined ? current.width : Math.max(0, Math.min(100, patch.width))
-    return { ...node.style, stroke: width === 0 ? null : { color: patch.color ?? current.color, width } }
+    if (width === 0) return { ...node.style, stroke: null }
+    const stroke: NonNullable<typeof current> = { color: patch.color ?? current.color, width }
+    const cap = patch.cap ?? current.cap
+    const join = patch.join ?? current.join
+    if (cap !== undefined) stroke.cap = cap
+    if (join !== undefined) stroke.join = join
+    return { ...node.style, stroke }
   }, 'stroke')
 }
 

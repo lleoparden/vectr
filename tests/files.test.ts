@@ -154,7 +154,7 @@ test('a mixed document survives a manifest round trip exactly', async () => {
   assert.deepEqual(assets, document.assets)
 })
 
-test('v2 image manifests gain an explicit full crop and no mask on open', async () => {
+test('v2 image manifests gain an explicit full crop and no mask on open (and are upgraded to the current version)', async () => {
   const { document } = await mixedDocument()
   const legacy = JSON.parse(serializeDocument(document).manifest) as { formatVersion: number; root: { children: Array<Record<string, unknown>> } }
   legacy.formatVersion = 2
@@ -167,7 +167,7 @@ test('v2 image manifests gain an explicit full crop and no mask on open', async 
   assert.equal(parsed.ok, true, parsed.ok ? '' : parsed.message)
   if (!parsed.ok) return
   const reopened = parsed.document.root.children.find((node) => node.type === 'image')
-  assert.equal(parsed.document.formatVersion, 3)
+  assert.equal(parsed.document.formatVersion, 4)
   assert.deepEqual(reopened?.type === 'image' ? reopened.crop : null, { x: 0, y: 0, width: 1, height: 1 })
   assert.equal(reopened?.type === 'image' ? reopened.maskAssetId : undefined, null)
 })

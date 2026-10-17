@@ -3,6 +3,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { applyCommand } from "../src/doc/commands.ts"
 import { createDocument, createRect, findNode } from "../src/doc/document.ts"
+import { validateDocument } from "../src/doc/validate.ts"
 import { documentStore } from "../src/state/documentStore.ts"
 import { setSelectionFill, setSelectionOpacity, setSelectionStroke } from "../src/app/actions.ts"
 import type { Document, GroupNode, LayerNode } from "../src/doc/types.ts"
@@ -113,4 +114,37 @@ test("opacity is clamped to 0-1 and is one entry for the whole selection", () =>
   const clamped = findNode(documentStore.getState().document, a.id)
   assert.ok(clamped !== null && clamped.type !== "group")
   if (clamped !== null && clamped.type !== "group") assert.equal(clamped.style.opacity, 1, "clamped to 1")
+})
+
+test("stroke cap and join are stored, validated, and survive a round trip", () => {
+  const { a } = fixture()
+  documentStore.setSelection([a.id])
+  setSelectionStroke({ width: 4, cap: "round", join: "bevel" })
+  const node = findNode(documentStore.getState().document, a.id)
+  assert.ok(node !== null && node.type !== "group")
+  if (node !== null && node.type !== "group") {
+    assert.equal(node.style.stroke?.cap, "round")
+    assert.equal(node.style.stroke?.join, "bevel")
+    assert.equal(node.style.stroke?.width, 4, "the weight is untouched")
+  }
+
+  // Changing only the join keeps the cap, so the two controls cannot reset each other.
+  setSelectionStroke({ join: "miter" })
+  const joined = findNode(documentStore.getState().document, a.id)
+  assert.ok(joined !== null && joined.type !== "group")
+  if (joined !== null && joined.type !== "group") {
+    assert.equal(joined.style.stroke?.join, "miter")
+    assert.equal(joined.style.stroke?.cap, "round")
+  }
+})
+
+test("a document with an unsupported stroke cap is refused at the boundary", () => {
+  let document = createDocument("Caps")
+  const rect = createRect("A", 0, 0, 10, 10)
+  document = inserted(document, [rect])
+  const node = document.root.children[0]
+  if (node.type === "group") throw new Error("expected a leaf")
+  node.style = { ...node.style, stroke: { color: "#000000", width: 1, cap: "spike" as never } }
+  const result = validateDocument(document)
+  assert.equal(result.ok ? "" : (result as { issue: { code: string } }).issue.code, "invalid-index")
 })

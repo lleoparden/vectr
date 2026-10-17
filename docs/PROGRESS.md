@@ -1,6 +1,66 @@
 # Progress
 
 
+## Phase 2 — exit audit (2026-10-17)
+
+Every slice of Phase 2 has shipped a pull request with its own branch, tests, typecheck, build, packaged
+evidence, catalog update, and self-review. This audit checks the epic's exit criteria against what is
+actually on `main`, and names the gaps instead of rounding them up.
+
+### Slice by slice
+
+| Slice | Issue | Merged | Verified |
+| --- | --- | --- | --- |
+| 2.1 selection modes | #64 | #75 | 156 tests · packaged 94 steps · lasso rule follow-up #76 |
+| lasso encloses like Illustrator | #64 follow-up | #76 | 156 tests · unit cases for enclosed vs crossing |
+| 2.2 transforms (move/scale) | #65 | #77 | 165 tests · packaged 101 steps · rotate/reflect/shear recorded as remaining |
+| 2.3 align, distribute, clipboard | #66 | #78 | 173 tests · packaged 100 steps · packaged run caught two wrong assertions first |
+| 2.4 artboards | #67 | #80 (contract #79) | 177 tests · packaged 102 steps · no artboard tool, rulers, grid, or guides yet |
+| 2.5 snapping | #68 | #83 (contract #81) | 186 tests · packaged 105 steps · drags only |
+| 2.6 paint (fill, weight, colour, opacity, caps, joins, dashes) | #69 | #82, #84, #85, #88, #91 | 206 tests at #91 · packaged 107 steps · stroke alignment and width profiles remain |
+| 2.7 gradients and blend modes | #70 | #90, #92 | 209 tests · packaged 107 steps · linear two-stop gradients and six blend modes; radial, multi-stop editor, stroke blending remain |
+| 2.8 isolation and clipping | #71 | #86, #89 (contract #87) | 200 tests at #89 · packaged 107 steps · one clip per shape, sampled curves |
+
+### The epic's exit statement, honestly
+
+Phase 2's stated exit is *"users can create polished layered vector artwork with standard tools"*. On
+`main` today a user can: draw seven shape kinds; select objects, nested leaves, lasso-enclosed sets, and
+drill into groups; move, scale, nudge, align, and distribute; copy, cut, and paste; work across multiple
+artboards; snap to pages and objects with Smart Guides; edit fill, gradient, stroke weight, colour, caps,
+joins, dashes, opacity, and blend mode; isolate a group; and clip a group to one of its objects — with
+every edit one undo entry, saved and reopened byte-stably, at format version 4.
+
+**That is substantially the exit, with five named gaps rather than silent ones:**
+
+1. **No rotation, reflect, or shear.** `SEL-02` stays `building`: the scene builder carries no rotation and
+   the hit test is axis-aligned, so those need a rotation slice (scene matrix, inverse-rotation hit test,
+   rotated bounds and outline) before a control can be honest.
+2. **No artboard tool, rulers, grid, or placeable guides.** `CAN-01` stays `building`; pages exist and are
+   editable from Properties, but the precision-canvas surface is not there.
+3. **Gradients are linear and two-stop in the UI.** `PAINT-03` stays `building`; the model accepts up to
+   eight stops and the compiler will want them, but the panel offers start/end plus an angle.
+4. **Blend modes apply to fills only**, and only six of them (`APP-01` `building`). Stroke and text blending
+   need an isolation group.
+5. **No swatch libraries, CMYK, or spot colours.** `PAINT-02` is still `planned`: colours are hex strings.
+
+### Recorded limits a user can run into
+
+- Marquee and lasso ignore clipping masks (a click does not): selecting by area can catch a clipped-away
+  object, while clicking its hidden part selects nothing.
+- One clip is in force per shape: an inner clipped group replaces an outer clip instead of intersecting.
+- Clip curves are sampled (ellipse 64 points, four per rounded corner), and text/image clips use the box.
+- A nested node inside a *scaled* group would scale in local units; nothing can create such a group yet.
+- Snapshots and budgets are unchanged from Phase 1: 600 MiB idle, 1,200 MiB stress, Windows-only testing.
+
+### Verification of the audit itself
+
+Read from `main` at `5d0fffe` with `npm test` (**209/209**), `npm run typecheck`, and `npm run build` clean.
+The packaged run each slice cited is the `electron . --smoke=stress` pass recorded in its pull request; the
+most recent is **107 steps across seven reports**, `[vectr-smoke]` 39/39.
+
+
+
+
 ## Phase 2.1 — selection modes, lasso, and a live corner radius (2026-10-17, issue #64)
 
 Phase 2 is under way. The owner's instruction was to start it, ship each issue as its own pull

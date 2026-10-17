@@ -65,6 +65,9 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'edit.preferences', chord: { key: 'k', ctrl: true }, illustratorDefault: true },
   { id: 'edit.undo', chord: { key: 'z', ctrl: true }, illustratorDefault: true },
   { id: 'edit.redo', chord: { key: 'z', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'edit.cut', chord: { key: 'x', ctrl: true }, illustratorDefault: true },
+  { id: 'edit.copy', chord: { key: 'c', ctrl: true }, illustratorDefault: true },
+  { id: 'edit.paste', chord: { key: 'v', ctrl: true }, illustratorDefault: true },
   { id: 'edit.clear', chord: { key: 'delete' }, illustratorDefault: true },
   { id: 'edit.clear', chord: { key: 'backspace' }, illustratorDefault: false, note: 'Extra binding for keyboards without a Delete key.' },
 

@@ -194,12 +194,9 @@ function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
 }
 
 /**
- * True when a closed path touches a rectangle. "Touches" is the rule Vectr records for the lasso: a
- * rectangle corner inside the path, a path vertex inside the rectangle, or an edge crossing — so a
- * path drawn across an object's middle selects it, which is broader than Illustrator's
- * enclosed-path lasso and is recorded as a divergence in `docs/DECISIONS.md`.
+ * True when a closed path encloses a rectangle. Vectr matches Illustrator's lasso rule: every corner of the object is inside the path, and no
  */
-export function polygonIntersectsBounds(
+export function polygonEnclosesBounds(
   points: Point[],
   bounds: { x: number; y: number; width: number; height: number },
 ): boolean {
@@ -211,31 +208,21 @@ export function polygonIntersectsBounds(
     { x: bounds.x, y: bounds.y + bounds.height },
   ]
   for (const corner of corners) {
-    if (polygonContains(points, corner)) return true
-  }
-  for (const point of points) {
-    if (
-      point.x >= bounds.x - EPSILON &&
-      point.x <= bounds.x + bounds.width + EPSILON &&
-      point.y >= bounds.y - EPSILON &&
-      point.y <= bounds.y + bounds.height + EPSILON
-    ) {
-      return true
-    }
+    if (!polygonContains(points, corner)) return false
   }
   if (points.length === 1) return false
   for (let index = 0; index < points.length; index += 1) {
     const a = points[index]
     const b = points[(index + 1) % points.length]
     for (let side = 0; side < 4; side += 1) {
-      if (segmentsCross(a, b, corners[side], corners[(side + 1) % 4])) return true
+      if (segmentsCross(a, b, corners[side], corners[(side + 1) % 4])) return false
     }
   }
-  return false
+  return true
 }
 
 /**
- * Ids touched by a Lasso path, in paint order. Collapsed to the top-level object unless `deep`
+ * Ids a Lasso path encloses, in paint order. Collapsed to the top-level object unless `deep`
  * is set, so the Lasso selects objects the way the Selection tool does.
  */
 export function lassoHitTest(document: Document, points: Point[], options: HitOptions = {}): NodeId[] {
@@ -243,7 +230,7 @@ export function lassoHitTest(document: Document, points: Point[], options: HitOp
   const seen = new Set<NodeId>()
   for (const entry of placedLeaves(document)) {
     if (entry.locked && options.includeLocked !== true) continue
-    if (!polygonIntersectsBounds(points, placedBounds(entry))) continue
+    if (!polygonEnclosesBounds(points, placedBounds(entry))) continue
     const id = options.deep === true ? entry.node.id : entry.root
     if (seen.has(id)) continue
     seen.add(id)

@@ -83,7 +83,7 @@ test('polygon containment treats edges as inside and outside as outside', () => 
   assert.equal(polygonContains(u, { x: 1, y: 7 }), true)
 })
 
-test('a lasso selects the leaves its path touches, deepest or collapsed', () => {
+test('a lasso selects the objects its path encloses, deepest or collapsed', () => {
   const { document, outer, leaf, rounded, loose } = fixture()
   const aroundLeaf = [
     { x: 10, y: 10 },
@@ -131,15 +131,22 @@ test('a lasso selects the leaves its path touches, deepest or collapsed', () => 
   assert.deepEqual(lassoHitTest(document, empty), [], 'a path that touches nothing selects nothing')
   assert.deepEqual(lassoHitTest(document, aroundBoth, { deep: true }).includes(loose.id), false)
 
-  // A path through the loose ellipse's box selects it even though no corner is inside the box:
-  // this is what "touched" means, and it is the rule the catalog documents.
+  // Illustrator's lasso is an area selection: a path across an object's middle encloses nothing,
+  // so it selects nothing, and a path covering only part of an object does not select it either.
   const through = [
     { x: 350, y: 450 },
     { x: 550, y: 450 },
     { x: 550, y: 455 },
     { x: 350, y: 455 },
   ]
-  assert.deepEqual(lassoHitTest(document, through), [loose.id])
+  assert.deepEqual(lassoHitTest(document, through), [], 'a path crossing an object does not select it')
+  const partial = [
+    { x: 350, y: 390 },
+    { x: 450, y: 390 },
+    { x: 450, y: 510 },
+    { x: 350, y: 510 },
+  ]
+  assert.deepEqual(lassoHitTest(document, partial, { deep: true }), [], 'half an object is not enclosed')
 })
 
 test('a lasso skips hidden and locked leaves unless asked to include them', () => {

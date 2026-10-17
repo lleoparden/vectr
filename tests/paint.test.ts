@@ -46,6 +46,23 @@ test("fill and stroke edits are one undo entry each", () => {
   if (node !== null && node.type !== "group") assert.equal(node.style.stroke, null, "undo removes the stroke")
 })
 
+test("a stroke colour edit keeps the weight and is one entry", () => {
+  const { a } = fixture()
+  documentStore.setSelection([a.id])
+  setSelectionStroke({ width: 3 })
+  const depth = documentStore.getState().undoDepth
+  setSelectionStroke({ color: "#00ff00" })
+  const node = findNode(documentStore.getState().document, a.id)
+  assert.ok(node !== null && node.type !== "group")
+  if (node !== null && node.type !== "group") assert.deepEqual(node.style.stroke, { color: "#00ff00", width: 3 })
+  assert.equal(documentStore.getState().undoDepth, depth + 1, "changing only the colour is one entry")
+
+  documentStore.undo()
+  const restored = findNode(documentStore.getState().document, a.id)
+  assert.ok(restored !== null && restored.type !== "group")
+  if (restored !== null && restored.type !== "group") assert.equal(restored.style.stroke?.color ?? restored.style.fill, restored.style.fill)
+})
+
 test("a stroke weight of zero removes the stroke, and weights are clamped", () => {
   const { a } = fixture()
   documentStore.setSelection([a.id])

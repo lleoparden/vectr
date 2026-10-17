@@ -1646,3 +1646,25 @@ was settled.
   three unlocked ones, which is what Clear already does and avoids a command that fails wholesale.
 - **No new document command.** Alignment and distribution are `setTransform` moves in one
   transaction; paste is the existing `insertNodes`.
+
+## 2026-10-17 — The artboard contract, decided before slice 2.4 (issue #67)
+
+The Phase 2 plan says the multi-artboard coordinate and active-artboard model must be decided before
+artboards are implemented. With Phase 2 delegated to the agent, the contract is:
+
+- **Artboard geometry is document data.** `artboards: Artboard[]` already persists (id, name, width,
+  height) and stays ordered by array position; new artboards are appended, so existing files open
+  unchanged with no migration and no format bump.
+- **The active artboard is workspace state, not document state.** It is a session pointer (like the
+  viewport and the tool), because Vectr persists no view state yet; persisting it would put
+  "which page was I on" into the file for every collaborator and every future compiler run. `Fit
+  Artboard in Window`, the status bar, and new-object placement use the active artboard, falling back
+  to the first one when the pointer names a missing id.
+- **Scene coordinates stay absolute.** Every artboard sits in the same unlimited pasteboard space, the
+  first at the origin and the rest laid out left to right with a fixed gap; artboards do not introduce
+  per-page coordinate origins, so a node's transform never means different things on different pages.
+  Moving a node between artboards is therefore just a move, which is Illustrator's model too.
+- **The last artboard cannot be removed** (`invalid-index`): a document with no page has no coordinate
+  reference for Fit, placement, or the status bar, so the command refuses rather than leaving the
+  editor in a state it cannot describe.
+

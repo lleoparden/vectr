@@ -9,12 +9,14 @@
 
 import { zoomPercent } from '../canvas/viewportOps.ts'
 import { artboardRect } from '../../doc/artboards.ts'
+import { isolationLabel } from '../editing/isolation.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 
 export function StatusBar() {
   const state = useEditorState()
   const workspace = useWorkspaceState()
+  const isolated = isolationLabel(state.document, workspace.isolatedGroupId)
   const artboard = artboardRect(state.document, workspace.activeArtboardId) ?? state.document.artboards[0]
   const selection =
     state.selection.length === 0

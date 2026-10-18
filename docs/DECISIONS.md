@@ -2224,3 +2224,18 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   recorded with a regression test because the same trap applies to every future batch action.
 - **The palette order follows the owner's request**: Hand directly under the selection tools. Shortcuts are
   unchanged, so muscle memory for H and Space still works.
+
+## 2026-10-18 - The Zoom tool: four gestures, one machine, host-owned viewport maths (Phase 4.7)
+
+- **Three screen pixels separate a click from a frame**, so a slightly shaky click still zooms about the pointer
+  instead of framing a four-pixel rectangle - the most common way a zoom tool feels broken.
+- **The tool never touches the viewport itself.** It calls `zoomAt(screen, factor)` or `zoomToBox(sceneRect)` on the
+  host, which owns the arithmetic and the clamping; that keeps the wheel, the menu, Fit Artboard, and the tool
+  using the same `zoomAtPoint` and the same limits.
+- **A framed zoom leaves an eight percent margin**, so the dragged area does not touch the canvas edges; the zoom is
+  clamped to the same 0.05-32 range as every other path.
+- **Double-click returns to 100%**, which is the behaviour implemented and therefore the behaviour recorded. The
+  issue allowed either 100% or the previous zoom; returning to the previous zoom needs a remembered stack and is
+  not what shipped.
+- **Pairing Zoom with the Hand in one palette slot** is Illustrator's grouping and also keeps the owner's earlier
+  request intact: the slot itself still sits directly under the selection tools.

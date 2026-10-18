@@ -16,7 +16,7 @@ import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text' | 'hand'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text' | 'hand' | 'zoom'
 export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'type' | 'hand' | 'artboard'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
@@ -45,7 +45,15 @@ export const TOOL_GROUPS: ToolGroup[] = [
       { tool: 'directSelect', label: 'Direct Selection Tool', action: 'tool.directSelect' },
     ],
   },
-  { id: 'hand', label: 'Hand Tool', members: [{ tool: 'hand', label: 'Hand Tool', action: 'tool.hand' }] },
+  {
+    id: 'hand',
+    label: 'Hand Tool',
+    // Illustrator pairs the Hand and the Zoom in one slot; Z reaches the zoom, H the hand.
+    members: [
+      { tool: 'hand', label: 'Hand Tool', action: 'tool.hand' },
+      { tool: 'zoom', label: 'Zoom Tool', action: 'tool.zoom' },
+    ],
+  },
 
   // The Lasso keeps Illustrator's own palette slot and its Q key rather than joining the arrows.
   { id: 'lasso', label: 'Lasso Tool', members: [{ tool: 'lasso', label: 'Lasso Tool', action: 'tool.lasso' }] },
@@ -125,6 +133,13 @@ export function hasSelectedText(document: Document, selection: NodeId[]): boolea
 export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
   const { tool, selection, document, defaults, canRun } = input
   const group = groupFor(tool)
+
+  if (tool === 'zoom') {
+    return [
+      { kind: 'label', text: 'Zoom Tool' },
+      { kind: 'hint', text: 'Click to zoom in, Alt-click to zoom out, drag to frame an area. Double-click for 100%.' },
+    ]
+  }
 
   if (tool === 'hand') {
     return [

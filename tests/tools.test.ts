@@ -6,6 +6,7 @@ import { createHandTool } from "../src/tools/hand.ts"
 import { createLassoTool } from "../src/tools/lasso.ts"
 import { createShapeTool } from "../src/tools/shapes.ts"
 import { createTypeTool } from "../src/tools/type.ts"
+import { createZoomTool } from "../src/tools/zoom.ts"
 import { createToolStateMachines, isStateMachineTool } from "../src/tools/index.ts"
 import type { MarqueeRect, ToolHost, ToolPoint } from "../src/tools/types.ts"
 import type { NodeId } from "../src/doc/types.ts"
@@ -53,6 +54,8 @@ function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]
     rotateBy: (scene, shift) => calls.push("rotate:" + scene.x + "," + scene.y + (shift ? ":shift" : "")),
     rotateEnd: () => calls.push("rotateEnd"),
     rotateCancel: () => calls.push("rotateCancel"),
+    zoomAt: (screen, factor) => calls.push("zoomAt:" + screen.x + "," + screen.y + ":" + factor),
+    zoomToBox: (box) => calls.push("zoomBox:" + box.width + "x" + box.height),
   }
   return { host, calls, selected }
 }
@@ -113,6 +116,31 @@ test("Escape during a move rolls the move back and leaves no marquee", () => {
   assert.deepEqual(calls.slice(-2), ["cancelMove", "marquee:null"])
 })
 
+test("the zoom tool clicks in, Alt-clicks out, and frames a drag", () => {
+  const tool = createZoomTool("zoom-in")
+  const clicked = fakeHost()
+  tool.onPointerDown(clicked.host, point(100, 100), noModifiers)
+  tool.onPointerUp(clicked.host, point(100, 100), noModifiers)
+  assert.deepEqual(clicked.calls, ["marquee:null", "marquee:null", "zoomAt:100,100:2"], "a click zooms in by two")
+
+  const alt = fakeHost()
+  tool.onPointerDown(alt.host, point(50, 60), noModifiers)
+  tool.onPointerUp(alt.host, point(50, 60), { ...noModifiers, alt: true })
+  assert.deepEqual(alt.calls, ["marquee:null", "marquee:null", "zoomAt:50,60:0.5"], "Alt zooms out")
+
+  const framed = fakeHost()
+  tool.onPointerDown(framed.host, point(10, 20), noModifiers)
+  tool.onPointerMove(framed.host, point(110, 70), noModifiers)
+  tool.onPointerUp(framed.host, point(110, 70), noModifiers)
+  assert.deepEqual(framed.calls, ["marquee:null", "marquee:10,20,100,50", "marquee:null", "zoomBox:100x50"], "a drag frames its rectangle")
+
+  const tiny = fakeHost()
+  tool.onPointerDown(tiny.host, point(10, 20), noModifiers)
+  tool.onPointerMove(tiny.host, point(12, 21), noModifiers)
+  tool.onPointerUp(tiny.host, point(12, 21), noModifiers)
+  assert.deepEqual(tiny.calls, ["marquee:null", "marquee:null", "zoomAt:12,21:2"], "a two-pixel move is still a click")
+})
+
 test("Alt-drag duplicates before the move starts", () => {
   const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
   const { host, calls } = fakeHost({ hits: { "4,4": "node-4" } })
@@ -150,6 +178,7 @@ test("the registry holds every palette tool as a state machine", () => {
     "select",
     "star",
     "text",
+    "zoom",
   ])
   assert.equal(machines.select.id, "select")
   assert.equal(machines.directSelect.id, "directSelect")

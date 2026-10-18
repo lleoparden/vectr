@@ -1,6 +1,31 @@
 # Progress
 
 
+## The Zoom tool (2026-10-18, issue #131)
+
+The sweep in the previous slice found Illustrator's Zoom tool missing entirely; it exists now.
+
+- **`src/tools/zoom.ts`** is the state machine: a press records the pointer, three screen pixels of movement
+  turn it into a framed zoom, and release decides. Click zooms in by two about the click, **Alt-click** zooms out
+  by half, **drag** frames the rectangle, **double-click** returns to 100% about the click.
+- **The palette pairs it with the Hand**, as Illustrator does: one slot, two members, H for the hand and **Z** for
+  the zoom. The Hand keeps its place directly under the selection tools as the owner asked.
+- **The cursor says which way it will go**: `zoom-in` normally and `zoom-out` while Alt is held, and the options
+  bar states all four gestures.
+- **The viewport arithmetic stayed in the host**: `zoomAt` reuses the wheel's `zoomAtPoint`, and `zoomToBox` fits
+  the dragged rectangle with an eight percent margin and clamps to the zoom bounds.
+
+**A chord change worth naming:** bare **Z** is now the Zoom tool, so the shortcut test that asserted "bare Z must
+not fire" was wrong by the new map. It now asserts bare Z is the Zoom tool and Ctrl+Z is Undo - Illustrator's own
+pairing, which was the point of the change.
+
+**Behaviour, measured:** 267/267 tests (4 new: click in, Alt out, a framed drag, and a two-pixel move that must
+still count as a click), layer check on 107 files, clean typecheck and build, and the packaged run now
+**145 steps** with two new steps - Z activates the tool with its cursor and zooms in then out, and a dragged
+zoom frames an area before a double-click returns to 100%.
+
+
+
 ## Phase 4.6 - number fields and Illustrator conventions the build was missing (2026-10-18, issue #130)
 
 The owner asked for scrub-able number fields, one standardized input, the Hand under the selection tools, and a

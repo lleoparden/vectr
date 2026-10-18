@@ -24,6 +24,7 @@ import {
   IconStar,
   IconType,
   IconHand,
+  IconZoom,
 } from '../ui/icons.tsx'
 import { shortcutLabel } from '../menus/shortcuts.ts'
 import { PALETTE_WIDTH, TOOL_BUTTON_SIZE } from '../ui/theme.ts'
@@ -44,6 +45,7 @@ const ICONS: Record<ToolId, typeof IconSelect> = {
   arc: IconArc,
   text: IconType,
   hand: IconHand,
+  zoom: IconZoom,
 }
 
 export function ToolPalette() {

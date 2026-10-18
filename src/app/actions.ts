@@ -935,6 +935,9 @@ export function runEditorAction(id: EditorActionId): void {
     case 'tool.hand':
       documentStore.setTool('hand')
       return
+    case 'tool.zoom':
+      documentStore.setTool('zoom')
+      return
     case 'tool.text':
       documentStore.setTool('text')
       return

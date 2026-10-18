@@ -1,66 +1,57 @@
-# Vectr <version>
+<a href="https://github.com/lleoparden/vectr/releases/download/v<version>/Vectr-<version>-Setup.exe"><img src="https://img.shields.io/badge/Download%20for%20Windows-Vectr%20<version>-A94A4A?style=for-the-badge&logo=windows&logoColor=F3EEE8" alt="Download Vectr <version> for Windows" height="40"></a>
 
-**A pre-release, one per phase.** This build is `v<version>`, built from the commit the tag points at.
+Windows x64 · per-user install · 95 MB · unsigned, so SmartScreen warns once
 
-Vectr is a desktop-first vector design tool with Illustrator's conventions and its own React + Tailwind
-compiler. It is alpha software: the editor is usable, the compiler is not built yet, and every limitation is
-written down rather than hidden.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. This release closes
+**Phase 4**: tools as state machines, real rotation, hover and cursors, the component kit, and the rose palette.
 
-- **All releases**: https://github.com/lleoparden/vectr/releases
-- **Website**: https://lleoparden.github.io/vectr/
-- **What works today**: [docs/AUDIT.md](AUDIT.md)
-- **How it is verified**: [docs/PROGRESS.md](PROGRESS.md)
+### What is in this build
 
-## Install on Windows
+- Twelve tools, transforms, rotation, the Zoom tool, undo/redo, autosave and crash recovery
+- Paint: fills, strokes, gradients with eight stops, all sixteen blend modes, CMYK and spot swatches
+- Artboards, rulers, grid, guides; layers with locate, nested previews, and drag-into-group
+- Align and Transform panels; point text; images with crop and masks
+- The **rose palette** across the editor and the site
 
-Download **`Vectr-<version>-Setup.exe`** from this release's assets.
+<details>
+<summary><strong>Install, requirements, and other ways to run it</strong></summary>
 
-1. Run the setup file and choose an install location (per-user, no admin prompt).
-2. Windows SmartScreen will warn that the publisher is unknown: the installer is **not code-signed**. Choose
-   "More info" and then "Run anyway" if you trust the source.
-3. Vectr opens; `File ▸ Save` writes a `.vectr/` project folder.
+#### Install on Windows
 
-Each phase gets its own version and its own release, and an older installer stays downloadable: pick the version
-you need and its tag will always return the same build.
+1. Download `Vectr-<version>-Setup.exe` from the assets below and run it.
+2. SmartScreen warns that the publisher is unknown: the installer is **not code-signed**. Choose "More info"
+   and "Run anyway" if you trust the source.
+3. It installs per-user (no admin prompt) and creates a Start-menu shortcut.
 
-## Run from source
+#### Run from source
 
 ```bash
 git clone https://github.com/lleoparden/vectr.git
-cd vectr
-git checkout v<version>
-npm install
-npm start
+cd vectr && git checkout v<version>
+npm install && npm start
 ```
 
 Requires Node.js 22+ and npm. Windows is the reference platform; macOS and Linux are Phase 9.
 
-## State of the build
+</details>
 
-| Area | State |
-| --- | --- |
-| Document model, undo/redo, autosave, crash recovery | Working |
-| Twelve tools, transforms, rotation, artboards, rulers, guides | Working |
-| Paint: fills, strokes, gradients, sixteen blend modes, CMYK swatches | Working |
-| Layers: reorder, nest, lock, thumbnails, locate, drag-into-group | Working |
-| Text | Point text only |
-| Paths, pen, boolean operations | Phase 5, next |
-| SVG, PDF, `.ai` interchange | Phase 8 |
-| React + Tailwind compiler | Phase 10 |
+<details>
+<summary><strong>Known limits, stated rather than hidden</strong></summary>
 
-## Known limits, stated
+No Bezier path node or pen tool yet; no boolean operations or width profiles; point text only; no mesh or
+patterns; the native format is the only file format; Windows only; no compiler output yet. The row-by-row list
+is [docs/AUDIT.md](https://github.com/lleoparden/vectr/blob/main/docs/AUDIT.md).
 
-No Bezier path node or pen tool yet; no boolean operations or width profiles; point text only; no mesh,
-patterns, or brushes; the native format is the only file format; Windows only for now; no compiler output yet.
-The full list, row by row, is in [docs/AUDIT.md](AUDIT.md).
+</details>
 
-## Evidence
+<details>
+<summary><strong>How this build was verified</strong></summary>
 
 272 unit tests, a layer-architecture check, a UI-standards check, a production build, and a packaged Electron
-run of 143 steps across seven reports. The details are in [docs/PROGRESS.md](PROGRESS.md).
+run of 143 steps across seven reports. Details:
+[docs/PROGRESS.md](https://github.com/lleoparden/vectr/blob/main/docs/PROGRESS.md).
 
----
+</details>
 
-_Published by `.github/workflows/release.yml` from `docs/RELEASES.md` and `package.json`. The tag is never moved,
-so this page and its installer always describe the same commit. Marked as a pre-release because it is not a
-stable release._
+<sub>Tag `v<version>` is immutable: it and this installer always describe the same commit. Previous versions
+stay downloadable from [the releases page](https://github.com/lleoparden/vectr/releases).</sub>

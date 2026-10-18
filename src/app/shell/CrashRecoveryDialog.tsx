@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef } from 'react'
+import { Button } from '../ui/components/Button.tsx'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { dismissCrashPrompt, resolveCrashPrompt } from '../files/fileActions.ts'
 import { crashRecoveryCopy } from '../files/recoveryPrompt.ts'
@@ -52,23 +53,23 @@ export function CrashRecoveryDialog() {
         </p>
         <p className="mt-2 text-ui-xs leading-5 text-ink-faint">{copy.detail}</p>
         <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            data-crash-action="discard"
-            className="rounded-ui border border-hairline px-3 py-1 text-ui-xs text-ink-muted hover:bg-chrome-active"
+          <Button
+            variant="dialog"
+            size="md"
+            data={{ 'data-crash-action': 'discard' }}
             onClick={() => void resolveCrashPrompt('discard')}
           >
             {copy.discard}
-          </button>
-          <button
+          </Button>
+          <Button
             ref={restoreRef}
-            type="button"
-            data-crash-action="restore"
-            className="rounded-ui bg-accent px-3 py-1 text-ui-xs text-white hover:opacity-90"
+            variant="primary"
+            size="md"
+            data={{ 'data-crash-action': 'restore' }}
             onClick={() => void resolveCrashPrompt('restore')}
           >
             {copy.restore}
-          </button>
+          </Button>
         </div>
         <p className="mt-3 text-ui-xs text-ink-faint">Escape keeps the copy; it stays under File ▸ Recover Unsaved Work.</p>
       </div>

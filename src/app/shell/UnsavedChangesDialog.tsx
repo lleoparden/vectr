@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '../ui/components/Button.tsx'
 import { workspaceStore } from '../../state/workspaceStore.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { resolveUnsavedPrompt } from '../files/fileActions.ts'
@@ -72,34 +73,34 @@ export function UnsavedChangesDialog() {
           {copy.detail}
         </p>
         <div className="flex items-center justify-end gap-2 pt-4">
-          <button
-            type="button"
-            data-unsaved-action="cancel"
+          <Button
+            variant="dialog"
+            size="md"
+            data={{ 'data-unsaved-action': 'cancel' }}
             disabled={busy}
-            className="rounded-ui border border-hairline bg-chrome px-3 py-1 text-ui-xs text-ink hover:bg-chrome-active disabled:opacity-50"
             onClick={() => void choose('cancel')}
           >
             {copy.cancelLabel}
-          </button>
-          <button
-            type="button"
-            data-unsaved-action="discard"
+          </Button>
+          <Button
+            variant="dialog"
+            size="md"
+            data={{ 'data-unsaved-action': 'discard' }}
             disabled={busy}
-            className="rounded-ui border border-hairline bg-chrome px-3 py-1 text-ui-xs text-ink hover:bg-chrome-active disabled:opacity-50"
             onClick={() => void choose('discard')}
           >
             {copy.discardLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             ref={saveRef}
-            type="button"
-            data-unsaved-action="confirm"
+            variant="primary"
+            size="md"
+            data={{ 'data-unsaved-action': 'confirm' }}
             disabled={busy}
-            className="rounded-ui border border-accent bg-accent px-3 py-1 text-ui-xs text-accent-ink hover:bg-accent-soft disabled:opacity-50"
             onClick={() => void choose('confirm')}
           >
             {busy ? 'Saving…' : copy.confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -5,7 +5,8 @@
  * are live: a typed number applies while it is typed, and one field session is one undo entry.
  */
 
-import { NumberField, Section } from '../ui/fields.tsx'
+import { NumberField, Section } from '../ui/components/fields.tsx'
+import { EmptyState } from '../ui/components/EmptyState.tsx'
 import { setSelectionBounds, setSelectionRotation } from '../actions.ts'
 import { selectionTransform } from '../editing/selectionTransform.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
@@ -16,7 +17,7 @@ export function TransformPanel() {
   if (box === null) {
     return (
       <div data-panel-body="transform" className="p-2">
-        <p className="text-ui-xs text-ink-faint">Nothing selected.</p>
+        <EmptyState>Nothing selected.</EmptyState>
       </div>
     )
   }

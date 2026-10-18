@@ -10,7 +10,8 @@
 import { runEditorAction } from '../actions.ts'
 import { alignAvailability } from '../editing/alignAvailability.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
-import { ButtonRow, PanelButton, Section } from '../ui/fields.tsx'
+import { ButtonRow, Section } from '../ui/components/fields.tsx'
+import { Button } from '../ui/components/Button.tsx'
 
 const ALIGN_BUTTONS: Array<{ action: 'object.alignLeft' | 'object.alignCenterH' | 'object.alignRight' | 'object.alignTop' | 'object.alignCenterV' | 'object.alignBottom'; label: string }> = [
   { action: 'object.alignLeft', label: 'Align left' },
@@ -34,28 +35,28 @@ export function AlignPanel() {
       <Section title="Align">
         <div className="grid grid-cols-3 gap-1">
           {ALIGN_BUTTONS.map((button) => (
-            <PanelButton
+            <Button
               key={button.action}
-              aria-label={button.label}
+              label={button.label}
               disabled={!availability.align}
               onClick={() => runEditorAction(button.action)}
-            >
+              >
               {button.label.replace('Align ', '')}
-            </PanelButton>
+            </Button>
           ))}
         </div>
       </Section>
       <Section title="Distribute">
         <ButtonRow>
           {DISTRIBUTE_BUTTONS.map((button) => (
-            <PanelButton
+            <Button
               key={button.action}
               aria-label={button.label}
               disabled={!availability.distribute}
               onClick={() => runEditorAction(button.action)}
             >
               {button.label.replace('Distribute ', '')}
-            </PanelButton>
+            </Button>
           ))}
         </ButtonRow>
       </Section>

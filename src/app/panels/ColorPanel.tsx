@@ -11,7 +11,8 @@ import { isLeaf, isText, supportsFill, type Document } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { addCmykSwatch, addSwatchFromSelection, applySwatch, removeSwatch, setSelectionFill } from '../actions.ts'
 import { isLightColor, normalizeHex } from '../../geom/color.ts'
-import { ColorField, NumberField, Section } from '../ui/fields.tsx'
+import { ColorField, NumberField, Section } from '../ui/components/fields.tsx'
+import { Button } from '../ui/components/Button.tsx'
 import { useState } from 'react'
 
 /** The palette Vectr ships with, named so swatches stay readable in tests and docs. */
@@ -229,14 +230,9 @@ function SwatchesSection({ swatches }: { swatches: Array<{ id: string; name: str
             </label>
           </div>
         )}
-        <button
-          type="button"
-          className="h-6 rounded-ui border border-accent bg-accent text-ui-xs text-white hover:brightness-110 disabled:opacity-40"
-          disabled={name.trim().length === 0}
-          onClick={add}
-        >
+        <Button variant="primary" disabled={name.trim().length === 0} onClick={add}>
           Add swatch
-        </button>
+        </Button>
       </div>
     </Section>
   )

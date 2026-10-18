@@ -73,6 +73,23 @@ L7 application shells and tooling.
   explain`, or `graphify path` before broad source exploration. Update the
   graph after production-code changes.
 
+## UI components
+
+The interface is repetitive by nature, so repetition in the code is a defect. One component per concept, in
+`src/app/ui/components/`, with the differences expressed as parameters.
+
+- **A button is one component**, with `variant` (panel, primary, quiet, danger, icon), `size`, and an optional icon;
+  a second raw `<button>` in a panel is a review finding unless the case genuinely cannot be expressed, in which
+  case the primitive is extended rather than copied.
+- **A numeric input is one component**, with `min`, `max`, `step`, `suffix`, and `inline`: the gradient stop and the
+  CMYK fields share `NumberField` for exactly this reason.
+- **An empty state, a chip, a readout, a tab, a dialog button row** each have one implementation; the text and the
+  behaviour are props.
+- **Styling lives with the component.** A panel file may pass data and callbacks; it may not spell out a class list
+  that another panel also spells out.
+- **`tests/uiStandards.test.ts` enforces the mechanical half**: no imports from the old field module, and the
+  shared primitives' class signatures appear only in `components/`.
+
 ## Review checklist
 
 Every pull request states, in its description:

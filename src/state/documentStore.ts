@@ -28,7 +28,6 @@ export type Tool =
   | 'star'
   | 'arc'
   | 'hand'
-  | 'artboard'
   | 'text'
 export type Viewport = { zoom: number; panX: number; panY: number }
 export type CommandError = { code: string; message: string; command: Command }

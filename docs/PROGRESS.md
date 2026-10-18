@@ -1,6 +1,30 @@
 # Progress
 
 
+## Fixed: the canvas was covered, so the wheel and the Hand tool did nothing (2026-10-18)
+
+The owner reported that the Hand tool did nothing and the scroll wheel had stopped zooming. Both were
+one bug: the artboard chrome overlay's root div had lost `pointer-events-none` when the Artboard tool was
+added, so it covered the whole canvas and swallowed every real wheel event, click, and drag.
+
+- **Fixed:** the overlay root is `pointer-events-none` again; only its own labels remain, which never take
+  input.
+- **The Artboard tool is removed**, as the owner asked: tool id, action, palette slot, Shift+O, canvas
+  gesture, preview, resize handles, and the drag maths module with its tests. Pages are still created,
+  resized, and named from the Properties panel, with labels on the canvas and an outline on the active
+  page.
+- **Why the packaged run missed it:** it dispatched wheel and pointer events straight at the `<canvas>`
+  element, which bypasses hit testing. The run now asks `document.elementFromPoint` what is on top of the
+  canvas and drives the wheel and the hand **through that element**, and it asserts the canvas is the
+  topmost target. A synthetic event is only evidence when it arrives the way a user's does.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **215/215**; packaged run **119
+steps across seven reports**, `[vectr-ui]` **20/20** including three new steps — nothing covers the canvas,
+the wheel zooms (1.00 → 1.43), and the Hand drags the view through the real target (panX −120, panY −80) —
+plus the Space borrow/release round trip.
+
+
+
 ## Hand tool — drag to move the camera (2026-10-18)
 
 - **`H`** activates the Hand tool in its own palette slot with an original palm icon. Dragging the canvas

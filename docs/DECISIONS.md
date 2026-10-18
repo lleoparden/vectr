@@ -1948,3 +1948,30 @@ Implementation follows the contract above. Three decisions worth naming:
   canvas cannot scroll, and it is skipped inside text fields so typing a space still types a space.
 - **The cursor says what the tool does:** grab while the hand is active, grabbing while dragging it.
 
+## 2026-10-18 — No Artboard tool, and an overlay bug that ate the canvas input
+
+The owner asked for the Artboard tool to be removed and reported that the Hand tool did nothing and the
+scroll wheel no longer zoomed. Both reports were one bug.
+
+### The bug
+
+The artboard chrome overlay's root div lost its `pointer-events-none` when the Artboard tool was added,
+because its resize handles needed to receive pointers. That div covers the entire canvas, so every real
+wheel event, click, and drag landed on the overlay instead of the canvas: no zoom, no pan, no selection.
+**The packaged smoke run did not catch it** because it dispatched events directly on the `<canvas>`
+element, which skips hit testing — a scripted event is only evidence when it arrives the way a user's
+does. The overlay root is click-through again and its handles are gone with the tool.
+
+### The regression test
+
+`[vectr-ui]` now asks the browser `document.elementFromPoint` at the canvas centre and asserts the canvas
+is what is on top, then dispatches the wheel and the Hand drag **on that element**. If an overlay ever
+covers the canvas again, the run fails at the first question rather than passing on synthetic events.
+
+### The tool
+
+The Artboard tool is removed: tool id, action, palette slot, Shift+O, canvas gesture, preview, resize
+handles, the drag maths module, and its tests. Pages stay fully managed from Properties (New, Delete, size
+presets, typed W/H) with names and sizes on the canvas and an outline on the active page — the parts the
+owner asked for originally.
+

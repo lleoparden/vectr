@@ -22,7 +22,7 @@ panels and the dock.
 **Behaviour is unchanged, measured:** 271/271 tests, layer check on 113 files, clean typecheck and build, and the
 packaged run **the same 145 steps across seven reports**, dialogs and layers panel included.
 
-**What is left:** `src/app/shell/ToolOptionsBar.tsx (6) · src/app/shell/MenuBar.tsx (4) · src/app/shell/ToolPalette.tsx (3) · src/app/shell/PanelFlyout.tsx (2) · src/app/canvas/ContextMenu.tsx (1) · src/app/shell/CrashRecoveryDialog.tsx (1)` - 17 raw buttons in five places, and each is a concept the kit does not have
+**What is left:** `src/app/shell/ToolOptionsBar.tsx (6) · src/app/shell/MenuBar.tsx (4) · src/app/shell/ToolPalette.tsx (3) · src/app/shell/PanelFlyout.tsx (2) · src/app/canvas/ContextMenu.tsx (1) · src/app/shell/CrashRecoveryDialog.tsx (1)` - 17 raw buttons across six files, and each is a concept the kit does not have
 yet: menu titles and their items (`MenuButton` across MenuBar, PanelFlyout, ContextMenu), the palette's slot
 (`ToolSlot`), the colour field's trigger, and the two full-screen dismiss backdrops, which are deliberately not
 button-shaped controls. Issue #133 stays open with that list.

@@ -1,6 +1,6 @@
 # Vectr roadmap
 
-The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). This file
+The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). [PARITY_ROADMAP.md](PARITY_ROADMAP.md) is the **proposed** parity re-sequencing (interaction fidelity first, then the path model, type, files, compiler) and is awaiting owner approval. This file
 remains the short operational checklist for the active phase.
 
 Every phase in the master plan owns an epic GitHub issue; all phase epics are

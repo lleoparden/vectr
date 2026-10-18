@@ -2315,3 +2315,20 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   label, and this label is defined as pointing at the head of `main`. No branch is ever force-pushed.
 - **Phase close now has a release gate**: progress, release notes, and the site must agree before a phase is
   called done.
+
+## 2026-10-18 - The rose palette is the brand, and a screenshot is generated, not posed
+
+- **Six roles, one source per medium.** The DOM reads `src/styles.css` tokens; the few canvas overlays that cannot
+  (shape preview, pasteboard clear) read `src/app/ui/brand.ts`, which mirrors the same six values. Two sources that
+  must agree is a real risk, so the rule says they change together and the UI standards test is the place to add
+  the check if it drifts.
+- **Rose-deep is the interaction state.** Hover and pressed states use `#8B3A3A` rather than a brightness filter, so
+  the palette's own values describe every state and a future theme change stays in one file.
+- **Document colours are not brand colours.** The default fill, the swatch palette, and user artwork keep their own
+  values; the palette governs chrome, selection, focus, and the site. A "brand" palette that recoloured artwork
+  would be a bug.
+- **The screenshot is a harness, not a hand capture.** `--screenshot=path` renders the real editor in a fresh
+  profile and captures the window, so the release and site images can be regenerated with one command instead of
+  drifting whenever the interface changes.
+- **A stashed change is the owner's intent.** The site conflict was resolved by keeping the `Stashed changes` side
+  in full and dropping the upstream head; anything the owner writes in that file wins over an older copy.

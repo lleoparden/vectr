@@ -81,7 +81,7 @@ export function MenuItem({
       onKeyDown={onKeyDown}
       onPointerEnter={onPointerEnter}
       data-menu-item
-      className={`${ITEM} ${disabled ? 'cursor-default text-ink-faint' : 'text-ink hover:bg-accent-soft'} ${className}`}
+      className={`${ITEM} ${disabled ? 'cursor-default text-ink-faint' : 'text-ink hover:bg-accent-soft active:bg-accent-deep'} ${className}`}
     >
       <span>{label}</span>
       {trailing ?? (chord !== null && chord !== undefined ? <span className="text-ui-xs text-ink-faint">{chord}</span> : null)}

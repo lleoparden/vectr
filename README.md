@@ -42,6 +42,12 @@ Nothing is borrowed: the icons, type, colours, copy, and code are Vectr's own. I
 - **Documents that hold** — A versioned native format with byte-stable saves, autosave for saved documents, crash recovery that restores the whole project folder with its images, and a close guard.
 - **No dead controls** — A capability that is not built is not displayed; every shipped limitation is written down in the catalog and the decision record.
 
+## Screenshots
+
+<img src="./site/screenshot.png" alt="The Vectr editor: menu bar, tool palette, canvas, and the docked panels" width="100%" />
+
+<sub>The editor in its brand palette: charcoal chrome, rose accents, off-white text. Regenerate with <code>npx electron . --screenshot=site/screenshot.png</code>.</sub>
+
 ## Status
 
 **Phase 4 is complete. Phase 5 — the Bézier path model — is next.**

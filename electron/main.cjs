@@ -2,6 +2,9 @@ const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
+/** A development harness flag: render the editor, capture the window, exit. */
+const screenshotArgument = process.argv.find((argument) => argument.startsWith('--screenshot='))
+
 const isBenchmark = process.argv.includes('--benchmark')
 const outputArgument = process.argv.find((argument) => argument.startsWith('--output='))
 /** Optional renderer-candidate switch, for example `--candidate=vello`. */
@@ -161,6 +164,23 @@ function createWindow() {
     console.error('Renderer became unresponsive during the benchmark.')
   })
 
+  // A development harness: render the editor, capture the window, quit. Used to regenerate the
+  // site's screenshot with the current palette; it never runs in a normal launch.
+  if (screenshotArgument !== undefined) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(async () => {
+        try {
+          const image = await mainWindow.webContents.capturePage()
+          fs.writeFileSync(screenshotArgument.split('=')[1], image.toPNG())
+          console.log('[screenshot] written ' + screenshotArgument.split('=')[1])
+        } catch (cause) {
+          console.error('[screenshot] failed: ' + cause)
+        }
+        app.exit(0)
+      }, 1500)
+    })
+  }
+
   // Close confirmation (issue #19): the first close asks the renderer whether work is unsaved;
   // the renderer answers with `app:allow-close`, which sets the flag and closes for real.
   mainWindow.on('close', (event) => {
@@ -171,8 +191,16 @@ function createWindow() {
 }
 
 /** Optional editor smoke switch: `--smoke` or `--smoke=stress`. */
+/** Optional editor smoke switch: '--smoke' or '--smoke=stress'. */
 const smokeArgument = process.argv.find((argument) => argument === '--smoke' || argument.startsWith('--smoke='))
 const smokeValue = smokeArgument === undefined ? null : smokeArgument.includes('=') ? smokeArgument.split('=')[1] : '1'
+
+// A screenshot run must not see a recovery prompt from an earlier run, so it uses a fresh profile.
+if (screenshotArgument !== undefined) {
+  const directory = path.join(require('node:os').tmpdir(), 'vectr-screenshot-' + Date.now())
+  fs.mkdirSync(directory, { recursive: true })
+  app.setPath('userData', directory)
+}
 
 app.whenReady().then(() => {
   // Vectr draws its own menu bar, the way Illustrator does, so the Electron default menu

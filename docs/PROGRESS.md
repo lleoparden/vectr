@@ -1,6 +1,34 @@
 # Progress
 
 
+## UI component kit, second pass (2026-10-18, issue #133)
+
+The first pass unified the button, the empty state, and the field primitives. This pass takes the rest of the
+panels and the dock.
+
+- **`RowControl`** is the one row-sized icon control: the Layers panel's locate pointer, disclosure triangle, eye,
+  and lock were four spellings of it, differing only in which state attribute they expose (`pressed`,
+  `expanded`, `accent`).
+- **`ListItem`** is the one list-row button: a layer name and a named swatch are the same idea, so they share one
+  component with a data map for the selectors that tests and drag handlers rely on.
+- **`SwatchTile`** is the one colour tile: the Color panel's palette and the colour popover's swatches were the
+  same control written twice, including the tick that picks a readable colour for it.
+- **`Tab`** is the one panel tab, with selected and expanded states and the title that says what a click will do.
+- **`Button`** absorbed the remaining odds and ends: the dock's collapse control, the status bar's zoom readout,
+  the About and Preferences close buttons, the popover's Done, and the swatch remove button.
+- **The standards test widened** to ten converted files - six panels and four shell files - and now requires every
+  kit primitive to exist.
+
+**Behaviour is unchanged, measured:** 271/271 tests, layer check on 113 files, clean typecheck and build, and the
+packaged run **the same 145 steps across seven reports**, dialogs and layers panel included.
+
+**What is left:** `src/app/shell/ToolOptionsBar.tsx (6) · src/app/shell/MenuBar.tsx (4) · src/app/shell/ToolPalette.tsx (3) · src/app/shell/PanelFlyout.tsx (2) · src/app/canvas/ContextMenu.tsx (1) · src/app/shell/CrashRecoveryDialog.tsx (1)` - 17 raw buttons across six files, and each is a concept the kit does not have
+yet: menu titles and their items (`MenuButton` across MenuBar, PanelFlyout, ContextMenu), the palette's slot
+(`ToolSlot`), the colour field's trigger, and the two full-screen dismiss backdrops, which are deliberately not
+button-shaped controls. Issue #133 stays open with that list.
+
+
+
 ## UI component kit, first pass (2026-10-18, issue #133)
 
 The owner's rule is in `AGENTS.md`: one component per concept, in `src/app/ui/components/`, with variants as

@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '../ui/components/Button.tsx'
 import { workspaceStore } from '../../state/workspaceStore.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
@@ -100,15 +101,15 @@ export function PreferencesDialog() {
         </p>
 
         <div className="mt-4 flex justify-end">
-          <button
+          <Button
             ref={closeRef}
-            type="button"
-            data-preferences-action="done"
-            className="rounded-ui bg-accent px-3 py-1 text-ui-xs text-white hover:opacity-90"
+            variant="primary"
+            size="md"
+            data={{ 'data-preferences-action': 'done' }}
             onClick={() => workspaceStore.setPreferencesOpen(false)}
           >
             Done
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -2256,3 +2256,17 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **The standards test enforces only what has been cleaned.** It checks the four converted panels and the retired
   import; widening it to the twelve remaining files before converting them would leave the suite red for reasons
   the pass did not fix. The remaining inventory is in the issue, and the test grows with each conversion.
+
+## 2026-10-18 - Row controls, list rows, colour tiles, and tabs join the kit (issue #133, second pass)
+
+- **A row control is one component with state parameters.** The locate pointer, the disclosure triangle, the eye
+  and the lock differ in which ARIA state they carry and whether they are accented; a separate component per
+  icon would have re-created the duplication the rule forbids.
+- **A list row is one component, and its data map is passed through.** Layers rows and swatch rows need
+  `data-layer-name` and `aria-label` for their handlers and tests; `ListItem` takes a `data` map rather than
+  inventing a prop per attribute.
+- **The colour tile is shared by the panel and the popover.** They had drifted in size and tick colour; one
+  component with a `size` parameter keeps the picked-tick readable on light and dark colours in both places.
+- **The standards test only names converted files.** Widening it early would have kept the suite red for work not
+  yet done; it grows with each pass, and the inventory of what remains lives in issue #133 rather than in a
+  permanently failing assertion.

@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef } from 'react'
+import { Button } from '../ui/components/Button.tsx'
 import { workspaceStore } from '../../state/workspaceStore.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 
@@ -51,14 +52,14 @@ export function AboutDialog() {
           Document format v1 · projects save as <code>&lt;name&gt;.vectr</code> folders.
         </p>
         <div className="flex justify-end pt-3">
-          <button
+          <Button
             ref={closeRef}
-            type="button"
-            className="rounded-ui border border-hairline bg-chrome px-3 py-1 text-ui-xs text-ink hover:bg-chrome-active"
+            variant="dialog"
+            size="md"
             onClick={() => workspaceStore.setAboutOpen(false)}
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>

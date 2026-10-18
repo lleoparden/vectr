@@ -14,6 +14,8 @@ A desktop-first vector design tool with Illustrator's conventions and its own co
 [![Skia](https://img.shields.io/badge/CanvasKit-Skia-7B61FF)](https://skia.org/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4.3-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![Site](https://img.shields.io/badge/site-lleoparden.github.io%2Fvectr-7C6CF5)](https://lleoparden.github.io/vectr/)
+[![Release](https://img.shields.io/badge/release-alpha%20pre--release-orange)](https://github.com/lleoparden/vectr/releases/tag/alpha)
 
 </div>
 
@@ -56,6 +58,9 @@ Nothing is borrowed: the icons, type, colours, copy, and code are Vectr's own. I
 | macOS / Linux | Phase 9 |
 
 Feature by feature, including what is deliberately not built: [**docs/AUDIT.md**](docs/AUDIT.md).
+
+The rolling **alpha pre-release** is [here](https://github.com/lleoparden/vectr/releases/tag/alpha); it is
+republished from [`docs/RELEASES.md`](docs/RELEASES.md) on every merge to `main`.
 
 ## Tech stack
 

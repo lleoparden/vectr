@@ -90,6 +90,18 @@ The interface is repetitive by nature, so repetition in the code is a defect. On
 - **`tests/uiStandards.test.ts` enforces the mechanical half**: no imports from the old field module, and the
   shared primitives' class signatures appear only in `components/`.
 
+## Release gate
+
+The product ships a **rolling alpha pre-release**, not versioned releases, until the compiler lands.
+
+- At the close of every phase, update `docs/RELEASES.md` so it describes what the phase changed, then merge it
+  with the phase's final slice. `.github/workflows/alpha-release.yml` republishes the `alpha` tag and the
+  pre-release from that file on every push to `main`, so the release never drifts from the code.
+- The `alpha` tag is the one tag allowed to move: it always points at `main`. No branch is ever force-pushed.
+- The site in `site/` is published by `.github/workflows/pages.yml` on changes to that folder; a phase that
+  changes what the product can do updates the site's feature list in the same pull request.
+- A phase is not closed until `docs/PROGRESS.md`, `docs/RELEASES.md`, and the site agree with each other.
+
 ## Review checklist
 
 Every pull request states, in its description:

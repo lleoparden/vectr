@@ -1,6 +1,20 @@
 # Progress
 
 
+## Public repository, live site, and a rolling alpha release (2026-10-18)
+
+- **The repository is public.** GitHub Pages refused the private repository's plan; making it public was the
+  owner's decision and it unblocked both the site and the release workflow.
+- **The site is live at <https://lleoparden.github.io/vectr/>** - Pages is enabled with the workflow source and
+  the first deployment returned HTTP 200.
+- **A rolling alpha pre-release** now exists at the `alpha` tag, republished automatically on every merge to
+  `main` from `docs/RELEASES.md` by `.github/workflows/alpha-release.yml`. The tag is the one tag allowed to
+  move; it always points at `main`.
+- **The rule is in `AGENTS.md`**: a phase is not closed until `docs/PROGRESS.md`, `docs/RELEASES.md`, and the
+  site agree, and the phase's final slice carries the release-notes update.
+
+
+
 ## Repository hygiene, and Phase 5 planned (2026-10-18)
 
 - **The README is rewritten** for where the product actually is: Phase 4 complete, the layer table, the

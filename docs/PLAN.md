@@ -3,7 +3,7 @@
 The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md), replanned on 2026-10-18 around
 [PARITY_ROADMAP.md](PARITY_ROADMAP.md). This file is the operational checklist for the **phase in progress**.
 
-## Current phase - Phase 4, interaction fidelity (Phase 3 complete 2026-10-18)
+## Phase 4 - interaction fidelity (complete 2026-10-18)
 
 **Phase 3 shipped in five slices:** 3.1 layer rule and `src/geom/` (#114), 3.2 Selection, Direct Selection, and
 Hand as machines (#115), 3.3 lasso, all seven shape tools, and Type (#116), 3.4 one command registry (#117), 3.5
@@ -29,7 +29,8 @@ Gap 1 in the reference gap list, and the owner's central complaint. The first th
    now forward an accessible name. - the commands and fields exist (audit rows 50-51) but Illustrator users look for
    the panels. Align puts the six alignments and two distributions on buttons with the key-object rules stated;
    Transform exposes X/Y/W/H and rotation once 4.2 lands.
-5. **Layer panel polish** - the locate column, thumbnails for nested rows, and dragging a layer into a group
+5. **Layer panel polish** - DONE in #129: locate column with a pure, tested rule; nested row previews with a
+   stated refusal for a shared bucket; the drag-into-group claim was corrected (it shipped in #20). - the locate column, thumbnails for nested rows, and dragging a layer into a group
    (audit row 61). These are the gaps issue #20 recorded and never closed.
 
 Then snapping feel, modifier previews, and panel liveness, per the phase epic (#112).

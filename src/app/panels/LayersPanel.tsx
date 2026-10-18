@@ -7,8 +7,8 @@
  * place, Shift-click for a range selection, right-click for the object menu, and the eye and
  * lock dispatch the real `setFlags` command.
  *
- * Still not built, and recorded as a divergence: thumbnails (the slot is reserved), the
- * target/locate column, and dragging a layer into a different layer.
+ * The locate column, live thumbnails (top-level and nested), and dragging a layer into a group all
+ * ship; a row whose bucket is shared is refused a preview rather than shown a misleading one.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -29,6 +29,7 @@ import {
 } from '../ui/icons.tsx'
 import { expandedGroupIds, layerRows, rowDescription, type LayerRow } from './layerRows.ts'
 import { placementFor } from '../editing/layerDrag.ts'
+import { locateRowIds } from '../editing/locate.ts'
 import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../ui/theme.ts'
 import { canRunAction, deleteUnlockedSelection, runEditorAction, runLayerDrop } from '../actions.ts'
 import { documentStore } from '../../state/documentStore.ts'
@@ -59,6 +60,7 @@ export function LayersPanel() {
   const listRef = useRef<HTMLUListElement>(null)
   const renderedThumbnails = useRef<{ revision: number; map: Map<NodeId, string> }>({ revision: -1, map: new Map() })
   const rows = useMemo(() => layerRows(layers, expanded), [layers, expanded])
+  const located = useMemo(() => locateRowIds(state.document, state.selection), [state.document, state.selection])
 
   // Thumbnails are real renders, not placeholders: the renderer draws the layer's recorded picture
   // into a small surface and hands back a PNG, which is why they only appear for top-level layers
@@ -73,7 +75,8 @@ export function LayersPanel() {
     const renderer = getActiveRenderer()
     if (renderer === null) return
     const current = renderedThumbnails.current
-    const wanted = layers.slice(0, THUMBNAIL_LIMIT)
+    // Nested rows get previews too: the renderer refuses a shared bucket rather than drawing the wrong one.
+  const wanted = rows.slice(0, THUMBNAIL_LIMIT).map((row) => row.node)
     const upToDate =
       current.revision === state.document.revision && wanted.every((node) => current.map.has(node.id) || node.type === 'group' && node.children.length === 0)
     if (upToDate) return
@@ -230,6 +233,8 @@ export function LayersPanel() {
               dropHint={drag?.over?.rowId === row.id ? placementFor(drag.over.ratio, row) : null}
               renaming={renaming === row.id}
               thumbnail={thumbnails.get(row.id) ?? null}
+              locate={located.has(row.id)}
+              onLocate={(id) => documentStore.setSelection([id])}
               onSelect={selectRow}
               onToggleExpanded={toggleExpanded}
               onToggleFlag={flagDispatch}
@@ -302,6 +307,8 @@ type RowItemProps = {
   dropHint: 'before' | 'inside' | 'after' | null
   renaming: boolean
   thumbnail: string | null
+  /** True when this row contains the selection and offers the locate pointer. */
+  locate: boolean
   onSelect: (id: NodeId, event: { shiftKey: boolean; metaKey?: boolean; ctrlKey?: boolean }) => void
   onToggleExpanded: (id: NodeId) => void
   onToggleFlag: (id: NodeId, locked: boolean, hidden: boolean, label: string) => void
@@ -310,6 +317,7 @@ type RowItemProps = {
   onRenameCancel: () => void
   onContextMenu: (id: NodeId, x: number, y: number) => void
   onDragStart: (id: NodeId, additive: boolean) => void
+  onLocate: (id: NodeId) => void
 }
 
 /** One layer row: triangle, eye, lock, thumbnail slot, name — Illustrator's column order. */
@@ -321,6 +329,7 @@ function LayerRowItem({
   dropHint,
   renaming,
   thumbnail,
+  locate,
   onSelect,
   onToggleExpanded,
   onToggleFlag,
@@ -329,6 +338,7 @@ function LayerRowItem({
   onRenameCancel,
   onContextMenu,
   onDragStart,
+  onLocate,
 }: RowItemProps) {
   const toggleClass = 'flex shrink-0 items-center justify-center hover:text-ink'
   const hintClass =
@@ -355,6 +365,21 @@ function LayerRowItem({
         onContextMenu(row.id, event.clientX, event.clientY)
       }}
     >
+      {locate ? (
+        <button
+          type="button"
+          aria-label={`Select parent of ${row.node.name}`}
+          title={`Select ${row.node.name}, which contains the selection`}
+          data-locate={row.id}
+          className="flex shrink-0 items-center justify-center text-accent"
+          style={{ width: ROW_TOGGLE_SIZE, height: LAYER_ROW_HEIGHT }}
+          onClick={() => onLocate(row.id)}
+        >
+          <span aria-hidden="true" className="block h-[6px] w-[6px] rounded-[1px] bg-accent" />
+        </button>
+      ) : (
+        <span className="shrink-0" style={{ width: ROW_TOGGLE_SIZE }} aria-hidden="true" />
+      )}
       {row.hasChildren ? (
         <button
           type="button"
@@ -394,17 +419,17 @@ function LayerRowItem({
       <span
         aria-hidden="true"
         title={
-          row.depth === 0
+          thumbnail !== null
             ? 'A live preview of this layer'
-            : 'Previews render for top-level layers; a nested row keeps its slot'
+            : 'No preview: this layer shares a render bucket, so a picture would be misleading'
         }
         className={`shrink-0 overflow-hidden rounded-ui border border-hairline ${
           row.node.type === 'group' ? 'bg-chrome-raised' : 'bg-chrome-sunken'
         }`}
         style={{ width: 14, height: 14 }}
       >
-        {row.depth === 0 && thumbnail !== null && (
-          <img src={thumbnail} alt="" className="h-full w-full object-contain" />
+        {thumbnail !== null && (
+          <img src={thumbnail} alt="" data-layer-thumbnail={row.id} className="h-full w-full object-contain" />
         )}
       </span>
       {renaming ? (

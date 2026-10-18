@@ -2062,3 +2062,22 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **The check's first run found two real violations** - the engine layer importing the interface layer for CMYK
   conversion and viewport helpers - which is the strongest argument for having it.
 
+## 2026-10-18 - Tools are state machines fed by a host, and never touch the document (Phase 3.2)
+
+- **The host is injected, not imported.** `ToolHost` is the only surface a tool can reach, and the canvas
+  implements it from the same store calls the inline gestures used. A tool therefore cannot mutate the
+  document, open a transaction it cannot close, or depend on React - and it can be tested with a fake host, which
+  is how the eight new tests check the click, shift-click, drag, marquee, and Escape semantics without a canvas.
+- **Every pointer position carries scene units and screen pixels.** Hit testing and drawing need scene units;
+  panning must not, because the scene moves under the pointer as the view moves and a scene delta would feed
+  back on itself. Rather than special-case the Hand, the contract gives every tool both.
+- **Selection and Direct Selection are one machine with a `deep` flag.** They differ only in the hit test depth,
+  so writing them once means a future fix to click or marquee semantics cannot land in one arrow and miss the
+  other.
+- **The move capture stays in the host.** Capturing originals, opening the transaction, snapping, and committing
+  are document operations; the tool only says when to begin and what delta to apply. This keeps undo semantics in
+  one place across every tool that will ever move something.
+- **Marquee commit matches today exactly**: it resolves through `marqueeHitTest` and does not apply isolation
+  filtering, unlike the lasso. That asymmetry is existing behaviour, recorded rather than silently "fixed",
+  because Phase 3 freezes behaviour.
+

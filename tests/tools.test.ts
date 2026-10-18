@@ -1,0 +1,121 @@
+/** Tool state machines (Phase 3.2): selection, direct selection, hand. */
+import test from "node:test"
+import assert from "node:assert/strict"
+import { createSelectTool } from "../src/tools/select.ts"
+import { createHandTool } from "../src/tools/hand.ts"
+import { createToolStateMachines, isStateMachineTool } from "../src/tools/index.ts"
+import type { MarqueeRect, ToolHost, ToolPoint } from "../src/tools/types.ts"
+import type { NodeId } from "../src/doc/types.ts"
+
+type Calls = string[]
+
+function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[] } = {}) {
+  const calls: Calls = []
+  const selected: NodeId[] = options.selection ?? []
+  const host: ToolHost = {
+    selection: () => selected,
+    hitTest: (scene, deep) => {
+      calls.push("hitTest:" + scene.x + "," + scene.y + (deep ? ":deep" : ""))
+      return options.hits?.[scene.x + "," + scene.y] ?? null
+    },
+    select: (id) => {
+      calls.push("select:" + id)
+      selected.splice(0, selected.length, id)
+    },
+    toggleSelection: (id) => {
+      calls.push("toggle:" + id)
+      const at = selected.indexOf(id)
+      if (at >= 0) selected.splice(at, 1)
+      else selected.push(id)
+    },
+    beginMove: () => calls.push("beginMove"),
+    moveBy: (dx, dy, shift) => calls.push("moveBy:" + dx + "," + dy + (shift ? ":shift" : "")),
+    endMove: () => calls.push("endMove"),
+    cancelMove: () => calls.push("cancelMove"),
+    setMarquee: (rect: MarqueeRect | null) => calls.push("marquee:" + (rect === null ? "null" : rect.x + "," + rect.y + "," + rect.width + "," + rect.height)),
+    commitMarquee: (rect, deep) => calls.push("commit:" + rect.width + "x" + rect.height + (deep ? ":deep" : "")),
+    viewport: () => ({ panX: 5, panY: 7 }),
+    panTo: (panX, panY) => calls.push("pan:" + panX + "," + panY),
+  }
+  return { host, calls, selected }
+}
+
+function point(x: number, y: number): ToolPoint {
+  return { scene: { x, y }, screen: { x, y } }
+}
+
+const noModifiers = { shift: false, alt: false, meta: false, ctrl: false }
+
+test("a click on an object selects it and begins a move", () => {
+  const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
+  const { host, calls } = fakeHost({ hits: { "10,10": "node-1" } })
+  tool.onPointerDown(host, point(10, 10), noModifiers)
+  assert.deepEqual(calls, ["hitTest:10,10", "select:node-1", "beginMove"])
+  tool.onPointerMove(host, point(15, 12), noModifiers)
+  tool.onPointerUp(host, point(15, 12), noModifiers)
+  assert.deepEqual(calls.slice(3), ["moveBy:5,2", "endMove"])
+})
+
+test("shift toggles instead of replacing, and the selection is not re-set", () => {
+  const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
+  const { host, calls } = fakeHost({ hits: { "1,1": "node-1" } })
+  tool.onPointerDown(host, point(1, 1), { ...noModifiers, shift: true })
+  assert.deepEqual(calls, ["hitTest:1,1", "toggle:node-1", "beginMove"])
+})
+
+test("clicking an already-selected object keeps the selection so a drag moves the group", () => {
+  const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
+  const { host, calls } = fakeHost({ hits: { "2,2": "node-2" }, selection: ["node-2"] })
+  tool.onPointerDown(host, point(2, 2), noModifiers)
+  assert.deepEqual(calls, ["hitTest:2,2", "beginMove"], "no select call, and no deselect")
+})
+
+test("empty canvas starts a marquee that commits with the same deep flag", () => {
+  const tool = createSelectTool({ id: "directSelect", deep: true, cursor: "default" })
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(10, 20), noModifiers)
+  assert.deepEqual(calls, ["hitTest:10,20:deep", "marquee:10,20,0,0"], "an empty hit shows an empty marquee")
+  tool.onPointerMove(host, point(30, 50), noModifiers)
+  tool.onPointerUp(host, point(30, 50), noModifiers)
+  assert.deepEqual(calls.slice(2), ["marquee:10,20,20,30", "commit:20x30:deep", "marquee:null"])
+})
+
+test("a marquee dragged up and left normalises to positive width and height", () => {
+  const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(40, 40), noModifiers)
+  tool.onPointerUp(host, point(10, 15), noModifiers)
+  assert.deepEqual(calls, ["hitTest:40,40", "marquee:40,40,0,0", "commit:30x25", "marquee:null"])
+})
+
+test("Escape during a move rolls the move back and leaves no marquee", () => {
+  const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
+  const { host, calls } = fakeHost({ hits: { "5,5": "node-1" } })
+  tool.onPointerDown(host, point(5, 5), noModifiers)
+  tool.cancel(host)
+  assert.deepEqual(calls.slice(-2), ["cancelMove", "marquee:null"])
+})
+
+test("the hand pans by screen pixels from the pan it started at", () => {
+  const tool = createHandTool("grab")
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, { scene: { x: 100, y: 100 }, screen: { x: 100, y: 100 } })
+  tool.onPointerMove(host, { scene: { x: 0, y: 0 }, screen: { x: 80, y: 60 } })
+  assert.deepEqual(calls, ["pan:-15,-33"], "pan start 5,7 plus a screen delta of -20,-40")
+  tool.onPointerMove(host, { scene: { x: 0, y: 0 }, screen: { x: 130, y: 120 } })
+  assert.deepEqual(calls.slice(1), ["pan:35,27"])
+  tool.onPointerUp(host, { scene: { x: 0, y: 0 }, screen: { x: 130, y: 120 } })
+  tool.onPointerMove(host, { scene: { x: 0, y: 0 }, screen: { x: 0, y: 0 } })
+  assert.equal(calls.length, 2, "after release the hand no longer pans")
+})
+
+test("the registry exposes exactly the three machines and knows which tools they are", () => {
+  const machines = createToolStateMachines()
+  assert.deepEqual(Object.keys(machines).sort(), ["directSelect", "hand", "select"])
+  assert.equal(machines.select.id, "select")
+  assert.equal(machines.directSelect.id, "directSelect")
+  assert.equal(machines.hand.id, "hand")
+  assert.equal(isStateMachineTool("select"), true)
+  assert.equal(isStateMachineTool("lasso"), false)
+  assert.equal(isStateMachineTool("rect"), false)
+})

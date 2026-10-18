@@ -1,6 +1,31 @@
 # Progress
 
 
+## Phase 3.2 - Selection, Direct Selection, and the Hand are state machines (2026-10-18, issue #108)
+
+The canvas stopped owning gestures. `src/tools/` now holds a tool contract and three machines.
+
+- **The contract** (`tools/types.ts`): a tool receives a pointer position in **both** coordinate systems
+  (scene units for hit testing and drawing, screen pixels for panning), the current selection, and an injected
+  `ToolHost` with the dozen operations a tool may perform - hit test, select, toggle, begin/move/end/cancel a
+  move, marquee preview and commit, viewport read and set. **Tools never touch the document**; the host does,
+  which is what makes them testable without a canvas.
+- **One machine, two arrows** (`tools/select.ts`): the black and white arrows are the same state machine with a
+  `deep` flag, so a click, a shift-click, a drag, and a marquee behave identically for both - the difference is
+  only which node the hit test resolves to.
+- **The Hand** (`tools/hand.ts`) measures in screen pixels and sets an absolute pan from the pan it started at,
+  because a scene-space delta would feed back on itself as the view moves.
+- **The canvas is a host**: it routes pointer down/move/up to the active machine, supplies the host built from
+  the same store calls the inline gestures used, and keeps the marquee preview through its existing overlay.
+
+**Behaviour frozen:** 236/236 unit tests (8 new in `tests/tools.test.ts`: click selects and begins a move, shift
+toggles, clicking an already-selected object does not deselect, an empty press starts a normalised marquee that
+commits with the deep flag, Escape rolls a move back, the Hand pans by screen delta from its origin and stops on
+release, and the registry exposes exactly the three machines). Typecheck, layer check (92 files), and build are
+clean; the packaged run reports the **same 126 steps across seven reports** as before the port.
+
+
+
 ## Phase 3.1 - the layer rule, enforced (2026-10-18, issue #107)
 
 The first slice of the realignment: the architecture stops being a document and becomes a check.

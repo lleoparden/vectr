@@ -13,6 +13,8 @@ import { addCmykSwatch, addSwatchFromSelection, applySwatch, removeSwatch, setSe
 import { isLightColor, normalizeHex } from '../../geom/color.ts'
 import { ColorField, NumberField, Section } from '../ui/components/fields.tsx'
 import { Button } from '../ui/components/Button.tsx'
+import { ListItem } from '../ui/components/ListItem.tsx'
+import { SwatchTile } from '../ui/components/SwatchTile.tsx'
 import { useState } from 'react'
 
 /** The palette Vectr ships with, named so swatches stay readable in tests and docs. */
@@ -59,23 +61,14 @@ function SwatchGrid({
       {entries.map((entry) => {
         const selected = active !== null && normalizeHex(active) === normalizeHex(entry.color)
         return (
-          <button
+          <SwatchTile
             key={`${entry.name}-${entry.color}`}
-            type="button"
+            color={entry.color}
+            label={labelFor(entry)}
             title={`${entry.name} · ${entry.color}`}
-            aria-label={labelFor(entry)}
-            aria-pressed={selected}
-            className={
-              'relative flex h-6 w-full items-center justify-center rounded-ui border text-[9px] transition-transform hover:scale-[1.06] ' +
-              (selected
-                ? 'border-accent ring-1 ring-accent'
-                : 'border-black/40 hover:border-accent/70')
-            }
-            style={{ background: entry.color }}
-            onClick={() => onPick(entry.color)}
-          >
-            {selected && <span className={isLightColor(entry.color) ? 'text-black' : 'text-white'}>✓</span>}
-          </button>
+            selected={selected}
+            onPick={() => onPick(entry.color)}
+          />
         )
       })}
     </div>
@@ -158,12 +151,7 @@ function SwatchesSection({ swatches }: { swatches: Array<{ id: string; name: str
         <div className="flex flex-col gap-0.5" role="list" aria-label="Named swatches">
           {swatches.map((swatch) => (
             <div key={swatch.id} role="listitem" className="flex min-w-0 items-center gap-1">
-              <button
-                type="button"
-                aria-label={'Apply swatch ' + swatch.name}
-                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-ui px-1 py-[3px] text-left text-ui-xs text-ink-muted hover:bg-chrome-hover hover:text-ink"
-                onClick={() => applySwatch(swatch.id)}
-              >
+              <ListItem label={'Apply swatch ' + swatch.name} onClick={() => applySwatch(swatch.id)}>
                 <span aria-hidden="true" className="h-4 w-4 shrink-0 rounded-[2px] border border-black/40" style={{ background: swatch.color }} />
                 <span className="min-w-0 flex-1 truncate">{swatch.name}</span>
                 {swatch.spot === true && <span className="shrink-0 rounded-full bg-accent-soft px-1 text-[9px] text-accent-ink">spot</span>}
@@ -172,16 +160,15 @@ function SwatchesSection({ swatches }: { swatches: Array<{ id: string; name: str
                     {swatch.cmyk.c}/{swatch.cmyk.m}/{swatch.cmyk.y}/{swatch.cmyk.k}
                   </span>
                 )}
-              </button>
-              <button
-                type="button"
-                aria-label={'Remove swatch ' + swatch.name}
+              </ListItem>
+              <Button
+                variant="danger"
+                label={'Remove swatch ' + swatch.name}
                 title="Remove swatch (objects keep their colour)"
-                className="shrink-0 rounded-ui px-1 text-[11px] text-ink-faint hover:bg-chrome-hover hover:text-danger"
                 onClick={() => removeSwatch(swatch.id)}
               >
                 ×
-              </button>
+              </Button>
             </div>
           ))}
         </div>

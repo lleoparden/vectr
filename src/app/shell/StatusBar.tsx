@@ -10,6 +10,7 @@ import { zoomPercent } from '../../geom/viewport.ts'
 import { artboardRect } from '../../doc/artboards.ts'
 import { isolationLabel } from '../editing/isolation.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
+import { Button } from '../ui/components/Button.tsx'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 
 /** Palette tools are camelCase ids; the status bar prints what the tool palette calls them. */
@@ -88,17 +89,17 @@ export function StatusBar() {
           <span className={dirty ? 'text-ink-muted' : 'text-ink-faint'}>{dirty ? 'Unsaved changes' : 'Saved'}</span>
         </span>
         {SEPARATOR}
-        <button
-          type="button"
+        <Button
+          variant="quiet"
           title="Fit artboard in window (Ctrl+0)"
-          className="rounded-ui px-1 tabular-nums text-ink-muted hover:bg-chrome-hover hover:text-ink"
+          className="px-1 tabular-nums"
           onClick={() => {
             // The menu owns the action; the readout is also a shortcut to it, the way Illustrator's is.
             window.dispatchEvent(new KeyboardEvent('keydown', { key: '0', ctrlKey: true, bubbles: true }))
           }}
         >
           {zoomPercent(state.viewport.zoom)}
-        </button>
+        </Button>
       </span>
     </footer>
   )

@@ -13,6 +13,8 @@
 
 import { IconChevron } from '../ui/icons.tsx'
 import { PanelFlyout } from '../shell/PanelFlyout.tsx'
+import { Button } from '../ui/components/Button.tsx'
+import { Tab } from '../ui/components/Tab.tsx'
 import { DOCK_WIDTH } from '../ui/theme.ts'
 import { workspaceStore, type PanelId } from '../../state/workspaceStore.ts'
 import { PANEL_LABELS } from '../../state/workspaceStore.ts'
@@ -72,41 +74,31 @@ export function PanelDock() {
           <section key={group.id} className="flex min-h-0 flex-col border-b border-hairline bg-chrome">
             <div className="flex items-stretch border-b border-hairline bg-chrome-raised shadow-[inset_0_-1px_0_rgba(0,0,0,0.18)]" role="tablist">
               {tabs.map((tab) => (
-                <button
+                <Tab
                   key={tab}
-                  type="button"
-                  role="tab"
-                  aria-selected={!group.collapsed && group.active === tab}
-                  aria-expanded={!group.collapsed}
+                  label={PANEL_LABELS[tab]}
+                  selected={!group.collapsed && group.active === tab}
+                  expanded={!group.collapsed}
                   title={
                     !group.collapsed && group.active === tab
                       ? `Collapse ${PANEL_LABELS[tab]}`
                       : `Show ${PANEL_LABELS[tab]}`
                   }
-                  className={`flex-1 px-2 py-[5px] text-ui-xs ${
-                    !group.collapsed && group.active === tab
-                      ? 'bg-chrome text-ink shadow-[inset_0_2px_0_var(--color-accent)]'
-                      : 'text-ink-faint hover:bg-chrome-hover hover:text-ink-muted'
-                  }`}
                   onClick={() => workspaceStore.togglePanel(tab)}
-                >
-                  {PANEL_LABELS[tab]}
-                </button>
+                />
               ))}
               <PanelFlyout label={PANEL_LABELS[group.active]} items={GROUP_FLYOUT[group.id] ?? []} />
-              <button
-                type="button"
-                aria-label={
+              <Button
+                variant="icon"
+                label={
                   group.collapsed
                     ? `Expand ${PANEL_LABELS[group.active]} group`
                     : `Collapse ${PANEL_LABELS[group.active]} group`
                 }
                 title={group.collapsed ? 'Expand panel group' : 'Collapse panel group'}
-                className="px-1 text-ink-faint hover:text-ink"
+                icon={<IconChevron size={12} className={group.collapsed ? '-rotate-90' : undefined} />}
                 onClick={() => workspaceStore.toggleGroup(group.id)}
-              >
-                <IconChevron size={12} className={group.collapsed ? '-rotate-90' : undefined} />
-              </button>
+              />
             </div>
             {!group.collapsed && (
               <div className="flex min-h-0 flex-1 flex-col">

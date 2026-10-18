@@ -38,17 +38,28 @@ test("a panel does not spell out the shared button or empty-state classes", () =
   }
 })
 
-test("panel files do not hand-write a <button> that the kit can express", () => {
-  for (const panel of ['PropertiesPanel', 'AlignPanel', 'TransformPanel', 'AppearancePanel']) {
-    const file = path.join(SRC, 'app/panels', panel + '.tsx')
-    const text = fs.readFileSync(file, 'utf8')
-    assert.equal(text.includes('<button'), false, panel + " contains a raw <button>; use the shared Button")
+test("converted panels and shell files do not hand-write a <button>", () => {
+  const converted = [
+    'app/panels/PropertiesPanel.tsx',
+    'app/panels/AlignPanel.tsx',
+    'app/panels/TransformPanel.tsx',
+    'app/panels/AppearancePanel.tsx',
+    'app/panels/LayersPanel.tsx',
+    'app/panels/ColorPanel.tsx',
+    'app/panels/PanelDock.tsx',
+    'app/shell/StatusBar.tsx',
+    'app/shell/AboutDialog.tsx',
+    'app/shell/PreferencesDialog.tsx',
+  ]
+  for (const relativePath of converted) {
+    const text = fs.readFileSync(path.join(SRC, relativePath), 'utf8')
+    assert.equal(text.includes('<button'), false, relativePath + " contains a raw <button>; use the shared component")
   }
 })
 
 test("every shared primitive lives in the components folder", () => {
   const components = fs.readdirSync(path.join(SRC, 'app/ui/components')).sort()
-  for (const required of ['Button.tsx', 'EmptyState.tsx', 'fields.tsx']) {
+  for (const required of ['Button.tsx', 'EmptyState.tsx', 'ListItem.tsx', 'RowControl.tsx', 'SwatchTile.tsx', 'Tab.tsx', 'fields.tsx']) {
     assert.ok(components.includes(required), 'src/app/ui/components/' + required + ' exists')
   }
 })

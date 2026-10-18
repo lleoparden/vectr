@@ -16,6 +16,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { isLightColor, normalizeHex, PANEL_SWATCHES } from '../../../geom/color.ts'
 import { beginLiveEdit, endLiveEdit, markLiveChanged } from '../liveEdit.ts'
 import { evaluateExpression, scrubValue } from '../number.ts'
+import { Button } from './Button.tsx'
+import { SwatchTile } from './SwatchTile.tsx'
 
 const FIELD =
   'h-6 w-full min-w-0 rounded-ui border border-hairline bg-chrome-sunken px-1.5 text-ui-xs text-ink ' +

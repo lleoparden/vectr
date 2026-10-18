@@ -30,6 +30,8 @@ import {
 import { expandedGroupIds, layerRows, rowDescription, type LayerRow } from './layerRows.ts'
 import { placementFor } from '../editing/layerDrag.ts'
 import { Button } from '../ui/components/Button.tsx'
+import { ListItem } from '../ui/components/ListItem.tsx'
+import { RowControl } from '../ui/components/RowControl.tsx'
 import { locateRowIds } from '../editing/locate.ts'
 import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../ui/theme.ts'
 import { canRunAction, deleteUnlockedSelection, runEditorAction, runLayerDrop } from '../actions.ts'
@@ -358,56 +360,51 @@ function LayerRowItem({
       }}
     >
       {locate ? (
-        <button
-          type="button"
-          aria-label={`Select parent of ${row.node.name}`}
+        <RowControl
+          label={`Select parent of ${row.node.name}`}
           title={`Select ${row.node.name}, which contains the selection`}
-          data-locate={row.id}
-          className="flex shrink-0 items-center justify-center text-accent"
-          style={{ width: ROW_TOGGLE_SIZE, height: LAYER_ROW_HEIGHT }}
+          data={{ 'data-locate': row.id }}
+          accent
+          width={ROW_TOGGLE_SIZE}
+          height={LAYER_ROW_HEIGHT}
+          icon={<span aria-hidden="true" className="block h-[6px] w-[6px] rounded-[1px] bg-accent" />}
           onClick={() => onLocate(row.id)}
-        >
-          <span aria-hidden="true" className="block h-[6px] w-[6px] rounded-[1px] bg-accent" />
-        </button>
+        />
       ) : (
         <span className="shrink-0" style={{ width: ROW_TOGGLE_SIZE }} aria-hidden="true" />
       )}
       {row.hasChildren ? (
-        <button
-          type="button"
-          aria-label={row.expanded ? `Collapse ${row.node.name}` : `Expand ${row.node.name}`}
+        <RowControl
+          label={row.expanded ? `Collapse ${row.node.name}` : `Expand ${row.node.name}`}
           title={row.expanded ? 'Collapse group' : 'Expand group'}
-          className={`${toggleClass} text-ink-faint`}
-          style={{ width: ROW_TOGGLE_SIZE, height: LAYER_ROW_HEIGHT }}
+          expanded={row.expanded}
+          width={ROW_TOGGLE_SIZE}
+          height={LAYER_ROW_HEIGHT}
+          icon={row.expanded ? <IconDisclosureOpen size={10} /> : <IconDisclosureClosed size={10} />}
           onClick={() => onToggleExpanded(row.id)}
-        >
-          {row.expanded ? <IconDisclosureOpen size={10} /> : <IconDisclosureClosed size={10} />}
-        </button>
+        />
       ) : (
         <span className="shrink-0" style={{ width: ROW_TOGGLE_SIZE }} aria-hidden="true" />
       )}
-      <button
-        type="button"
-        aria-pressed={row.hidden}
-        aria-label={`${row.hidden ? 'Show' : 'Hide'} ${row.node.name}`}
+      <RowControl
+        label={`${row.hidden ? 'Show' : 'Hide'} ${row.node.name}`}
         title={row.hidden ? `Show ${row.node.name}` : `Hide ${row.node.name}`}
-        className={`${toggleClass} ${row.hidden ? 'text-ink-faint' : 'text-ink-muted'}`}
-        style={{ width: ROW_TOGGLE_SIZE, height: LAYER_ROW_HEIGHT }}
+        pressed={row.hidden}
+        width={ROW_TOGGLE_SIZE}
+        height={LAYER_ROW_HEIGHT}
+        icon={row.hidden ? <IconEyeOff size={12} /> : <IconEye size={12} />}
         onClick={() => onToggleFlag(row.id, row.node.locked, !row.node.hidden, row.hidden ? 'show layer' : 'hide layer')}
-      >
-        {row.hidden ? <IconEyeOff size={12} /> : <IconEye size={12} />}
-      </button>
-      <button
-        type="button"
-        aria-pressed={row.locked}
-        aria-label={`${row.locked ? 'Unlock' : 'Lock'} ${row.node.name}`}
+      />
+      <RowControl
+        label={`${row.locked ? 'Unlock' : 'Lock'} ${row.node.name}`}
         title={row.locked ? `Unlock ${row.node.name}` : `Lock ${row.node.name}`}
-        className={`${toggleClass} ${row.locked || row.inheritedLocked ? 'text-ink-muted' : 'text-ink-faint'}`}
-        style={{ width: ROW_TOGGLE_SIZE, height: LAYER_ROW_HEIGHT }}
+        pressed={row.locked}
+        width={ROW_TOGGLE_SIZE}
+        height={LAYER_ROW_HEIGHT}
+        className={row.locked || row.inheritedLocked ? 'text-ink-muted' : ''}
+        icon={row.locked ? <IconLock size={12} /> : <IconUnlock size={12} />}
         onClick={() => onToggleFlag(row.id, !row.node.locked, row.node.hidden, row.locked ? 'unlock layer' : 'lock layer')}
-      >
-        {row.locked ? <IconLock size={12} /> : <IconUnlock size={12} />}
-      </button>
+      />
       <span
         aria-hidden="true"
         title={
@@ -447,15 +444,12 @@ function LayerRowItem({
           onBlur={(event) => onRenameCommit(row.id, event.currentTarget.value)}
         />
       ) : (
-        <button
-          type="button"
-          data-layer-name
-          aria-label={`${row.node.name}, ${rowDescription(row)}`}
-          title={`${row.node.name}, ${rowDescription(row)}`}
-          className={`flex-1 truncate px-1 text-left text-ui-xs ${
-            selected ? 'text-accent-ink' : dimmed ? 'text-ink-faint' : 'text-ink-muted'
-          }`}
-          style={{ height: LAYER_ROW_HEIGHT }}
+        <ListItem
+          label={`${row.node.name}, ${rowDescription(row)}`}
+          active={selected}
+          height={LAYER_ROW_HEIGHT}
+          className={`truncate px-1 ${dimmed ? 'text-ink-faint' : ''}`}
+          data={{ 'data-layer-name': '' }}
           onPointerDown={(event) => {
             if (event.button !== 0) return
             onDragStart(row.id, event.metaKey || event.ctrlKey)
@@ -464,7 +458,7 @@ function LayerRowItem({
           onDoubleClick={() => onRenameStart(row.id)}
         >
           {row.node.name}
-        </button>
+        </ListItem>
       )}
     </li>
   )

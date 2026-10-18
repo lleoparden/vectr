@@ -11,10 +11,10 @@ A desktop-first vector design tool with Illustrator's conventions and its own co
 [![Electron](https://img.shields.io/badge/Electron-35-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Skia](https://img.shields.io/badge/CanvasKit-Skia-7B61FF)](https://skia.org/)
+[![Skia](https://img.shields.io/badge/CanvasKit-Skia-A94A4A)](https://skia.org/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4.3-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Site](https://img.shields.io/badge/site-lleoparden.github.io%2Fvectr-7C6CF5)](https://lleoparden.github.io/vectr/)
+[![Site](https://img.shields.io/badge/site-lleoparden.github.io%2Fvectr-A94A4A)](https://lleoparden.github.io/vectr/)
 [![Release](https://img.shields.io/badge/release-v0.4.0-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.4.0)
 
 </div>

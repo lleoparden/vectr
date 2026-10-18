@@ -1,10 +1,14 @@
 name: Release
 
-# Versioned pre-releases, one per phase. The tag is `v<version>` from package.json and it never moves:
-# a download URL must always return the same bytes, and "which build am I running" must have an answer.
+# Versioned releases, one per phase. The tag is `v<version>` from package.json and it never moves: a download
+# URL must always return the same bytes, and "which build am I running" must have an answer.
 #
-# The notes are `docs/RELEASES.md` with `<version>` substituted, and the Windows installer is built by
-# this workflow when the version is new, when a merge changes the notes, or when dispatched by hand.
+# The release is published as a normal release, not a GitHub pre-release, because only normal releases appear in
+# the repository sidebar with their version and the "Latest" badge - which is where someone looks for a download.
+# "Alpha" is said in the title and the notes, not by hiding the release from the sidebar.
+#
+# The notes are `docs/RELEASES.md` with `<version>` substituted, and the Windows installer is built by this
+# workflow when the version is new, when the release exists without its installer, or on manual rebuild.
 
 on:
   push:
@@ -43,6 +47,8 @@ jobs:
       - name: Read the version
         id: version
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -52,8 +58,6 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: npm ci
@@ -97,7 +101,7 @@ jobs:
           git tag -a "${{ steps.version.outputs.tag }}" -m "Vectr ${{ steps.version.outputs.version }}"
           git push origin "${{ steps.version.outputs.tag }}"
 
-      - name: Publish the pre-release
+      - name: Publish the release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,9 +110,9 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           sed "s/<version>/$VERSION/g" docs/RELEASES.md > "$RUNNER_TEMP/notes.md"
           if [ "${{ steps.version.outputs.exists }}" = "true" ]; then
-            gh release edit "$TAG" --prerelease --title "Vectr $VERSION (alpha)" --notes-file "$RUNNER_TEMP/notes.md"
+            gh release edit "$TAG" --prerelease=false --latest --title "Vectr: v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
           else
-            gh release create "$TAG" --prerelease --title "Vectr $VERSION (alpha)" --notes-file "$RUNNER_TEMP/notes.md"
+            gh release create "$TAG" --latest --title "Vectr: v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
           fi
 
       - name: Attach the installer

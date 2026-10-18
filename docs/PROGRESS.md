@@ -1,6 +1,27 @@
 # Progress
 
 
+## Canvas pass — sized artboards on a grey pasteboard, with presets (2026-10-17)
+
+The owner asked for artboards with sizes to choose from and a canvas that is a set sheet with grey around
+it, not an infinite white board. This is that pass.
+
+- **Grey pasteboard, white page.** The viewport now clears to the pasteboard grey; each page paints white
+  with a soft shadow and a one-screen-pixel edge, so the sheet is visibly a fixed size.
+- **Bug fixed: pages follow pan and zoom.** They were drawn before the viewport transform, so they sat
+  still while the artwork moved — only invisible at the default view.
+- **A size menu with real presets:** Default 1200 × 800, HD 1920 × 1080, Square 1080 × 1080, Story
+  1080 × 1920, Portrait 1080 × 1350, A4 and Letter at 300 dpi, plus Custom for any typed size.
+- **Page chrome:** every page shows its name and size above its top-left corner; the active page carries an
+  accent outline. A new page copies the active page's size.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **215/215** (one new case: presets
+are real sizes, an exact match names its preset, anything else is Custom); packaged run **115 steps across
+seven reports**, `[vectr-ui]` **16/16** with two new steps — a preset resizes the page to 1920 × 1080 and
+each page is labelled on the canvas.
+
+
+
 ## UI pass, second half — Appearance, Color, status bar, Control panel (2026-10-17)
 
 The rest of the shell now matches the Properties rebuild.

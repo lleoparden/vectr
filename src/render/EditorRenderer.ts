@@ -361,11 +361,13 @@ export class EditorRenderer {
     const started = performance.now()
     this.viewport = viewport
     const canvas = this.surface.getCanvas()
-    canvas.clear(this.kit.WHITE)
-    this.drawArtboards(canvas)
+    // The pasteboard around the page is grey, so the page reads as a bounded sheet rather than an
+    // infinite white board; the pages themselves are painted white inside the viewport transform.
+    canvas.clear(this.kit.Color4f(0.102, 0.102, 0.122, 1))
     canvas.save()
     canvas.translate(viewport.panX, viewport.panY)
     canvas.scale(viewport.zoom, viewport.zoom)
+    this.drawArtboards(canvas)
     for (const bucket of this.buckets) {
       if (bucket.picture === null) this.recordBucket(bucket)
       if (bucket.picture !== null) canvas.drawPicture(bucket.picture)
@@ -416,10 +418,17 @@ export class EditorRenderer {
   /** Paints each artboard page, so multiple pages are visibly separate (issue #67). */
   private drawArtboards(canvas: Canvas): void {
     if (this.artboards.length === 0) return
+    const zoom = this.viewport?.zoom ?? 1
     const page = this.paintFor('fill', '#ffffff', 0, 1)
-    const edge = this.paintFor('stroke', '#3a3a44', 1, 1)
+    const edge = this.pageEdgePaintFor(zoom)
+    // A soft shadow keeps the page edge legible on the grey pasteboard at any zoom.
+    const shadow = this.paintFor('fill', '#000000', 0, 0.28)
     for (const artboard of this.artboards) {
       const rect = this.kit.XYWHRect(artboard.x, artboard.y, artboard.width, artboard.height)
+      canvas.drawRect(
+        this.kit.XYWHRect(artboard.x + 2 / zoom, artboard.y + 3 / zoom, artboard.width, artboard.height),
+        shadow,
+      )
       canvas.drawRect(rect, page)
       canvas.drawRect(rect, edge)
     }
@@ -678,6 +687,20 @@ export class EditorRenderer {
       default:
         return this.kit.BlendMode.SrcOver
     }
+  }
+
+  /** A one-screen-pixel page edge, kept crisp by scaling the width with the zoom. */
+  private pageEdgePaintFor(zoom: number): Paint {
+    const key = `page-edge:${zoom}`
+    const cached = this.paintCache.get(key)
+    if (cached) return cached
+    const paint = new this.kit.Paint()
+    paint.setAntiAlias(true)
+    paint.setColor(this.color('#55555f'))
+    paint.setStyle(this.kit.PaintStyle.Stroke)
+    paint.setStrokeWidth(1 / zoom)
+    this.paintCache.set(key, paint)
+    return paint
   }
 
   /** One-pixel selection outline, drawn independently of zoom. */

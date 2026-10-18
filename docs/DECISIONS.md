@@ -1906,3 +1906,21 @@ Implementation follows the contract above. Three decisions worth naming:
   unused variable, so isolation mode was invisible in the status bar. It is back, with the key that leaves it
   in its tooltip — a reminder that a green typecheck can still hide a lost line.
 
+## 2026-10-17 — The canvas is a sized sheet on a grey pasteboard (canvas pass)
+
+- **The page is bounded, the pasteboard is not.** The viewport clears to the pasteboard grey and each
+  page paints white with a soft shadow and a crisp edge, so the sheet reads as a fixed size you can work
+  inside — Illustrator's model — instead of an endless white field.
+- **Pages are drawn *inside* the viewport transform.** They were drawn before `translate`/`scale`, which
+  meant the pages ignored pan and zoom while the artwork moved — a real bug that only looked right at the
+  default view. Fixed, and the packaged run's artboard steps still pass.
+- **The page edge scales with the zoom** (`1 / zoom` stroke width, cached per zoom like the selection
+  outline), so it stays one screen pixel rather than becoming a fat band when you zoom in.
+- **Presets are data, not UI.** Seven common sheet sizes live in `doc/artboards.ts`; the panel renders
+  them. A size that matches one reads as that preset, anything else reads as Custom, so the menu never
+  claims a size the document does not have.
+- **Page labels are DOM, not renderer text.** A label must stay the same size at every zoom and must not be
+  recorded into a page's picture — labels have no business in an exported layer.
+- **A new page copies the active page's size**, so setting a preset then creating a page gives two sheets of
+  the same size, which is what a multi-page document wants.
+

@@ -13,100 +13,12 @@
  * the menus print the same chords and a test asserts the whole map is consistent.
  */
 
-import type { EditorActionId } from '../actions.ts'
+import type { EditorActionId, KeyChord, ShortcutSpec } from '../commands/registry.ts'
+import { SHORTCUTS } from '../commands/registry.ts'
 
-export type KeyChord = {
-  /** Lower-case `KeyboardEvent.key`, with two accepted spellings: `delete`/`backspace`. */
-  key: string
-  ctrl?: boolean
-  shift?: boolean
-  alt?: boolean
-}
-
-export type ShortcutSpec = {
-  id: EditorActionId
-  chord: KeyChord
-  /** True when this is Illustrator's own default for the command. */
-  illustratorDefault: boolean
-  /** Why a divergence exists; required when `illustratorDefault` is false. */
-  note?: string
-}
-
-export const SHORTCUTS: readonly ShortcutSpec[] = [
-  // Tools (Illustrator: V = Selection, A = Direct Selection, Q = Lasso, M = Rectangle, L = Ellipse,
-  // T = Type).
-  { id: 'tool.select', chord: { key: 'v' }, illustratorDefault: true },
-  { id: 'tool.directSelect', chord: { key: 'a' }, illustratorDefault: true },
-  { id: 'tool.lasso', chord: { key: 'q' }, illustratorDefault: true },
-  { id: 'tool.rect', chord: { key: 'm' }, illustratorDefault: true },
-  { id: 'tool.roundedRect', chord: { key: 'j' }, illustratorDefault: false, note: 'Illustrator has no key for the rounded rectangle tool, which Vectr does' },
-  { id: 'tool.ellipse', chord: { key: 'l' }, illustratorDefault: true },
-  // Illustrator's Line Segment tool. Polygon, Star, and Arc have no Illustrator defaults, so
-  // Vectr deliberately does not invent keys that would collide with a real Illustrator habit.
-  { id: 'tool.line', chord: { key: '\\' }, illustratorDefault: true },
-  { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
-  // H is Illustrator's own chord for the Hand tool; Space reaches it temporarily.
-  { id: 'tool.hand', chord: { key: 'h' }, illustratorDefault: true },
-
-  // File (Illustrator's document chords, then Place).
-  { id: 'file.new', chord: { key: 'n', ctrl: true }, illustratorDefault: true },
-  { id: 'file.open', chord: { key: 'o', ctrl: true }, illustratorDefault: true },
-  { id: 'file.save', chord: { key: 's', ctrl: true }, illustratorDefault: true },
-  { id: 'file.saveAs', chord: { key: 's', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'file.place', chord: { key: 'p', ctrl: true, shift: true }, illustratorDefault: true },
-
-  // Type (Illustrator's size and alignment chords).
-  { id: 'type.sizeUp', chord: { key: '>', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'type.sizeDown', chord: { key: '<', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'type.alignLeft', chord: { key: 'l', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'type.alignCenter', chord: { key: 'c', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'type.alignRight', chord: { key: 'r', ctrl: true, shift: true }, illustratorDefault: true },
-
-  // Edit.
-  // Edit (Illustrator's Preferences chord on Windows is Ctrl+K).
-  { id: 'edit.preferences', chord: { key: 'k', ctrl: true }, illustratorDefault: true },
-  { id: 'edit.undo', chord: { key: 'z', ctrl: true }, illustratorDefault: true },
-  { id: 'edit.redo', chord: { key: 'z', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'edit.cut', chord: { key: 'x', ctrl: true }, illustratorDefault: true },
-  { id: 'edit.copy', chord: { key: 'c', ctrl: true }, illustratorDefault: true },
-  { id: 'edit.paste', chord: { key: 'v', ctrl: true }, illustratorDefault: true },
-  { id: 'edit.clear', chord: { key: 'delete' }, illustratorDefault: true },
-  { id: 'edit.clear', chord: { key: 'backspace' }, illustratorDefault: false, note: 'Extra binding for keyboards without a Delete key.' },
-
-  // Select.
-  { id: 'select.all', chord: { key: 'a', ctrl: true }, illustratorDefault: true },
-  { id: 'select.deselect', chord: { key: 'a', ctrl: true, shift: true }, illustratorDefault: true },
-
-  // Object.
-  { id: 'object.group', chord: { key: 'g', ctrl: true }, illustratorDefault: true },
-  { id: 'object.ungroup', chord: { key: 'g', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'object.arrangeFront', chord: { key: ']', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'object.arrangeForward', chord: { key: ']', ctrl: true }, illustratorDefault: true },
-  { id: 'object.arrangeBackward', chord: { key: '[', ctrl: true }, illustratorDefault: true },
-  { id: 'object.arrangeBack', chord: { key: '[', ctrl: true, shift: true }, illustratorDefault: true },
-  { id: 'object.hideSelection', chord: { key: '3', ctrl: true }, illustratorDefault: true },
-  { id: 'object.showAll', chord: { key: '3', ctrl: true, alt: true }, illustratorDefault: true },
-  { id: 'object.lockSelection', chord: { key: '2', ctrl: true }, illustratorDefault: true },
-  { id: 'object.unlockAll', chord: { key: '2', ctrl: true, alt: true }, illustratorDefault: true },
-
-  // View.
-  { id: 'view.zoomIn', chord: { key: '=', ctrl: true }, illustratorDefault: true },
-  { id: 'view.zoomIn', chord: { key: '+', ctrl: true }, illustratorDefault: true },
-  { id: 'view.zoomOut', chord: { key: '-', ctrl: true }, illustratorDefault: true },
-  { id: 'view.fitArtboard', chord: { key: '0', ctrl: true }, illustratorDefault: true },
-  { id: 'view.actualSize', chord: { key: '1', ctrl: true }, illustratorDefault: true },
-  { id: 'view.smartGuides', chord: { key: 'u', ctrl: true }, illustratorDefault: true },
-  // Illustrator's own view chords.
-  { id: 'view.rulers', chord: { key: 'r', ctrl: true }, illustratorDefault: true },
-  { id: 'view.grid', chord: { key: "'", ctrl: true }, illustratorDefault: true },
-  { id: 'view.guides', chord: { key: ';', ctrl: true }, illustratorDefault: true },
-  { id: 'view.clearGuides', chord: { key: ';', ctrl: true, alt: true }, illustratorDefault: true },
-
-  // Window: Illustrator's panel shortcuts.
-  { id: 'window.togglePanel.layers', chord: { key: 'f7' }, illustratorDefault: true },
-  { id: 'window.togglePanel.color', chord: { key: 'f6' }, illustratorDefault: true },
-  { id: 'window.togglePanel.appearance', chord: { key: 'f6', shift: true }, illustratorDefault: true },
-]
+// The chord table lives in the command registry (Phase 3.4); this module is the key handling.
+export { SHORTCUTS }
+export type { KeyChord, ShortcutSpec }
 
 function chordKey(chord: KeyChord): string {
   return `${chord.ctrl === true ? 'ctrl+' : ''}${chord.shift === true ? 'shift+' : ''}${chord.alt === true ? 'alt+' : ''}${chord.key}`

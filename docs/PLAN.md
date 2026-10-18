@@ -21,6 +21,12 @@ Gap 1 in the reference gap list, and the owner's central complaint. The first th
 3. **Hover and previews** - hover outlines, tool-specific cursors over objects and handles, and a live preview for
    every gesture that currently only shows its result after release.
 
+4. **Align and Transform panels** - the commands and fields exist (audit rows 50-51) but Illustrator users look for
+   the panels. Align puts the six alignments and two distributions on buttons with the key-object rules stated;
+   Transform exposes X/Y/W/H and rotation once 4.2 lands.
+5. **Layer panel polish** - the locate column, thumbnails for nested rows, and dragging a layer into a group
+   (audit row 61). These are the gaps issue #20 recorded and never closed.
+
 Then snapping feel, modifier previews, and panel liveness, per the phase epic (#112).
 
 ## Phase 2 history (complete, for reference)

@@ -5,40 +5,33 @@ The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md), replanned on 
 
 ## Phase 4 - interaction fidelity (complete 2026-10-18)
 
-**4.6 (owner request, 2026-10-18): number fields and Illustrator conventions.** Scrub-able number fields with
-Shift for a finer drag, arithmetic on commit, arrow keys and Escape, one standardised component, the Hand under
-the selection tools, Alt-drag duplicate, and Shift+wheel horizontal pan. Shipped as PR #130; it also fixed a
-transaction-ownership bug in `runPlan` that the packaged run exposed.
+Five slices, all merged and evidenced: the scale gesture became a tool (#125), rotation renders, hit-tests,
+frames, and scales in its own frame (#126), the canvas gained hover outlines, per-tool cursors, and a live
+rotation readout (#127), Align and Transform got their panels (#128), and the layer panel gained its locate
+column and nested previews (#129).
 
-**Phase 3 shipped in five slices:** 3.1 layer rule and `src/geom/` (#114), 3.2 Selection, Direct Selection, and
-Hand as machines (#115), 3.3 lasso, all seven shape tools, and Type (#116), 3.4 one command registry (#117), 3.5
-the review checklist and the pruned leftovers (#118). Behaviour stayed frozen throughout: every slice ended with
-the same unit-suite result and the same 126-step packaged run.
+Two owner-requested slices followed: **4.6** scrub-able number fields with arithmetic, Alt-drag duplicate, and
+Shift+wheel pan (PR #130, which also fixed a transaction-ownership bug in `runPlan`), and **4.7** the Zoom tool
+(PR #132). Then the **UI component kit** (issue #133) standardised every control into
+`src/app/ui/components/` across three passes (#134, #135, #136), with a standards test that fails on any raw
+`<button>` or `type=number` outside it.
 
-## Phase 4 - interaction fidelity (next)
+## Phase 5 - the path model and boolean operations (next)
 
-Gap 1 in the reference gap list, and the owner's central complaint. The first three slices, in order:
+Epic [#6](https://github.com/lleoparden/vectr/issues/6). This is the largest remaining capability gap: there is
+no Bézier path node yet, so the pen, anchors, Pathfinder, width profiles, and compound paths all wait on it.
 
-1. **Scale handles as a tool** - DONE in #125: `src/tools/transform.ts` owns the gesture; the math split into L0
-   `geom/transform.ts` and L1 `doc/transform.ts`; `scaleRef` is gone; 4 new tests. - move the last direct-manipulation path out of the canvas, add proportional
-   framing with Shift, and give the handles the Illustrator cursor set.
-2. **Rotation** - DONE in #126: degrees about the node's centre, rendered, hit-tested, framed, gesture-driven
-   (18px corner zone, Shift 15 degrees), numeric in Properties, frame-aware scaling. 5 new tests, 2 packaged steps. - rotate from outside the corners, with the rotation stored in the transform, the inverse applied
-   in hit testing, and the packaged run asserting a rotated object can be selected and moved where it looks.
-3. **Hover and previews** - DONE in #127: cursor vocabulary as data, hover outline using the tool hit test,
-   live rotation readout, and the inside-corner scale rule. 2 new tests, 3 packaged steps. - hover outlines, tool-specific cursors over objects and handles, and a live preview for
-   every gesture that currently only shows its result after release.
+| Slice | Issue | What it delivers |
+| --- | --- | --- |
+| 5.1 Path node and format v5 | #137 | `PathNode` with anchors and in/out handles, open and closed paths, validation, serialization as format v5 with v4 files still opening, rendering, and hit testing |
+| 5.2 Pen tool | #138 | Click for a corner, drag for a smooth anchor, click the first anchor to close, rubber-band preview, Escape to cancel, one undo entry per path |
+| 5.3 Anchor and segment editing | #139 | Direct selection reaches anchors and handles; add, delete, convert, join, average; keyboard nudge; the reshape loop Illustrator users expect |
+| 5.4 Pathfinder and Shape Builder | #140 | `src/ops/boolean` with unite, subtract, intersect, exclude, divide over flattened curves; commands, panel, and menu; fixtures that compare results |
+| 5.5 Width profiles (#103) | #141 | Stroke-to-outline geometry, width points, and the Width tool; the renderer draws the outline and hit testing follows it |
+| 5.6 Compound paths, offset, and live shapes | #142 | Compound path create and release, offset path, simplify, outline stroke, and live rectangle/ellipse/corner reshaping |
 
-4. **Align and Transform panels** - DONE in #128: an Arrange dock group, the six alignments and two distributions
-   as buttons disabled by the commands' own rule, Transform fields live on the same commands, and panel buttons
-   now forward an accessible name. - the commands and fields exist (audit rows 50-51) but Illustrator users look for
-   the panels. Align puts the six alignments and two distributions on buttons with the key-object rules stated;
-   Transform exposes X/Y/W/H and rotation once 4.2 lands.
-5. **Layer panel polish** - DONE in #129: locate column with a pure, tested rule; nested row previews with a
-   stated refusal for a shared bucket; the drag-into-group claim was corrected (it shipped in #20). - the locate column, thumbnails for nested rows, and dragging a layer into a group
-   (audit row 61). These are the gaps issue #20 recorded and never closed.
-
-Then snapping feel, modifier previews, and panel liveness, per the phase epic (#112).
+Every slice owes the usual evidence (typecheck, full suite, build, packaged steps) plus a fixture for the
+geometry it introduces. Booleans owe property tests on area and winding, not eyeballing.
 
 ## Phase 2 history (complete, for reference)
 

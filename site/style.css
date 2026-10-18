@@ -1,0 +1,100 @@
+:root {
+  color-scheme: dark;
+  --bg: #131316;
+  --panel: #1b1b20;
+  --line: #2b2b33;
+  --ink: #ececf1;
+  --muted: #a6a6b3;
+  --accent: #7c6cf5;
+  --accent-soft: #241f45;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.hero {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 72px 24px 40px;
+  text-align: center;
+}
+
+.logo { border-radius: 20px; }
+
+h1 { margin: 20px 0 8px; font-size: 46px; letter-spacing: -0.02em; }
+
+.tagline { margin: 0 auto; max-width: 620px; color: var(--muted); font-size: 18px; }
+
+.links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; }
+
+.links a {
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.links a:hover { border-color: var(--accent); }
+
+.links .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+main { max-width: 860px; margin: 0 auto; padding: 0 24px 64px; }
+
+section { border-top: 1px solid var(--line); padding: 36px 0; }
+
+h2 { font-size: 22px; letter-spacing: -0.01em; }
+
+p { color: var(--muted); }
+
+.grid { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+
+.grid li {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.grid strong { color: var(--ink); font-weight: 600; }
+
+.phases { list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 8px; }
+
+.phases li { color: var(--muted); font-size: 14px; }
+
+.phases span {
+  display: inline-block;
+  min-width: 86px;
+  margin-right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 12px;
+  text-align: center;
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  h1 { font-size: 34px; }
+}

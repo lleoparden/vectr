@@ -2287,3 +2287,17 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **When a shared control changes, the harness must adapt, not the product.** The options bar's switch to
   `NumberField` broke six packaged steps on a stale selector; the fix was in the smoke helper, and the product
   behaviour was already correct.
+
+## 2026-10-18 - MIT licence, a static site, and what a clean branch list means
+
+- **MIT, because the product's value is the implementation, not the licence.** The owner asked for a licence;
+  MIT is the least friction for a tool meant to be adopted, and the trademark note keeps Adobe's marks out of
+  any claim. `VectorCraft is behavioural and architectural reference only` stays written down next to it.
+- **The site is a static folder, not a generator.** `site/` is three files and the logo, deployed by the Pages
+  action on changes only to that folder. A site that needs a build would need a second toolchain for one page.
+- **Only merged branches are deleted.** The cleanup removed the 73 remote branches whose work is in `main` and
+  left the three local branches that are genuinely unmerged; deleting unmerged work because it is old is how
+  history gets lost.
+- **Phase 5 is issued before it is coded**, one sub-issue per slice with its boundaries and evidence, because the
+  repository's workflow says the plan exists first - and because the path model is the slice everything after it
+  depends on.

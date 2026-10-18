@@ -1,6 +1,27 @@
 # Progress
 
 
+## Repository hygiene, and Phase 5 planned (2026-10-18)
+
+- **The README is rewritten** for where the product actually is: Phase 4 complete, the layer table, the
+  component kit, the real commands and their current numbers, the roadmap as it stands, and a licence.
+- **MIT licence added** (`LICENSE`, and `package.json` carries it), with a trademark note about Adobe and a
+  statement that VectorCraft is behavioural reference only.
+- **A project site** in `site/` (one static page, no build step, the logo included) published by
+  `.github/workflows/pages.yml` on every change to `site/`. It links the source, roadmap, audit, and progress.
+- **Branch cleanup**: 73 merged remote branches deleted; `origin` now carries `main` alone. Three local branches
+  that are genuinely unmerged are kept.
+- **Phase 5 planned and issued**: the epic is #6, and the six slices are #137 (path node and format v5), #138
+  (pen), #139 (anchor editing), #140 (Pathfinder and Shape Builder), #141 (width profiles) and #142 (compound
+  paths, offset, live shapes), each with a plan, boundaries, acceptance, evidence, and risks. `docs/PLAN.md` now
+  carries that table.
+
+**Sweep result before planning:** typecheck clean, 272/272 tests, layer check green, build clean, packaged run
+143 steps. No leftover raw controls outside the kit, no TODOs or FIXMEs in source, and the only stale document
+claims (the README's "Phase 1 complete", the catalog's Align/Transform panel note) are corrected in this change.
+
+
+
 ## UI component kit, final pass - zero hand-written controls outside the kit (2026-10-18, closes #133)
 
 The last pass took the menus, the palette, the options bar, and the dialogs, and then tightened the standard to
@@ -22,7 +43,7 @@ The last pass took the menus, the palette, the options bar, and the dialogs, and
 stale - they looked for `input[type="number"]` - so the polygon, star, arc, rounded-rectangle, line, and Type
 steps failed with "the field was not rendered". The product was right and the test was looking for the old
 control; the harness now finds `input[role="spinbutton"]`. Behaviour afterwards: **272/272 tests**, layer check on
-116 files, clean typecheck and build, packaged run **145 steps across seven reports**.
+116 files, clean typecheck and build, packaged run **143 steps across seven reports**.
 
 **The cleanup is complete:** no panel, dialog, toolbar, palette, or menu hand-writes a button or a number input.
 Issue #133 closes.
@@ -48,7 +69,7 @@ panels and the dock.
   kit primitive to exist.
 
 **Behaviour is unchanged, measured:** 271/271 tests, layer check on 113 files, clean typecheck and build, and the
-packaged run **the same 145 steps across seven reports**, dialogs and layers panel included.
+packaged run **the same 143 steps across seven reports**, dialogs and layers panel included.
 
 **What is left:** `src/app/shell/ToolOptionsBar.tsx (6) · src/app/shell/MenuBar.tsx (4) · src/app/shell/ToolPalette.tsx (3) · src/app/shell/PanelFlyout.tsx (2) · src/app/canvas/ContextMenu.tsx (1) · src/app/shell/CrashRecoveryDialog.tsx (1)` - 17 raw buttons across six files, and each is a concept the kit does not have
 yet: menu titles and their items (`MenuButton` across MenuBar, PanelFlyout, ContextMenu), the palette's slot
@@ -77,7 +98,7 @@ parameters, and a second raw `<button>` in a panel is a review finding.
   required primitives exist in the folder.
 
 **Behaviour is unchanged, measured:** 271/271 tests (4 new standards checks), layer check on 111 files, clean
-typecheck and build, and the packaged run **the same 145 steps across seven reports**.
+typecheck and build, and the packaged run **the same 143 steps across seven reports**.
 
 **What is left, so it is not mistaken for done:** 30 raw `<button>` elements remain in twelve files. Most are
 *different concepts* that need their own kit component rather than `Button`: menu titles and flyout items
@@ -108,7 +129,7 @@ pairing, which was the point of the change.
 
 **Behaviour, measured:** 267/267 tests (4 new: click in, Alt out, a framed drag, and a two-pixel move that must
 still count as a click), layer check on 107 files, clean typecheck and build, and the packaged run now
-**145 steps** with two new steps - Z activates the tool with its cursor and zooms in then out, and a dragged
+**143 steps** with two new steps - Z activates the tool with its cursor and zooms in then out, and a dragged
 zoom frames an area before a double-click returns to 100%.
 
 

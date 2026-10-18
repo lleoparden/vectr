@@ -16,8 +16,8 @@ import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text' | 'artboard'
-export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'type' | 'artboard'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text' | 'hand' | 'artboard'
+export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'type' | 'hand' | 'artboard'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
 
@@ -61,6 +61,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
     ],
   },
   { id: 'type', label: 'Type Tool', members: [{ tool: 'text', label: 'Type Tool', action: 'tool.text' }] },
+  // Illustrator's Hand tool keeps its own slot and its H chord; Space reaches it temporarily.
+  { id: 'hand', label: 'Hand Tool', members: [{ tool: 'hand', label: 'Hand Tool', action: 'tool.hand' }] },
   // Illustrator's Artboard tool keeps its own slot and its Shift+O chord.
   { id: 'artboard', label: 'Artboard Tool', members: [{ tool: 'artboard', label: 'Artboard Tool', action: 'tool.artboard' }] },
 ]
@@ -124,6 +126,13 @@ export function hasSelectedText(document: Document, selection: NodeId[]): boolea
 export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
   const { tool, selection, document, defaults, canRun } = input
   const group = groupFor(tool)
+
+  if (tool === 'hand') {
+    return [
+      { kind: 'label', text: 'Hand Tool' },
+      { kind: 'hint', text: 'Drag to move the view. Hold Space in any tool for the same hand.' },
+    ]
+  }
 
   if (tool === 'artboard') {
     return [

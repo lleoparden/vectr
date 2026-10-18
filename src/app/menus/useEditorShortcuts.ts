@@ -9,7 +9,7 @@
  * and keys pressed inside an open menu or dialog are left to that surface.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { canRunAction, nudgeSelection, runEditorAction } from '../actions.ts'
 import { chordFromEvent, matchShortcut } from './shortcuts.ts'
 import { documentStore } from '../../state/documentStore.ts'
@@ -39,6 +39,9 @@ function isMenuOrDialogTarget(target: EventTarget | null): boolean {
 }
 
 export function useEditorShortcuts() {
+  // Holding Space borrows the Hand tool, the way Illustrator does; releasing it gives the tool back.
+  const handRestore = useRef<ReturnType<typeof documentStore.getState>['tool'] | null>(null)
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       // A surface that already handled the key owns it: the Layers panel uses the arrows to
@@ -61,6 +64,15 @@ export function useEditorShortcuts() {
         nudgeSelection(arrow[0] * step, arrow[1] * step)
         return
       }
+      if (event.code === 'Space') {
+        if (handRestore.current === null && documentStore.getState().tool !== 'hand') {
+          handRestore.current = documentStore.getState().tool
+          documentStore.setTool('hand')
+        }
+        // Space would otherwise scroll the window under the canvas.
+        event.preventDefault()
+        return
+      }
       const action = matchShortcut(chordFromEvent(event))
       if (action === null) return
       // A chord that cannot run right now (undo with an empty history) does nothing,
@@ -69,7 +81,17 @@ export function useEditorShortcuts() {
       event.preventDefault()
       runEditorAction(action)
     }
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return
+      const previous = handRestore.current
+      handRestore.current = null
+      if (previous !== null) documentStore.setTool(previous)
+    }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
   }, [])
 }

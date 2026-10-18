@@ -318,6 +318,16 @@ export function CanvasView() {
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     canvasRef.current?.setPointerCapture(event.pointerId)
     const start = toScene(event)
+    // The Hand tool drags the camera: the same pan gesture the middle button uses, so there is one
+    // way the viewport moves and the hand cannot drift from it.
+    if (event.button === 0 && state.tool === 'hand') {
+      gestureRef.current = {
+        kind: 'pan',
+        startClient: { x: event.clientX, y: event.clientY },
+        panStart: { x: state.viewport.panX, y: state.viewport.panY },
+      }
+      return
+    }
     if (event.button === 1) {
       gestureRef.current = {
         kind: 'pan',
@@ -587,7 +597,10 @@ export function CanvasView() {
     <div className="relative min-h-0">
       <canvas
         ref={canvasRef}
-        className="block h-full w-full touch-none bg-neutral-900"
+        className={
+          'block h-full w-full touch-none bg-neutral-900 ' +
+          (state.tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : '')
+        }
         aria-label="Design canvas"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

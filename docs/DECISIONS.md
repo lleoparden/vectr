@@ -2146,3 +2146,23 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   gives equal factors, while a side handle keeps scaling one axis. That matches Illustrator; the first test
   assumed otherwise and was wrong, not the code.
 
+## 2026-10-18 - Rotation is degrees about a leaf's own centre, and scaling follows the frame (Phase 4.2)
+
+- **Degrees, not radians, about the node's own centre.** The field existed but was unused; degrees suit the
+  numeric field, the validation, and the file (v4 already carries it, so older files open with zero). Rotation
+  renders as a world-space turn about the shape's centre, which composes correctly with translation and scale at
+  any zoom.
+- **Rotation lives on leaves.** Rotating a selection applies a rigid-body turn: each leaf's centre orbits the
+  selection pivot and its own rotation advances. A group therefore rotates as its leaves rotate, without storing
+  a group-level rotation that would require composing rotations through the tree. This is a recorded limit, not
+  an accident.
+- **Hit testing rotates the point, not the node.** The query point is turned back into the node's frame by the
+  same angle, so the existing axis-aligned point-in-shape tests remain exact and cheap. Bounds for marquee and
+  lasso use the box around the rotated corners; the click is exact, the marquee is conservative.
+- **Scaling is frame-aware.** The scale tool brings the pointer into the frame's axes, scales centres in that
+  space, and rotates them back, so a rotated object scales along its own sides. Without this, resizing a rotated
+  rectangle would visibly change its shape - the kind of bug that makes rotation feel fake.
+- **The packaged evidence uses a bar, not a square.** Rotation of a square is invisible to hit testing, so the
+  smoke step builds a 200x40 bar and probes a point 80 units above its centre: outside before the turn, inside
+  after it. A square would have passed for the wrong reason.
+

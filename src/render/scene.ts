@@ -38,6 +38,8 @@ export type SceneShape = {
   y: number
   scaleX: number
   scaleY: number
+  /** Degrees, about the shape's own centre in world space (issue #120). */
+  rotation: number
   width: number
   height: number
   cornerRadius: number
@@ -137,6 +139,7 @@ function walkShapes(
     root,
     x: nextX,
     y: nextY,
+    rotation: node.transform.rotation,
     scaleX: nextScaleX,
     scaleY: nextScaleY,
     width: node.width,

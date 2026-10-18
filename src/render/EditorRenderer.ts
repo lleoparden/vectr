@@ -470,6 +470,15 @@ export class EditorRenderer {
         recording.clipPath(this.clipPathFor(shape.clip), this.kit.ClipOp.Intersect, true)
       }
       recording.save()
+      // Rotation is a world-space turn about the shape's own centre, applied outside the translate
+      // and scale so it works identically at any scale (issue #120).
+      if (shape.rotation !== 0) {
+        const centreX = shape.x + (shape.width * shape.scaleX) / 2
+        const centreY = shape.y + (shape.height * shape.scaleY) / 2
+        recording.translate(centreX, centreY)
+        recording.rotate(shape.rotation, 0, 0)
+        recording.translate(-centreX, -centreY)
+      }
       recording.translate(shape.x, shape.y)
       if (shape.scaleX !== 1 || shape.scaleY !== 1) recording.scale(shape.scaleX, shape.scaleY)
       if (shape.kind === 'text') {
@@ -858,7 +867,7 @@ function base64FromBytes(bytes: Uint8Array): string {
 function signatureOf(shapes: SceneShape[]): string {
   let signature = ''
   for (const shape of shapes) {
-    signature += `${shape.id},${shape.x},${shape.y},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity},${shape.assetId ?? '-'}`
+    signature += `${shape.id},${shape.x},${shape.y},${shape.rotation},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity},${shape.assetId ?? '-'}`
     // Text content and metrics affect pixels exactly as geometry does, so they belong in the
     // signature: an edited string must re-record its bucket.
     if (shape.text !== null) {

@@ -142,7 +142,7 @@ catalog claims were stale and are corrected.
 
 | Gap | Phase |
 |---|---|
-| Rotation, then reflect and shear | 4.2, then unscheduled |
+| Reflect and shear | unscheduled (rotation shipped in 4.2) |
 | Scale handles as a tool, handle snapping | 4.1 |
 | Hover outlines, per-tool cursors, live previews | 4.3 |
 | Align panel, Transform panel | 4.4 |

@@ -33,6 +33,8 @@ type Placed = {
   y: number
   scaleX: number
   scaleY: number
+  /** Degrees about the leaf's own centre; groups do not rotate (issue #120). */
+  rotation: number
   /** Top-level ancestor id, used to collapse a hit to the isolation level. */
   root: NodeId
   /** True when the node or any ancestor is locked, so a locked group locks its subtree. */
@@ -90,7 +92,7 @@ function placedChildren(
     }
     return
   }
-  into.push({ node, x: nextX, y: nextY, scaleX: nextScaleX, scaleY: nextScaleY, root, locked, clip })
+  into.push({ node, x: nextX, y: nextY, scaleX: nextScaleX, scaleY: nextScaleY, rotation: node.transform.rotation, root, locked, clip })
 }
 
 /** Every visible leaf with its world transform, in paint order. */
@@ -134,9 +136,12 @@ export function hitTest(document: Document, point: Point, options: HitOptions = 
   for (let index = placed.length - 1; index >= 0; index -= 1) {
     const entry = placed[index]
     if (entry.locked && options.includeLocked !== true) continue
+    // A rotated node is tested against the point rotated back into its own frame, so a click lands
+    // where the object looks (issue #120).
+    const probe = entry.rotation === 0 ? point : rotateAboutCentre(point, entry, -entry.rotation)
     const local = {
-      x: (point.x - entry.x) / (entry.scaleX === 0 ? 1 : entry.scaleX),
-      y: (point.y - entry.y) / (entry.scaleY === 0 ? 1 : entry.scaleY),
+      x: (probe.x - entry.x) / (entry.scaleX === 0 ? 1 : entry.scaleX),
+      y: (probe.y - entry.y) / (entry.scaleY === 0 ? 1 : entry.scaleY),
     }
     if (!containsLocalPoint(entry.node, local)) continue
     // A clipped-away point is not a hit: selecting what cannot be seen is a lie (issue #71).
@@ -150,12 +155,36 @@ export function hitTest(document: Document, point: Point, options: HitOptions = 
 /** World-space bounds of a placed leaf. */
 export function placedBounds(entry: Placed): { x: number; y: number; width: number; height: number } {
   if (isGroup(entry.node)) return { x: entry.x, y: entry.y, width: 0, height: 0 }
-  return {
+  const box = {
     x: entry.x,
     y: entry.y,
     width: entry.node.width * entry.scaleX,
     height: entry.node.height * entry.scaleY,
   }
+  if (entry.rotation === 0) return box
+  // A rotated leaf occupies the axis-aligned box around its four rotated corners, which is what a
+  // marquee or a lasso can honestly test (issue #120).
+  const corners = [
+    { x: box.x, y: box.y },
+    { x: box.x + box.width, y: box.y },
+    { x: box.x + box.width, y: box.y + box.height },
+    { x: box.x, y: box.y + box.height },
+  ].map((corner) => rotateAboutCentre(corner, entry, entry.rotation))
+  const xs = corners.map((corner) => corner.x)
+  const ys = corners.map((corner) => corner.y)
+  return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) }
+}
+
+/** Rotates a point about a placed leaf's centre; positive degrees turn clockwise on screen. */
+function rotateAboutCentre(point: Point, entry: Placed, degrees: number): Point {
+  const centreX = entry.x + (entry.node.type === 'group' ? 0 : (entry.node.width * entry.scaleX) / 2)
+  const centreY = entry.y + (entry.node.type === 'group' ? 0 : (entry.node.height * entry.scaleY) / 2)
+  const radians = (degrees * Math.PI) / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const dx = point.x - centreX
+  const dy = point.y - centreY
+  return { x: centreX + dx * cos - dy * sin, y: centreY + dx * sin + dy * cos }
 }
 
 /**

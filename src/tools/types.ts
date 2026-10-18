@@ -6,9 +6,8 @@
  * behaviour fixed in one tool does not have to be re-fixed in the next.
  */
 
-import type { Point } from '../geom/shapeGeometry.ts'
 import type { ShapeKind } from '../doc/document.ts'
-import type { Rect } from '../geom/transform.ts'
+import type { Point, Rect } from '../geom/transform.ts'
 import type { NodeId, Transform } from '../doc/types.ts'
 
 /** A pointer position in both coordinate systems the tools need. */
@@ -57,13 +56,28 @@ export type ToolHost = {
   commitShape(toolId: string, start: Point, end: Point, shift: boolean): void
   /** Places a text object at a scene point and opens its editor. */
   placeText(scene: Point): void
-  /** Captures the selection's box and transforms and opens the scale transaction. */
-  scaleBegin(): { box: Rect; originals: Map<NodeId, Transform> } | null
+  /** Captures the selection's box, rotation, and transforms and opens the scale transaction. */
+  scaleBegin(): ScaleCapture | null
+  /** Captures the selection for a rotation when the pointer is on a rotation zone, else null. */
+  rotationBegin(point: Point): RotateCapture | null
+  /** Applies one rotation step from the gesture's start. */
+  rotateBy(point: Point, shift: boolean): void
+  rotateEnd(): void
+  rotateCancel(): void
   /** Applies one node's transform during a scale. */
   setNodeTransform(nodeId: NodeId, transform: Transform): void
   scaleEnd(): void
   scaleCancel(): void
 }
+
+/** One node captured for a transform gesture: its original transform and its own extent. */
+export type CapturedNode = { id: NodeId; transform: Transform; width: number; height: number }
+
+/** What a scale gesture needs: the oriented frame and every node in it. */
+export type ScaleCapture = { box: Rect; rotation: number; centre: Point; nodes: CapturedNode[] }
+
+/** What a rotation gesture needs: the pivot and every node around it. */
+export type RotateCapture = { centre: Point; startAngle: number; nodes: CapturedNode[] }
 
 /** The preview the canvas draws while a shape is being dragged out. */
 export type ShapePreview = { kind: ShapeKind; start: Point; current: Point; shift: boolean }

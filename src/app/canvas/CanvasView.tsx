@@ -12,7 +12,7 @@ import type { ShapeKind } from '../../doc/document.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
 import { clampCornerRadius, outlinePoints } from '../../geom/shapeGeometry.ts'
 import { boxFor, constrainEnd, dragIsBigEnough, lineFrom } from './shapeDrag.ts'
-import { isText, type NodeId, type Transform } from '../../doc/types.ts'
+import { isGroup, isText, type NodeId, type Transform } from '../../doc/types.ts'
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
@@ -28,6 +28,8 @@ import type { ToolHost, ToolPoint } from '../../tools/types.ts'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { unionBounds } from '../../doc/transform.ts'
+import { angleFromCentre, handlePoints, normaliseAngle, rotatePoint, rotatedTransform, snapAngle } from '../../geom/transform.ts'
+import type { RotateCapture } from '../../tools/types.ts'
 import { type HandleId } from '../../geom/transform.ts'
 import { artboardAtPoint, artboardRect, artboardRects } from '../../doc/artboards.ts'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
@@ -47,6 +49,9 @@ import { fitRect, zoomAtPoint } from '../../geom/viewport.ts'
 type Gesture = { kind: 'none' } | { kind: 'pan'; startClient: Point; panStart: Point }
 
 const MIN_DRAG = 4
+/** How far outside a corner, in screen pixels, a pointer starts a rotation (Illustrator's own zone). */
+const ROTATE_ZONE = 18
+const CORNERS: HandleId[] = ['nw', 'ne', 'se', 'sw']
 
 /** The shape a tool draws, or `null` for the tools that are not shapes. */
 export function shapeKindForTool(tool: Tool): ShapeKind | null {
@@ -98,6 +103,7 @@ export function CanvasView() {
   /** The scale gesture's starting box and transforms, captured once so every move is absolute. */
   // Phase 4.1: the scale gesture is a tool; the overlay's callbacks below adapt to it.
   const scaleToolRef = useRef<ScaleTool | null>(null)
+  const rotateRef = useRef<RotateCapture | null>(null)
   if (scaleToolRef.current === null) scaleToolRef.current = createScaleTool('default')
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
@@ -276,6 +282,39 @@ export function CanvasView() {
     scaleToolRef.current?.endHandle(toolHost())
   }
 
+  /** Every movable selected node with its extent, plus the oriented frame it belongs to. */
+  function captureSelection() {
+    const current = documentStore.getState()
+    const box = unionBounds(current.document, current.selection)
+    if (box === null) return null
+    const nodes = []
+    for (const id of current.selection) {
+      const node = findNode(current.document, id)
+      if (node === null || node.locked || isGroup(node)) continue
+      nodes.push({ id, transform: { ...node.transform }, width: node.width, height: node.height })
+    }
+    if (nodes.length === 0) return null
+    return {
+      box,
+      rotation: selectionRotation(),
+      centre: { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+      nodes,
+    }
+  }
+
+  /** The rotation the frame is drawn at: a common rotation, or zero when the selection disagrees. */
+  function selectionRotation(): number {
+    const current = documentStore.getState()
+    const rotations: number[] = []
+    for (const id of current.selection) {
+      const node = findNode(current.document, id)
+      if (node === null || isGroup(node)) continue
+      rotations.push(normaliseAngle(node.transform.rotation))
+    }
+    if (rotations.length === 0) return 0
+    return rotations.every((value) => value === rotations[0]) ? rotations[0] : 0
+  }
+
   /** A pointer position in scene units and in screen pixels, which the Hand tool needs. */
   function toolPoint(event: React.PointerEvent<HTMLCanvasElement>): ToolPoint {
     const box = canvasRef.current?.getBoundingClientRect()
@@ -409,17 +448,48 @@ export function CanvasView() {
         if (result.ok) documentStore.setSelection([node.id])
       },
       scaleBegin: () => {
-        const current = documentStore.getState()
-        const box = unionBounds(current.document, current.selection)
-        if (box === null) return null
-        const originals = new Map<string, Transform>()
-        for (const id of current.selection) {
-          const node = findNode(current.document, id)
-          if (node !== null && !node.locked) originals.set(id, { ...node.transform })
-        }
-        if (originals.size === 0) return null
+        const captured = captureSelection()
+        if (captured === null) return null
         documentStore.beginTransaction('scale')
-        return { box, originals }
+        return captured
+      },
+      rotationBegin: (point) => {
+        if (selectionRotation() === 0) return null
+        const captured = captureSelection()
+        if (captured === null) return null
+        const tolerance = ROTATE_ZONE / documentStore.getState().viewport.zoom
+        const corners = handlePoints(captured.box)
+        const inZone = CORNERS.some((handle) => {
+          const corner = rotatePoint(corners[handle], captured.centre, captured.rotation)
+          return Math.hypot(point.x - corner.x, point.y - corner.y) <= tolerance
+        })
+        if (!inZone) return null
+        documentStore.beginTransaction('rotate')
+        const capture = { centre: captured.centre, startAngle: angleFromCentre(captured.centre, point), nodes: captured.nodes }
+        rotateRef.current = capture
+        return capture
+      },
+      rotateBy: (point, shift) => {
+        const gesture = rotateRef.current
+        if (gesture === null) return
+        const raw = angleFromCentre(gesture.centre, point) - gesture.startAngle
+        const degrees = normaliseAngle(shift ? snapAngle(raw) : raw)
+        for (const node of gesture.nodes) {
+          const next = rotatedTransform(node.transform, node, gesture.centre, degrees)
+          documentStore.dispatch({ type: 'setTransform', nodeId: node.id, transform: next }, 'rotate')
+          // Keep the captured transform in step with what was applied, so each move is absolute.
+          node.transform = next
+        }
+      },
+      rotateEnd: () => {
+        if (rotateRef.current === null) return
+        rotateRef.current = null
+        documentStore.commitTransaction()
+      },
+      rotateCancel: () => {
+        if (rotateRef.current === null) return
+        rotateRef.current = null
+        documentStore.abortTransaction()
       },
       setNodeTransform: (nodeId, transform) => {
         documentStore.dispatch({ type: 'setTransform', nodeId, transform }, 'scale')
@@ -728,6 +798,7 @@ export function CanvasView() {
           onScaleStart={startScale}
           onScaleMove={moveScale}
           onScaleEnd={endScale}
+          rotation={selectionRotation()}
         />
       )}
       <ContextMenu menu={menu} onClose={() => setMenu(null)} />

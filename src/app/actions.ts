@@ -26,7 +26,7 @@ import {
 } from './editing/arrange.ts'
 import { planDrop } from './editing/layerDrag.ts'
 import { unionBounds } from '../doc/transform.ts'
-import { nudgedTransform, scaledTransform } from '../geom/transform.ts'
+import { normaliseAngle, nudgedTransform, scaledTransform } from '../geom/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
 import type { BlendMode, FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import { ACTION_IDS, type EditorActionId } from './commands/registry.ts'
@@ -446,6 +446,21 @@ export function nudgeSelection(dx: number, dy: number): void {
  * (Phase 2.2). Position is a move; size is a scale about the top-left corner, so the arithmetic
  * lives in the transform planner rather than in the panel.
  */
+/** Sets the selection's rotation in degrees, normalised to 0..360 (issue #120). */
+export function setSelectionRotation(degrees: number): void {
+  if (!Number.isFinite(degrees)) return
+  const rotation = normaliseAngle(degrees)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('rotate')
+  const state = documentStore.getState()
+  for (const id of state.selection) {
+    const node = findNode(state.document, id)
+    if (node === null || node.locked) continue
+    documentStore.dispatch({ type: 'setTransform', nodeId: id, transform: { ...node.transform, rotation } }, 'rotate')
+  }
+  if (own) documentStore.commitTransaction()
+}
+
 export function setSelectionBounds(patch: { x?: number; y?: number; width?: number; height?: number }): void {
   const { document, selection } = documentStore.getState()
   const box = unionBounds(document, selection)

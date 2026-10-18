@@ -17,7 +17,8 @@ Gap 1 in the reference gap list, and the owner's central complaint. The first th
 1. **Scale handles as a tool** - DONE in #125: `src/tools/transform.ts` owns the gesture; the math split into L0
    `geom/transform.ts` and L1 `doc/transform.ts`; `scaleRef` is gone; 4 new tests. - move the last direct-manipulation path out of the canvas, add proportional
    framing with Shift, and give the handles the Illustrator cursor set.
-2. **Rotation** - rotate from outside the corners, with the rotation stored in the transform, the inverse applied
+2. **Rotation** - DONE in #126: degrees about the node's centre, rendered, hit-tested, framed, gesture-driven
+   (18px corner zone, Shift 15 degrees), numeric in Properties, frame-aware scaling. 5 new tests, 2 packaged steps. - rotate from outside the corners, with the rotation stored in the transform, the inverse applied
    in hit testing, and the packaged run asserting a rotated object can be selected and moved where it looks.
 3. **Hover and previews** - hover outlines, tool-specific cursors over objects and handles, and a live preview for
    every gesture that currently only shows its result after release.

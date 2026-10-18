@@ -1,6 +1,26 @@
 # Progress
 
 
+## UI pass, second half — Appearance, Color, status bar, Control panel (2026-10-17)
+
+The rest of the shell now matches the Properties rebuild.
+
+- **Appearance** edits the selection's fill, stroke colour and weight, opacity, and blend mode live, using
+  the same actions as Properties — a view of one appearance model, not a second one.
+- **Color** opens with the same live colour control (wheel, hex, recents), then the named Vectr palette and
+  the colours this document already uses, with the active colour marked by a pressed state and a check.
+- **Status bar** rebuilt: the tool is named in words (Direct Selection, not `directSelect`), separation is
+  visual, the saved/unsaved state has a dot, the zoom readout is clickable and prints its chord, and the
+  **isolation chip is back** — a merge resolution had dropped it while leaving the variable behind.
+- **Control panel** reads as chrome instead of text: labelled controls, readouts in chips with tabular
+  numbers, and the tool switch as one segmented control.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **214/214**; packaged run **113
+steps across seven reports**, `[vectr-ui]` **14/14** with two new steps — the Color panel lists its palette
+and applying a swatch changes the fill, and the Appearance panel's opacity slider updates the object live.
+
+
+
 ## UI pass — live Properties, a real colour control, and a layout that stays put (2026-10-17)
 
 The owner asked for a Properties panel that updates in real time, a colour control with more options, and a

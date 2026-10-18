@@ -1,16 +1,17 @@
 /**
- * Color panel (issue #28, made functional in issue #16).
+ * Color panel (issue #28, made functional in #16, rebuilt in the UI pass).
  *
- * Vectr's own palette plus the fills the document uses. Clicking a swatch applies it as the
- * fill of every selected shape or text object, through one `setStyle` command per node in one
- * transaction, so a color change is one undo step. The spectrum picker and the swatch library
- * are still planned.
+ * Three ways to set a colour, in the order people reach for them: an arbitrary colour (the same
+ * control Properties uses, with the platform wheel, hex, and recent picks), the named Vectr palette,
+ * and the colours this document already uses. Every pick is one undo step and applies live.
  */
 
-import { documentStore } from '../../state/documentStore.ts'
-import { useEditorState } from '../../state/useEditorState.ts'
 import { findNode, paintOrder } from '../../doc/document.ts'
-import { supportsFill, type Document } from '../../doc/types.ts'
+import { isLeaf, isText, supportsFill, type Document } from '../../doc/types.ts'
+import { useEditorState } from '../../state/useEditorState.ts'
+import { setSelectionFill } from '../actions.ts'
+import { isLightColor, normalizeHex } from '../ui/color.ts'
+import { ColorField, Section } from '../ui/fields.tsx'
 
 /** The palette Vectr ships with, named so swatches stay readable in tests and docs. */
 export const VECTR_PALETTE: Array<{ name: string; color: string }> = [
@@ -35,54 +36,46 @@ export function usedFillColors(document: Document): string[] {
   return [...seen]
 }
 
-/** Applies a fill to the selection as one undo step. */
+/** Applies a fill to the selection as one undo step; joins an open live-edit session if there is one. */
 export function applyFill(color: string): void {
-  const document = documentStore.getState().document
-  const targets = documentStore
-    .getState()
-    .selection.map((id) => findNode(document, id))
-    .filter((node) => node !== null && supportsFill(node))
-  if (targets.length === 0) return
-
-  documentStore.beginTransaction('apply fill')
-  let changed = false
-  for (const node of targets) {
-    if (node === null || !supportsFill(node) || node.style.fill === color) continue
-    const result = documentStore.dispatch(
-      { type: 'setStyle', nodeId: node.id, style: { ...node.style, fill: color } },
-      'apply fill',
-    )
-    if (result.ok) changed = true
-  }
-  if (changed) documentStore.commitTransaction()
-  else documentStore.abortTransaction()
+  setSelectionFill(color)
 }
 
-function SwatchList({
-  title,
+function SwatchGrid({
   entries,
+  active,
   onPick,
+  labelFor,
 }: {
-  title: string
   entries: Array<{ name: string; color: string }>
+  active: string | null
   onPick: (color: string) => void
+  labelFor: (entry: { name: string; color: string }) => string
 }) {
   return (
-    <div className="px-2 py-1">
-      <div className="pb-1 text-ui-xs text-ink-faint">{title}</div>
-      <div className="grid grid-cols-6 gap-1">
-        {entries.map((entry) => (
+    <div className="grid grid-cols-5 gap-1" role="group" aria-label="Colour swatches">
+      {entries.map((entry) => {
+        const selected = active !== null && normalizeHex(active) === normalizeHex(entry.color)
+        return (
           <button
-            key={`${title}-${entry.color}`}
+            key={`${entry.name}-${entry.color}`}
             type="button"
-            title={`${entry.name} ${entry.color}`}
-            aria-label={`Apply ${entry.name} ${entry.color}`}
-            className="h-5 w-full rounded-ui border border-hairline hover:border-accent"
+            title={`${entry.name} · ${entry.color}`}
+            aria-label={labelFor(entry)}
+            aria-pressed={selected}
+            className={
+              'relative flex h-6 w-full items-center justify-center rounded-ui border text-[9px] transition-transform hover:scale-[1.06] ' +
+              (selected
+                ? 'border-accent ring-1 ring-accent'
+                : 'border-black/40 hover:border-accent/70')
+            }
             style={{ background: entry.color }}
             onClick={() => onPick(entry.color)}
-          />
-        ))}
-      </div>
+          >
+            {selected && <span className={isLightColor(entry.color) ? 'text-black' : 'text-white'}>✓</span>}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -90,21 +83,48 @@ function SwatchList({
 export function ColorPanel() {
   const state = useEditorState()
   const used = usedFillColors(state.document)
-  const entries = used.map((color) => ({ name: 'In document', color }))
+  const selected = state.selection
+    .map((id) => findNode(state.document, id))
+    .find((node) => node !== null && isLeaf(node) && supportsFill(node))
+  const active = selected !== undefined && selected !== null && supportsFill(selected) ? selected.style.fill : null
   const hasSelection = state.selection.length > 0
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1">
-      <SwatchList title="Vectr palette" entries={VECTR_PALETTE} onPick={applyFill} />
-      {entries.length > 0 && (
-        <SwatchList title={`In this document (${entries.length})`} entries={entries} onPick={applyFill} />
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <Section title={selected !== undefined && selected !== null && isText(selected) ? 'Text colour' : 'Selection colour'}>
+        <ColorField
+          label="Colour"
+          value={active ?? '#7c6cf5'}
+          suggestions={used}
+          onChange={(color) => setSelectionFill(color)}
+        />
+      </Section>
+
+      <Section title="Vectr palette">
+        <SwatchGrid
+          entries={VECTR_PALETTE}
+          active={active}
+          onPick={applyFill}
+          labelFor={(entry) => `Apply ${entry.name} ${entry.color}`}
+        />
+      </Section>
+
+      {used.length > 0 && (
+        <Section title={`In this document · ${used.length}`}>
+          <SwatchGrid
+            entries={used.map((color) => ({ name: color, color }))}
+            active={active}
+            onPick={applyFill}
+            labelFor={(entry) => `Apply document colour ${entry.color}`}
+          />
+        </Section>
       )}
-      <p className="border-t border-hairline px-2 pt-2 text-ui-xs text-ink-faint">
+
+      <p className="px-2 pb-2 text-[10px] leading-snug text-ink-faint">
         {hasSelection
-          ? 'Click a swatch to set the fill of the selection.'
-          : 'Select a shape or text object, then click a swatch to set its fill.'}
+          ? 'Click a swatch to fill the selection.'
+          : 'Select a shape or text object, then click a swatch to fill it.'}
       </p>
     </div>
   )
 }
-

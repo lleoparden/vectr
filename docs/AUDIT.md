@@ -98,7 +98,7 @@ catalog claims were stale and are corrected.
 | 58 | Workspaces and floating panels | ❌ | - | unscheduled |
 | 59 | Status bar, tool options bar, tooltips | ✅ | `StatusBar.tsx`, `ToolOptionsBar.tsx`, smoke 72-77 | |
 | 60 | Context menus (canvas and layer rows) | ✅ | `ContextMenu`, layers panel | |
-| 61 | Layer panel polish: locate column, nested thumbnails, drag into a group | ⚠️ | catalog DOC-02 | Phase 4.5 |
+| 61 | Layer panel polish | ✅ | `locate.ts`, nested previews, `layerDrag.placementFor` (drag-into-group shipped in #20) | shipped in 4.5; the 4.5 issue's claim that drag-into-group was missing was wrong and is corrected |
 | 62 | Eyedropper | ❌ | - | Phase 7 |
 | 62b | Hover outlines and per-tool cursors | ✅ | `cursor.ts`, `HoverOverlay.tsx`, 3 packaged steps | shipped in 4.3 |
 

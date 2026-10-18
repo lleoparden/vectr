@@ -2195,3 +2195,16 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   panel buttons had no accessible name at all; forwarding `aria-label` fixed a real accessibility gap that the
   packaged run had surfaced by being unable to find the button.
 
+## 2026-10-18 - Correcting a stale claim: drag-into-group already shipped (Phase 4.5)
+
+- **The locate rule excludes the root and the selected rows.** A row is a locate target when it is an ancestor of
+  the selection, is not itself selected (a selected row needs no pointer to itself), and is not the document root
+  (which has no row). The rule is pure, tested, and the panel renders one button from it.
+- **Nested previews are evidence, not decoration.** The thumbnail pass considers rows at any depth, and a row whose
+  bucket is shared keeps its slot with a tooltip that says why. The packaged run accepts either a drawn preview or
+  that stated reason - what it refuses to accept is a silent empty slot.
+- **A stale comment is a defect.** The Layers panel header and the parity catalog both claimed dragging a layer
+  into a group was unbuilt; `layerDrag.placementFor` and its tests say otherwise, and the behaviour was verified by
+  reading the code. Building it again would have been the expensive way to correct a comment. Corrected in the
+  panel, the catalog note, and `docs/AUDIT.md`.
+

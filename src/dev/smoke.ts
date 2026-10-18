@@ -1492,6 +1492,48 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     'x became ' + (movedA !== null && movedA.type !== 'group' ? movedA.transform.x : '?') + ', undo -> ' + (restoredA !== null && restoredA.type !== 'group' ? restoredA.transform.x : '?'),
   )
 
+  // The layer panel's locate column (issue #123): a group that contains the selection points at itself.
+  const locateA = createRect('Smoke Locate A', 40, 40, 30, 30)
+  const locateB = createRect('Smoke Locate B', 90, 40, 30, 30)
+  documentStore.dispatch(
+    { type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [locateA, locateB] },
+    'smoke locate prep',
+  )
+  documentStore.setSelection([locateA.id, locateB.id])
+  runEditorAction('object.group')
+  await settle(120)
+  const locateGroupId = documentStore.getState().selection[0]
+  const locateGroup = locateGroupId === undefined ? null : findNode(documentStore.getState().document, locateGroupId)
+  const locateChildId = locateGroup !== null && locateGroup.type === 'group' ? locateGroup.children[0]?.id : undefined
+  const expandButton = document.querySelector<HTMLButtonElement>('[aria-label^="Expand "]')
+  expandButton?.click()
+  await settle(120)
+  if (locateChildId !== undefined) documentStore.setSelection([locateChildId])
+  await settle(120)
+  const locateButton = document.querySelector<HTMLButtonElement>('[data-locate]')
+  locateButton?.click()
+  await settle(80)
+  const locatedSelection = documentStore.getState().selection
+  record(
+    'the locate column appears on the containing group and selects it',
+    locateGroupId !== undefined && locateButton !== null && locatedSelection.length === 1 && locatedSelection[0] === locateGroupId,
+    'locate button ' + (locateButton === null ? 'missing' : 'present') + ', selection ' + locatedSelection.join(','),
+  )
+
+  // Nested rows are considered for a preview too, and a shared bucket says so instead of drawing a
+  // misleading picture.
+  await settle(1200)
+  const nestedRow =
+    locateChildId === undefined ? null : document.querySelector('[data-layer-row="' + locateChildId + '"]')
+  const nestedPreview = nestedRow?.querySelector('[data-layer-thumbnail]') ?? null
+  const nestedSlot = nestedRow?.querySelector('span[aria-hidden="true"][title]') ?? null
+  const refusalTitle = nestedSlot?.getAttribute('title') ?? ''
+  record(
+    'a nested layer is previewed, or refused with a stated reason',
+    nestedRow !== null && (nestedPreview !== null || refusalTitle.includes('shares a render bucket')),
+    nestedPreview !== null ? 'preview drawn' : 'slot says: ' + refusalTitle,
+  )
+
   // Put the selection back: the panels below are about the selected object, not the page.
   documentStore.setSelection(keptSelection)
   await settle(80)

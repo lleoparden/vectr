@@ -1,6 +1,37 @@
 # Progress
 
 
+## Phase 4.5 - layer panel polish, and Phase 4 is complete (2026-10-18, issue #123)
+
+- **The locate column** (`editing/locate.ts` + the row): a row that *contains* the selection shows a small
+  accent pointer that selects it, and the document root is never a target because it has no row. The rule is
+  pure and tested: ancestors of selected nodes, minus the selected themselves, minus the root.
+- **Nested rows are previewed too.** The thumbnail pass now considers the first rows at any depth rather than the
+  first top-level layers, and a row whose bucket is shared states the refusal in its tooltip instead of showing a
+  picture that would be misleading.
+- **Dragging a layer into a group already shipped** in issue #20 (`layerDrag.placementFor` puts the middle of a
+  group row inside it, with before/after quarters and a live indicator). The panel's header comment claimed
+  otherwise and was wrong; the audit repeated it. Both are corrected here rather than adding a second
+  implementation of something that exists.
+
+**Behaviour, measured:** 261/261 tests (2 new in `tests/locate.test.ts`: the ancestor rule including the root
+exclusion, and unknown ids ignored), layer check on 105 files, clean typecheck and build, and the packaged run now
+**138 steps** with two new steps - the locate pointer appearing on the containing group and selecting it, and a
+nested row either drawing a preview or stating why it will not.
+
+## Phase 4 complete
+
+Five slices, all merged, all verified: the scale gesture became a tool (#125), rotation shipped and is rendered,
+hit-tested, framed, gesture-driven and frame-aware when scaled (#126), the canvas gained hover outlines, per-tool
+cursors and a live rotation readout (#127), Align and Transform got their Illustrator panels (#128), and the layer
+panel gained its locate column and nested previews (#129).
+
+The phase's exit criteria asked for a scripted interaction pass over every tool recorded in the packaged run: the
+run now carries cursor checks per tool, hover, a real rotation drag with its readout, the hand and space borrow,
+the wheel, real hit testing, the align button and the transform field, and the layer panel's locate pointer.
+
+
+
 ## Phase 4.4 - Align and Transform panels (2026-10-18, issue #122)
 
 The commands and fields already existed; they now have the panels an Illustrator user reaches for.

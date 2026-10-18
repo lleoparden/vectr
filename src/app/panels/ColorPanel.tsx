@@ -7,6 +7,7 @@
  */
 
 import { findNode, paintOrder } from '../../doc/document.ts'
+import { BRAND } from '../ui/brand.ts'
 import { isLeaf, isText, supportsFill, type Document } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { addCmykSwatch, addSwatchFromSelection, applySwatch, removeSwatch, setSelectionFill } from '../actions.ts'
@@ -89,7 +90,7 @@ export function ColorPanel() {
       <Section title={selected !== undefined && selected !== null && isText(selected) ? 'Text colour' : 'Selection colour'}>
         <ColorField
           label="Colour"
-          value={active ?? '#7c6cf5'}
+          value={active ?? BRAND.roseVale}
           suggestions={used}
           onChange={(color) => setSelectionFill(color)}
         />

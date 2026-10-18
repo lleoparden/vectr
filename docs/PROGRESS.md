@@ -1,6 +1,26 @@
 # Progress
 
 
+## The rose palette, a fixed site, and a screenshot harness (2026-10-18)
+
+- **The brand palette is applied and documented.** Charcoal `#1B1B1F` for the chrome, `#242428` for panels, rose-vale
+  `#A94A4A` for buttons and selection, rose-light `#E07C7B` for links and focus, rose-deep `#8B3A3A` for hover and
+  pressed states, off-white `#F3EEE8` for text. The six roles live in `src/styles.css` as `@theme` tokens, with
+  `--color-accent-deep` and `--color-accent-light` added, and the canvas pasteboard now clears to the same charcoal.
+  The rule is in `AGENTS.md`: a component uses token classes, never a hex.
+- **The website is repaired.** `site/index.html` carried conflict markers from a stashed change; the owner's side is
+  kept - their new layout, the brand SVG logo, the hero, the feature sections, the code sample, and the fonts - and
+  the stale upstream head is dropped. The page structure is balanced again (one html, head, and body, each closed).
+- **The site screenshot is current.** A development harness flag, `--screenshot=path`, renders the editor in a fresh
+  profile and captures the window, so the image can be regenerated whenever the interface changes. The site image
+  was stale and showed the old purple accent; it now shows the rose palette.
+- **Two files had the wrong format.** `vectr.png` (root and site) were JPEG bytes with a `.png` extension, which
+  some viewers refuse; both are true PNGs now.
+- **A brand-value module** (`src/app/ui/brand.ts`) carries the six colours for the canvas overlays that cannot read
+  CSS variables; the shape preview's stroke uses the rose-light token now instead of a stray violet.
+
+
+
 ## A contribution guide (2026-10-18)
 
 `CONTRIBUTING.md` now exists at the root, where GitHub surfaces it when someone opens an issue or a pull request.

@@ -73,6 +73,29 @@ L7 application shells and tooling.
   explain`, or `graphify path` before broad source exploration. Update the
   graph after production-code changes.
 
+## Brand palette
+
+Vectr's colours are a brand, not a taste per screen. These six roles are the palette, and `src/styles.css` holds
+them as Tailwind `@theme` tokens - the only place a colour is written:
+
+| Role | Token | Hex |
+| --- | --- | --- |
+| Charcoal, main background | `--color-chrome`, `--color-pasteboard` | `#1B1B1F` |
+| Charcoal raised, panels and alternate sections | `--color-chrome-raised`, `--color-chrome-panel` | `#242428` |
+| Rose-vale, brand: buttons, selection, fills | `--color-accent` | `#A94A4A` |
+| Rose light, links, small text, focus rings | `--color-accent-light` | `#E07C7B` |
+| Rose deep, hover and pressed states | `--color-accent-deep` | `#8B3A3A` |
+| Off-white, text and the logo letter | `--color-ink` | `#F3EEE8` |
+
+- A component uses the token classes (`bg-accent`, `text-ink-muted`, `border-hairline`); it never writes a hex.
+  A hex in a component is a review finding.
+- Derived neutrals (`chrome-sunken`, `chrome-active`, `chrome-hover`, `hairline`, `ink-muted`, `ink-faint`) are
+  shading of the charcoal and off-white, kept warm-neutral so they sit beside the rose without clashing.
+- Document content colours are not brand colours: the default fill, the swatch palette, and user artwork may be
+  any colour. The palette governs chrome, selection, focus, and the site.
+- The site in `site/` uses the same six values; a palette change updates `src/styles.css`, `site/style.css`, and
+  `docs/` together.
+
 ## UI components
 
 The interface is repetitive by nature, so repetition in the code is a defect. One component per concept, in

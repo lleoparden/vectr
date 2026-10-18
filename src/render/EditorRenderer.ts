@@ -371,7 +371,7 @@ export class EditorRenderer {
     const canvas = this.surface.getCanvas()
     // The pasteboard around the page is grey, so the page reads as a bounded sheet rather than an
     // infinite white board; the pages themselves are painted white inside the viewport transform.
-    canvas.clear(this.kit.Color4f(0.102, 0.102, 0.122, 1))
+    canvas.clear(this.kit.Color4f(0.106, 0.106, 0.122, 1))
     canvas.save()
     canvas.translate(viewport.panX, viewport.panY)
     canvas.scale(viewport.zoom, viewport.zoom)
@@ -541,7 +541,7 @@ export class EditorRenderer {
       if (assetId !== null) this.missingAssets.add(assetId)
       recording.drawRect(
         this.kit.XYWHRect(0, 0, shape.width, shape.height),
-        this.paintFor('fill', '#d8d8de', 0, shape.opacity),
+        this.paintFor('fill', '#d9d3cc', 0, shape.opacity),
       )
       return
     }

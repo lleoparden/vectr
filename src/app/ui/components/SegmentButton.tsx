@@ -35,7 +35,7 @@ export function SegmentButton({
       data-ui-segment
       className={`h-6 rounded-ui border px-2 text-ui-xs transition-colors disabled:opacity-40 ${
         active
-          ? 'border-accent bg-accent text-accent-ink'
+          ? 'border-accent bg-accent text-accent-ink hover:bg-accent-deep'
           : 'border-hairline bg-chrome text-ink-muted hover:bg-chrome-active'
       } ${className}`}
     >

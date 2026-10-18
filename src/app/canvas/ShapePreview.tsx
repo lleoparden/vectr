@@ -7,6 +7,7 @@
  */
 
 import type { ShapeParams } from '../../doc/document.ts'
+import { BRAND } from '../ui/brand.ts'
 import { clampCornerRadius, lineEndpoints, outlinePoints } from '../../geom/shapeGeometry.ts'
 import type { Point } from '../../doc/hitTest.ts'
 import type { ShapeKind } from '../../doc/document.ts'
@@ -14,7 +15,7 @@ import { boxFor, constrainEnd, lineFrom as lineFromCorner } from './shapeDrag.ts
 
 export type ShapePreviewState = { kind: ShapeKind; start: Point; current: Point; shift: boolean }
 
-const STROKE = '#a78bfa'
+const STROKE = BRAND.roseLight
 const FILL = 'rgba(167, 139, 250, 0.14)'
 
 export function ShapePreview({

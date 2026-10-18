@@ -14,26 +14,28 @@
  */
 @theme {
   /* Chrome: the surfaces the interface itself sits on. */
-  --color-chrome: #26262c;
-  --color-chrome-raised: #2f2f37;
-  --color-chrome-sunken: #1e1e23;
-  --color-chrome-active: #3a3a44;
-  --color-chrome-hover: #34343e;
-  --color-chrome-panel: #292a31;
-  --color-hairline: #3c3c45;
+  --color-chrome: #1b1b1f;
+  --color-chrome-raised: #242428;
+  --color-chrome-sunken: #16161a;
+  --color-chrome-active: #2f2b2b;
+  --color-chrome-hover: #282426;
+  --color-chrome-panel: #202024;
+  --color-hairline: #3a3335;
 
   /* Ink: text and icon weights. */
-  --color-ink: #ececf1;
-  --color-ink-muted: #a2a2ad;
-  --color-ink-faint: #74747f;
+  --color-ink: #f3eee8;
+  --color-ink-muted: #c6bfb7;
+  --color-ink-faint: #948d86;
 
   /* Accent: one violet, used for selection, focus, and active tools. */
-  --color-accent: #7c6cf5;
-  --color-accent-soft: #332c5e;
-  --color-accent-ink: #cfc9ff;
+  --color-accent: #a94a4a;
+  --color-accent-soft: #3a2a2a;
+  --color-accent-ink: #f3eee8;
+  --color-accent-deep: #8b3a3a;
+  --color-accent-light: #e07c7b;
 
   --color-danger: #e2665c;
-  --color-pasteboard: #1a1a1f;
+  --color-pasteboard: #1b1b1f;
   --color-artboard: #ffffff;
 
   /* Type scale: three UI sizes, no ad-hoc pixel values. */

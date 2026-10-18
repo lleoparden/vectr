@@ -22,7 +22,7 @@ const SIZES: Record<ButtonSize, string> = {
 function variantClass(variant: ButtonVariant, tone: 'quiet' | 'accent', active: boolean): string {
   switch (variant) {
     case 'primary':
-      return 'border border-accent bg-accent text-accent-ink hover:bg-accent-soft disabled:hover:brightness-100'
+      return 'border border-accent bg-accent text-accent-ink hover:bg-accent-deep active:bg-accent-deep disabled:hover:bg-accent'
     case 'danger':
       return 'border border-transparent text-ink-muted hover:bg-chrome-hover hover:text-danger'
     case 'icon':
@@ -34,7 +34,7 @@ function variantClass(variant: ButtonVariant, tone: 'quiet' | 'accent', active: 
     case 'panel':
     default:
       return tone === 'accent'
-        ? 'border border-accent bg-accent text-white hover:brightness-110 disabled:hover:brightness-100'
+        ? 'border border-accent bg-accent text-accent-ink hover:bg-accent-deep active:bg-accent-deep disabled:hover:bg-accent'
         : `border border-hairline text-ink-muted hover:bg-chrome-hover hover:text-ink${active ? ' bg-chrome-active text-ink' : ''}`
   }
 }

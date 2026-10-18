@@ -19,6 +19,8 @@ import { PANEL_LABELS } from '../../state/workspaceStore.ts'
 import type { EditorActionId } from '../actions.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { AppearancePanel } from './AppearancePanel.tsx'
+import { AlignPanel } from './AlignPanel.tsx'
+import { TransformPanel } from './TransformPanel.tsx'
 import { ColorPanel } from './ColorPanel.tsx'
 import { LayersPanel } from './LayersPanel.tsx'
 import { PropertiesPanel } from './PropertiesPanel.tsx'
@@ -34,6 +36,7 @@ const GROUP_FLYOUT: Record<string, EditorActionId[]> = {
     'object.unlockAll',
   ],
   'group.style': [],
+  'group.arrange': [],
 }
 
 function PanelBody({ panel }: { panel: PanelId }) {
@@ -42,6 +45,10 @@ function PanelBody({ panel }: { panel: PanelId }) {
       return <LayersPanel />
     case 'properties':
       return <PropertiesPanel />
+    case 'align':
+      return <AlignPanel />
+    case 'transform':
+      return <TransformPanel />
     case 'appearance':
       return <AppearancePanel />
     case 'color':

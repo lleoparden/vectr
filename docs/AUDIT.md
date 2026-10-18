@@ -87,8 +87,8 @@ catalog claims were stale and are corrected.
 | 47 | Layers panel: rows, reorder, rename, foot, context menu | ✅ | `LayersPanel.tsx` | see row 61 |
 | 48 | Appearance panel (fill, stroke, opacity live) | ✅ | `AppearancePanel.tsx`, smoke 100 | |
 | 49 | Properties panel: transform, fill, stroke, type, image, layer, artboards | ✅ | `PropertiesPanel.tsx`, smoke 80-82 | |
-| 50 | Align panel | ❌ | commands exist (row 29) | Phase 4.4 |
-| 51 | Transform panel | ❌ | X/Y/W/H live in Properties | Phase 4.4 |
+| 50 | Align panel | ✅ | `AlignPanel.tsx`, `alignAvailability`, packaged step | shipped in 4.4; no key-object mode yet |
+| 51 | Transform panel | ✅ | `TransformPanel.tsx`, `selectionTransform`, packaged step | shipped in 4.4 |
 | 52 | Stroke, Gradient panels | ❌ | both live in Properties | Phase 7 |
 | 53 | Swatches panel | ❌ | swatches live in Color (row 42) | Phase 7 |
 | 54 | Character and Paragraph panels | ❌ | - | Phase 6 |

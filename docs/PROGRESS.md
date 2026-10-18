@@ -1,6 +1,32 @@
 # Progress
 
 
+## Phase 4.4 - Align and Transform panels (2026-10-18, issue #122)
+
+The commands and fields already existed; they now have the panels an Illustrator user reaches for.
+
+- **An Arrange group** joins the dock (`workspaceStore`): Align and Transform as tabs, the Window menu offers both,
+  and the dock, the menus, and the panel flyouts all read the same panel registry.
+- **The Align panel** puts the six alignments and two distributions on buttons that run the **existing commands**
+  and are disabled exactly when those commands cannot act. Its caption states the reference the commands actually
+  use - the selection's own box - because there is no key object yet and a panel must not imply one.
+- **The Transform panel** edits X, Y, W, H, and rotation live, on the same commands the Properties panel uses.
+- **The rules are data**: `alignAvailability` (two unlocked objects to align, three to distribute) and
+  `selectionTransform` (the shared box and common rotation) are pure and tested, so the panel's disabled states are
+  the commands' own rules rather than a parallel guess.
+
+**One defect found and fixed on the way:** panel buttons carried no accessible name - `PanelButton` dropped anything
+it was not told about, so a button whose visible text is "left" had no label. It forwards `aria-label` now, which
+is both what the packaged run needs and what a screen reader needed all along.
+
+**Behaviour, measured:** 259/259 tests (2 new in `tests/panels.test.ts`: the availability rule including locked
+objects, and the shared selection transform with a common and a disagreeing rotation), layer check on 98 files,
+clean typecheck and build, and the packaged run now **136 steps** with three new steps - the Align panel aligns
+through a real button click, its button disables exactly when the command would refuse, and the Transform panel
+edits X live with one undo entry.
+
+
+
 ## Phase 4.3 - hover, cursors, and a live rotation readout (2026-10-18, issue #121)
 
 The visible half of "feels good": the canvas now says what a click will do before it happens.

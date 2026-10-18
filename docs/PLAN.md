@@ -24,7 +24,9 @@ Gap 1 in the reference gap list, and the owner's central complaint. The first th
    live rotation readout, and the inside-corner scale rule. 2 new tests, 3 packaged steps. - hover outlines, tool-specific cursors over objects and handles, and a live preview for
    every gesture that currently only shows its result after release.
 
-4. **Align and Transform panels** - the commands and fields exist (audit rows 50-51) but Illustrator users look for
+4. **Align and Transform panels** - DONE in #128: an Arrange dock group, the six alignments and two distributions
+   as buttons disabled by the commands' own rule, Transform fields live on the same commands, and panel buttons
+   now forward an accessible name. - the commands and fields exist (audit rows 50-51) but Illustrator users look for
    the panels. Align puts the six alignments and two distributions on buttons with the key-object rules stated;
    Transform exposes X/Y/W/H and rotation once 4.2 lands.
 5. **Layer panel polish** - the locate column, thumbnails for nested rows, and dragging a layer into a group

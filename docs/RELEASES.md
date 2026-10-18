@@ -1,33 +1,34 @@
-# Vectr alpha
+# Vectr <version>
 
-**The rolling pre-release, republished automatically on every merge to `main`.**
+**A pre-release, one per phase.** This build is `v<version>`, built from the commit the tag points at.
 
 Vectr is a desktop-first vector design tool with Illustrator's conventions and its own React + Tailwind
 compiler. It is alpha software: the editor is usable, the compiler is not built yet, and every limitation is
 written down rather than hidden.
 
+- **All releases**: https://github.com/lleoparden/vectr/releases
 - **Website**: https://lleoparden.github.io/vectr/
 - **What works today**: [docs/AUDIT.md](AUDIT.md)
 - **How it is verified**: [docs/PROGRESS.md](PROGRESS.md)
 
 ## Install on Windows
 
-**[Download the latest installer](https://github.com/lleoparden/vectr/releases/tag/alpha)** — `Vectr-<version>-Setup.exe`, built from this release's commit.
+Download **`Vectr-<version>-Setup.exe`** from this release's assets.
 
 1. Run the setup file and choose an install location (per-user, no admin prompt).
 2. Windows SmartScreen will warn that the publisher is unknown: the installer is **not code-signed**. Choose
    "More info" and then "Run anyway" if you trust the source.
 3. Vectr opens; `File ▸ Save` writes a `.vectr/` project folder.
 
-The installer is rebuilt automatically whenever these notes change — which is at every phase close — and the
-version in the file name matches `package.json` (`0.<phase>.0`). One installer is kept on the release; older ones
-are pruned.
+Each phase gets its own version and its own release, and an older installer stays downloadable: pick the version
+you need and its tag will always return the same build.
 
 ## Run from source
 
 ```bash
 git clone https://github.com/lleoparden/vectr.git
 cd vectr
+git checkout v<version>
 npm install
 npm start
 ```
@@ -60,6 +61,6 @@ run of 143 steps across seven reports. The details are in [docs/PROGRESS.md](PRO
 
 ---
 
-_This release is regenerated from `docs/RELEASES.md` and `package.json` by `.github/workflows/alpha-release.yml`
-on every push to `main`, so it always describes the current `main`. The installer is rebuilt only when these
-notes change. It is marked as a pre-release because it is not a stable release._
+_Published by `.github/workflows/release.yml` from `docs/RELEASES.md` and `package.json`. The tag is never moved,
+so this page and its installer always describe the same commit. Marked as a pre-release because it is not a
+stable release._

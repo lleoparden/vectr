@@ -2,7 +2,7 @@
 
 <img src="./vectr.png" alt="Vectr" width="112" />
 
-#Vectr
+# Vectr
 
 **Draw like Illustrator. Ship React.**
 

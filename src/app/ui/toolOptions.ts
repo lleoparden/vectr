@@ -45,6 +45,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
       { tool: 'directSelect', label: 'Direct Selection Tool', action: 'tool.directSelect' },
     ],
   },
+  { id: 'hand', label: 'Hand Tool', members: [{ tool: 'hand', label: 'Hand Tool', action: 'tool.hand' }] },
+
   // The Lasso keeps Illustrator's own palette slot and its Q key rather than joining the arrows.
   { id: 'lasso', label: 'Lasso Tool', members: [{ tool: 'lasso', label: 'Lasso Tool', action: 'tool.lasso' }] },
   {
@@ -62,7 +64,6 @@ export const TOOL_GROUPS: ToolGroup[] = [
   },
   { id: 'type', label: 'Type Tool', members: [{ tool: 'text', label: 'Type Tool', action: 'tool.text' }] },
   // Illustrator's Hand tool keeps its own slot and its H chord; Space reaches it temporarily.
-  { id: 'hand', label: 'Hand Tool', members: [{ tool: 'hand', label: 'Hand Tool', action: 'tool.hand' }] },
 ]
 
 export function groupFor(tool: ToolId): ToolGroup {

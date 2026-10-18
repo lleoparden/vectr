@@ -11,7 +11,7 @@ import { isLeaf, isText, supportsFill, type Document } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { addCmykSwatch, addSwatchFromSelection, applySwatch, removeSwatch, setSelectionFill } from '../actions.ts'
 import { isLightColor, normalizeHex } from '../../geom/color.ts'
-import { ColorField, Section } from '../ui/fields.tsx'
+import { ColorField, NumberField, Section } from '../ui/fields.tsx'
 import { useState } from 'react'
 
 /** The palette Vectr ships with, named so swatches stay readable in tests and docs. */
@@ -212,15 +212,15 @@ function SwatchesSection({ swatches }: { swatches: Array<{ id: string; name: str
         {mode === 'cmyk' && (
           <div className="flex items-center gap-1">
             {(['c', 'm', 'y', 'k'] as const).map((key) => (
-              <input
+              <NumberField
                 key={key}
-                type="number"
+                inline
+                label={'Swatch ' + key.toUpperCase()}
                 min={0}
                 max={100}
-                aria-label={'Swatch ' + key.toUpperCase()}
+                step={1}
                 value={cmyk[key]}
-                onChange={(event) => setCmyk({ ...cmyk, [key]: Number(event.currentTarget.value) })}
-                className="h-6 min-w-0 flex-1 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent"
+                onChange={(value) => setCmyk({ ...cmyk, [key]: value })}
               />
             ))}
             <label className="flex shrink-0 items-center gap-1 text-[10px] text-ink-faint">

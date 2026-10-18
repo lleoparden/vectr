@@ -35,6 +35,8 @@ export type ToolHost = {
   toggleSelection(id: NodeId): void
   /** Captures the movable selection's transforms and opens the move transaction. */
   beginMove(): void
+  /** Duplicates the selection and leaves the copies selected, for Alt-drag (issue #130). */
+  duplicateSelection(): void
   /** Applies a move delta from the gesture's origin, with smart-guide snapping. */
   moveBy(dx: number, dy: number, shift: boolean): void
   endMove(): void

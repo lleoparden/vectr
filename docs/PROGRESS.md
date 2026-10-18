@@ -1,6 +1,37 @@
 # Progress
 
 
+## Phase 4.6 - number fields and Illustrator conventions the build was missing (2026-10-18, issue #130)
+
+The owner asked for scrub-able number fields, one standardized input, the Hand under the selection tools, and a
+sweep for other Illustrator conventions that were missing.
+
+- **Number fields scrub.** Dragging horizontally on a value changes it two pixels per step; **Shift** makes the
+  same drag ten times finer (twenty pixels per step). A plain click focuses and selects the value, so typing
+  replaces it.
+- **Arithmetic is accepted on commit.** "120+30", "(2+2)*10", "10/4" evaluate; anything else is refused and the
+  old value restored. Arrow keys step (Shift takes ten steps), Enter commits, Escape reverts.
+- **One component, everywhere.** `NumberField` is the only numeric input left: the gradient stop position and the
+  CMYK swatch entries - the last two raw inputs - now use its new inline form. The arithmetic and the scrub
+  arithmetic are pure functions in `ui/number.ts` and are tested.
+- **The Hand sits directly under the selection tools**, as asked: the palette order is now select, hand, lasso,
+  shape, type.
+- **Two more Illustrator conventions were missing and are now in**: **Alt-drag duplicates** (the drag moves a
+  copy, the original stays, one undo restores both) and **Shift+wheel pans horizontally** instead of zooming.
+
+**A real bug fell out of the Alt-drag work.** `runPlan` committed its transaction even when it had *joined* an open
+one, so duplicate-plus-move produced two undo entries. It now commits only the transaction it opened, with a
+regression test that batches a nudge, another nudge, and a duplicate into one entry. The packaged run caught it:
+"children 3 -> 4 -> 4, undo depth +2".
+
+**Behaviour, measured:** 266/266 tests (5 new: three arithmetic/scrub cases in `tests/number.test.ts`, the
+Alt-drag ordering in `tests/tools.test.ts`, and the transaction-ownership regression in
+`tests/transactions.test.ts`), layer check on 105 files, clean typecheck and build, and the packaged run now
+**143 steps** with five new steps - the scrub and its Shift variant, the arithmetic, the palette order, the
+Shift+wheel pan, and Alt-drag with its single undo entry.
+
+
+
 ## Phase 4.5 - layer panel polish, and Phase 4 is complete (2026-10-18, issue #123)
 
 - **The locate column** (`editing/locate.ts` + the row): a row that *contains* the selection shows a small

@@ -16,7 +16,7 @@ import { isGroup, isText, type NodeId, type Transform } from '../../doc/types.ts
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
-import { addGuide, moveGuide, placeImage, removeGuide } from '../actions.ts'
+import { addGuide, moveGuide, placeImage, removeGuide, runEditorAction } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
@@ -347,9 +347,16 @@ export function CanvasView() {
           : deepHitWithin(document, isolated, scene)
       },
       select: (id) => documentStore.setSelection([id]),
+      duplicateSelection: () => {
+        documentStore.beginTransaction('duplicate and move')
+        runEditorAction('object.duplicate')
+      },
       toggleSelection: (id) => documentStore.toggleSelection(id),
       beginMove: () => {
         setDragging('move')
+        // An Alt-drag has already opened the transaction with its duplicate; joining it keeps the
+        // duplicate and the move in one undo entry.
+        if (!documentStore.inTransaction()) documentStore.beginTransaction('move')
         const document = documentStore.getState().document
         const originals = new Map<string, Transform>()
         for (const id of documentStore.getState().selection) {
@@ -360,7 +367,6 @@ export function CanvasView() {
           moveRef.current = null
           return
         }
-        documentStore.beginTransaction('move')
         moveRef.current = { originals, box: unionBounds(document, [...originals.keys()]) }
       },
       moveBy: (dx, dy, shift) => {
@@ -671,6 +677,11 @@ export function CanvasView() {
     const onWheel = (event: WheelEvent) => {
       event.preventDefault()
       const viewport = documentStore.getState().viewport
+      // Shift turns the wheel into a horizontal scroll, Illustrator's own modifier for it.
+      if (event.shiftKey) {
+        documentStore.setViewport({ panX: viewport.panX - event.deltaY, panY: viewport.panY })
+        return
+      }
       const box = canvas.getBoundingClientRect()
       const factor = Math.exp(-event.deltaY * 0.0015)
       documentStore.setViewport(

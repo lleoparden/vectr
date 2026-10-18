@@ -196,12 +196,15 @@ function runPlan(steps: PlanStep[] | null, label: string) {
     const result = documentStore.dispatch(stepCommand(step))
     if (!result.ok) {
       for (const inverse of [...applied].reverse()) documentStore.dispatch(inverse)
-      documentStore.abortTransaction()
+      // A plan that joined someone else's transaction leaves it to its owner to abort.
+      if (own) documentStore.abortTransaction()
       return
     }
     applied.push(result.inverse)
   }
-  documentStore.commitTransaction()
+  // Only the transaction this plan opened is its to commit; joining one must not end it early,
+  // or a batch (Alt-drag's duplicate plus its move) becomes two undo entries.
+  if (own) documentStore.commitTransaction()
 }
 
 /** Which alignment an action means; the Object menu and the tests share this table. */

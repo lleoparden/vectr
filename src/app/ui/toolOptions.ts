@@ -16,8 +16,8 @@ import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text'
-export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'text'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text' | 'artboard'
+export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'type' | 'artboard'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
 
@@ -60,7 +60,9 @@ export const TOOL_GROUPS: ToolGroup[] = [
       { tool: 'arc', label: 'Arc Tool', action: 'tool.arc' },
     ],
   },
-  { id: 'text', label: 'Type Tool', members: [{ tool: 'text', label: 'Type Tool', action: 'tool.text' }] },
+  { id: 'type', label: 'Type Tool', members: [{ tool: 'text', label: 'Type Tool', action: 'tool.text' }] },
+  // Illustrator's Artboard tool keeps its own slot and its Shift+O chord.
+  { id: 'artboard', label: 'Artboard Tool', members: [{ tool: 'artboard', label: 'Artboard Tool', action: 'tool.artboard' }] },
 ]
 
 export function groupFor(tool: ToolId): ToolGroup {
@@ -122,6 +124,13 @@ export function hasSelectedText(document: Document, selection: NodeId[]): boolea
 export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
   const { tool, selection, document, defaults, canRun } = input
   const group = groupFor(tool)
+
+  if (tool === 'artboard') {
+    return [
+      { kind: 'label', text: 'Artboard Tool' },
+      { kind: 'hint', text: 'Drag on the pasteboard to make a page; drag a handle on the active page to resize it.' },
+    ]
+  }
 
   if (tool === 'lasso') {
     return [

@@ -50,6 +50,16 @@ export function IconDirectSelect(props: IconProps) {
 }
 
 /** Lasso: a freehand loop with the tail a drag leaves behind. */
+/** Artboard: a page with a folded corner, which is the sheet its artwork sits on. */
+export function IconArtboard(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.5 2.5h7.5l3.5 3.5v7.5h-11z" />
+      <path d="M10 2.5V6h3.5" />
+    </Icon>
+  )
+}
+
 export function IconLasso(props: IconProps) {
   return (
     <Icon {...props}>

@@ -148,6 +148,9 @@ export function validateDocument(document: Document): ValidationResult {
       return fail('non-positive-size', `Artboard ${artboard.id} has a non-positive size.`)
     }
     if (artboard.name.trim().length === 0) return fail('invalid-index', `Artboard ${artboard.id} has no name.`)
+    if ((artboard.x !== undefined && !Number.isFinite(artboard.x)) || (artboard.y !== undefined && !Number.isFinite(artboard.y))) {
+      return fail('non-finite', `Artboard ${artboard.id} has a non-finite position.`)
+    }
   }
   const seen = new Set<NodeId>()
   const walk = (node: LayerNode, ancestry: Set<NodeId>): ValidationResult => {

@@ -46,10 +46,14 @@ export function presetByName(name: string): ArtboardPreset | null {
 /** Every artboard with its derived scene rectangle, in document order. */
 export function artboardRects(document: Document): ArtboardRect[] {
   const rects: ArtboardRect[] = []
-  let x = 0
+  let flowX = 0
   for (const artboard of document.artboards) {
-    rects.push({ id: artboard.id, name: artboard.name, x, y: 0, width: artboard.width, height: artboard.height })
-    x += artboard.width + ARTBOARD_GAP
+    // A page placed by dragging stores its corner; an older page has none and flows after the
+    // previous one, so a file written before placement existed opens exactly where it used to.
+    const x = artboard.x ?? flowX
+    const y = artboard.y ?? 0
+    rects.push({ id: artboard.id, name: artboard.name, x, y, width: artboard.width, height: artboard.height })
+    flowX = x + artboard.width + ARTBOARD_GAP
   }
   return rects
 }

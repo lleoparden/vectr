@@ -45,6 +45,8 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   // Vectr deliberately does not invent keys that would collide with a real Illustrator habit.
   { id: 'tool.line', chord: { key: '\\' }, illustratorDefault: true },
   { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
+  // Shift+O is Illustrator's own chord for the Artboard tool.
+  { id: 'tool.artboard', chord: { key: 'o', shift: true }, illustratorDefault: true },
 
   // File (Illustrator's document chords, then Place).
   { id: 'file.new', chord: { key: 'n', ctrl: true }, illustratorDefault: true },

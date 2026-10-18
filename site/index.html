@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vectr - a design tool that exports React</title>
+    <meta name="description" content="Vectr is a desktop-first vector design tool that exports its layer tree as readable React components styled with Tailwind." />
+    <meta property="og:title" content="Vectr" />
+    <meta property="og:description" content="A desktop-first vector design tool that exports React components." />
+    <meta property="og:image" content="vectr.png" />
+    <link rel="icon" href="vectr.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <img class="logo" src="vectr.png" alt="Vectr" width="96" height="96" />
+      <h1>Vectr</h1>
+      <p class="tagline">
+        A desktop-first vector design tool that feels like a modern Illustrator - and exports its
+        layer tree as readable React components styled with Tailwind.
+      </p>
+      <nav class="links">
+        <a class="primary" href="https://github.com/lleoparden/vectr">Source</a>
+        <a href="https://github.com/lleoparden/vectr/blob/main/docs/MASTER_PLAN.md">Roadmap</a>
+        <a href="https://github.com/lleoparden/vectr/blob/main/docs/AUDIT.md">What works</a>
+        <a href="https://github.com/lleoparden/vectr/blob/main/docs/PROGRESS.md">Progress</a>
+      </nav>
+    </header>
+
+    <main>
+      <section>
+        <h2>What it is</h2>
+        <p>
+          A drawing application built the way a design tool should be: a document model with exact inverses,
+          one validated command for every action, tools as state machines, and an interface that follows
+          Illustrator where muscle memory matters.
+        </p>
+        <ul class="grid">
+          <li><strong>Twelve tools</strong> as state machines: selection, direct selection, lasso, seven shapes, type, hand, zoom.</li>
+          <li><strong>Real transforms</strong>: move, scale in the object's own frame, rotate with Shift snapping, Alt-drag to duplicate.</li>
+          <li><strong>Paint</strong>: fills, strokes with caps, joins, dashes and alignment, linear and radial gradients with eight stops, all sixteen blend modes, named CMYK and spot swatches.</li>
+          <li><strong>Pages</strong>: artboards with presets, rulers, a grid, and guides that snap and save with the document.</li>
+          <li><strong>Documents</strong>: a versioned native format, autosave, crash recovery, and byte-stable saves.</li>
+          <li><strong>An honest interface</strong>: no dead controls, and a packaged run of 145 steps as evidence.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Where it is going</h2>
+        <p>
+          The differentiator is the compiler: a layered Vectr document becomes a component tree a developer would
+          keep. Before it, the remaining Illustrator parity work is scheduled in public - Bezier paths and
+          booleans, full type, appearance and effects, file interchange, and the core parity gate.
+        </p>
+        <ol class="phases">
+          <li><span>Phase 5</span> Path model, pen, booleans, width profiles</li>
+          <li><span>Phase 6</span> Type: area, path, threading, styles</li>
+          <li><span>Phase 7</span> Appearance stacks, effects, brushes and symbols</li>
+          <li><span>Phase 8</span> SVG, PDF, and Illustrator interchange</li>
+          <li><span>Phase 9</span> Core parity gate: platforms, performance, accessibility</li>
+          <li><span>Phase 10</span> The React and Tailwind compiler</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Built in the open</h2>
+        <p>
+          Every slice ships with typecheck, the full unit suite, a production build, packaged evidence, and a
+          self-review on its pull request. The decisions record says why things are the way they are, including
+          what is deliberately not built yet.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <span>Vectr - MIT licensed.</span>
+      <span>Illustrator is a trademark of Adobe Inc.; Vectr is not affiliated with Adobe.</span>
+    </footer>
+  </body>
+</html>

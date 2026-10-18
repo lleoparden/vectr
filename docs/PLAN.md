@@ -12,10 +12,11 @@ run reporting the same results. A behaviour change found on the way is recorded 
 
 1. **Layer rule + check** - `scripts/check-layers.mjs` asserting the L0-L7 import direction; extract `src/geom/`
    for the colour and geometry primitives; wire the check into `npm test`. No product change.
-2. **Tool interface + Selection, Direct Selection, Hand** (next) - create `src/tools/` with the state-machine contract
+2. **Tool interface + Selection, Direct Selection, Hand** - DONE in #115: `src/tools/` with the host contract and
+   three machines, routed from the canvas; 8 new tests; packaged run unchanged. - create `src/tools/` with the state-machine contract
    (enter, pointer down/move/up, key, cancel, overlay, cursor); port the three pointer tools; `CanvasView`
    becomes the host that routes events. Behaviour frozen, packaged run re-recorded.
-3. **The rest of the tools** - Lasso, the seven shape tools, Type; each ported behind the existing tests.
+3. **The rest of the tools** (next) - Lasso, the seven shape tools, Type; each ported behind the existing tests.
 4. **Command registry** - one table with id, label, menu path, chord, enabled, and run; `menuModel`,
    `shortcuts`, and the palette read it; `actions.ts` becomes the implementation hub behind it.
 5. **Record the architecture** - update `AGENTS.md` and `DECISIONS.md` with the layer rules and the review

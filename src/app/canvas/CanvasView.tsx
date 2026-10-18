@@ -22,6 +22,8 @@ import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { ArtboardOverlay } from './ArtboardOverlay.tsx'
 import { RulersOverlay } from './RulersOverlay.tsx'
+import { createToolStateMachines, isStateMachineTool } from '../../tools/index.ts'
+import type { ToolHost, ToolPoint } from '../../tools/types.ts'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
@@ -85,6 +87,10 @@ export function CanvasView() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<EditorRenderer | null>(null)
   const gestureRef = useRef<Gesture>({ kind: 'none' })
+  // Phase 3.2: the pointer tools are state machines; the canvas routes to them and supplies the host.
+  const toolsRef = useRef<ReturnType<typeof createToolStateMachines> | null>(null)
+  if (toolsRef.current === null) toolsRef.current = createToolStateMachines()
+  const moveRef = useRef<{ originals: Map<string, Transform>; box: ReturnType<typeof unionBounds> } | null>(null)
   const [ready, setReady] = useState(false)
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
@@ -289,17 +295,118 @@ export function CanvasView() {
     documentStore.commitTransaction()
   }
 
+  /** A pointer position in scene units and in screen pixels, which the Hand tool needs. */
+  function toolPoint(event: React.PointerEvent<HTMLCanvasElement>): ToolPoint {
+    const box = canvasRef.current?.getBoundingClientRect()
+    return {
+      scene: toScene(event),
+      screen: { x: event.clientX - (box?.left ?? 0), y: event.clientY - (box?.top ?? 0) },
+    }
+  }
+
+  /**
+   * What a tool may do. Everything the machines need is here, calling the stores the same way the
+   * inline gestures did, so porting a tool cannot change what a click means.
+   */
+  function toolHost(): ToolHost {
+    return {
+      selection: () => documentStore.getState().selection,
+      hitTest: (scene, deep) => {
+        const document = documentStore.getState().document
+        const isolated = workspaceStore.getState().isolatedGroupId
+        return isolated === null
+          ? hitTest(document, scene, deep ? { deep: true } : {})
+          : deepHitWithin(document, isolated, scene)
+      },
+      select: (id) => documentStore.setSelection([id]),
+      toggleSelection: (id) => documentStore.toggleSelection(id),
+      beginMove: () => {
+        const document = documentStore.getState().document
+        const originals = new Map<string, Transform>()
+        for (const id of documentStore.getState().selection) {
+          const node = findNode(document, id)
+          if (node !== null && !node.locked) originals.set(id, { ...node.transform })
+        }
+        if (originals.size === 0) {
+          moveRef.current = null
+          return
+        }
+        documentStore.beginTransaction('move')
+        moveRef.current = { originals, box: unionBounds(document, [...originals.keys()]) }
+      },
+      moveBy: (dx, dy, shift) => {
+        const move = moveRef.current
+        if (move === null) return
+        const viewport = documentStore.getState().viewport
+        const document = documentStore.getState().document
+        if (workspaceStore.getState().smartGuides && move.box !== null) {
+          // Smart Guides replace the raw delta with the nearest target, so the pointer drives the
+          // drag but the stored transform lands exactly on an edge.
+          const snap = snapBox(
+            { x: move.box.x + dx, y: move.box.y + dy, width: move.box.width, height: move.box.height },
+            snapTargets(document, [...move.originals.keys()], workspaceStore.getState().activeArtboardId),
+            SNAP_PIXELS / viewport.zoom,
+          )
+          dx += snap.dx
+          dy += snap.dy
+          setGuides(snap.guides)
+        } else {
+          setGuides([])
+        }
+        void shift
+        for (const [id, original] of move.originals) {
+          documentStore.dispatch(
+            { type: 'setTransform', nodeId: id, transform: { ...original, x: original.x + dx, y: original.y + dy } },
+            'move',
+          )
+        }
+      },
+      endMove: () => {
+        if (moveRef.current === null) return
+        moveRef.current = null
+        setGuides([])
+        documentStore.commitTransaction()
+      },
+      cancelMove: () => {
+        if (moveRef.current === null) return
+        moveRef.current = null
+        setGuides([])
+        documentStore.abortTransaction()
+      },
+      setMarquee: (rect) =>
+        setOverlay(
+          rect === null
+            ? null
+            : {
+                kind: 'rect',
+                start: { x: rect.x, y: rect.y },
+                current: { x: rect.x + rect.width, y: rect.y + rect.height },
+                shift: false,
+              },
+        ),
+      commitMarquee: (rect, deep) =>
+        documentStore.setSelection(marqueeHitTest(documentStore.getState().document, rect, { deep })),
+      viewport: () => {
+        const viewport = documentStore.getState().viewport
+        return { panX: viewport.panX, panY: viewport.panY }
+      },
+      panTo: (panX, panY) => documentStore.setViewport({ panX, panY }),
+    }
+  }
+
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     canvasRef.current?.setPointerCapture(event.pointerId)
     const start = toScene(event)
-    // The Hand tool drags the camera: the same pan gesture the middle button uses, so there is one
-    // way the viewport moves and the hand cannot drift from it.
-    if (event.button === 0 && state.tool === 'hand') {
-      gestureRef.current = {
-        kind: 'pan',
-        startClient: { x: event.clientX, y: event.clientY },
-        panStart: { x: state.viewport.panX, y: state.viewport.panY },
-      }
+    // The pointer tools are state machines (Phase 3.2): the canvas routes the event and supplies
+    // the host, so the tool owns the gesture and the canvas owns the document.
+    if (event.button === 0 && isStateMachineTool(state.tool)) {
+      gestureRef.current = { kind: 'none' }
+      toolsRef.current?.[state.tool].onPointerDown(toolHost(), toolPoint(event), {
+        shift: event.shiftKey,
+        alt: event.altKey,
+        meta: event.metaKey,
+        ctrl: event.ctrlKey,
+      })
       return
     }
     if (event.button === 1) {
@@ -357,38 +464,21 @@ export function CanvasView() {
       return
     }
 
-    // Direct Selection reaches the leaf under the pointer; the Selection tool stops at the
-    // top-level object, which is Illustrator's black-arrow/white-arrow distinction.
-    const deep = state.tool === 'directSelect'
-    // Isolation mode (issue #71): a click resolves to the deepest leaf inside the isolated group.
-    const isolatedGroup = workspaceStore.getState().isolatedGroupId
-    const hit = isolatedGroup === null
-      ? hitTest(state.document, start, deep ? { deep: true } : {})
-      : deepHitWithin(state.document, isolatedGroup, start)
-    if (hit === null) {
-      gestureRef.current = { kind: 'marquee', start, current: start, deep }
-      return
-    }
-    if (event.shiftKey || event.metaKey || event.ctrlKey) documentStore.toggleSelection(hit)
-    else if (!state.selection.includes(hit)) documentStore.setSelection([hit])
-
-    // Capture each movable node's transform before the drag so undo restores it.
-    const originals = new Map<string, Transform>()
-    for (const id of documentStore.getState().selection) {
-      const node = findNode(state.document, id)
-      if (node !== null && !node.locked) originals.set(id, { ...node.transform })
-    }
-    if (originals.size === 0) {
-      gestureRef.current = { kind: 'none' }
-      return
-    }
-    documentStore.beginTransaction('move')
-    gestureRef.current = { kind: 'move', start, current: start, originals, box: unionBounds(state.document, [...originals.keys()]) }
   }
 
   function onPointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
     const gesture = gestureRef.current
-    if (gesture.kind === 'none') return
+    if (gesture.kind === 'none') {
+      if (isStateMachineTool(state.tool)) {
+        toolsRef.current?.[state.tool].onPointerMove(toolHost(), toolPoint(event), {
+          shift: event.shiftKey,
+          alt: event.altKey,
+          meta: event.metaKey,
+          ctrl: event.ctrlKey,
+        })
+      }
+      return
+    }
     if (gesture.kind === 'pan') {
       documentStore.setViewport({
         panX: gesture.panStart.x + (event.clientX - gesture.startClient.x),
@@ -448,6 +538,17 @@ export function CanvasView() {
   function onPointerUp(event: React.PointerEvent<HTMLCanvasElement>) {
     const gesture = gestureRef.current
     gestureRef.current = { kind: 'none' }
+    if (gesture.kind === 'none' && isStateMachineTool(state.tool)) {
+      const toolPointNow = toolPoint(event)
+      toolsRef.current?.[state.tool].onPointerUp(toolHost(), toolPointNow, {
+        shift: event.shiftKey,
+        alt: event.altKey,
+        meta: event.metaKey,
+        ctrl: event.ctrlKey,
+      })
+      canvasRef.current?.releasePointerCapture(event.pointerId)
+      return
+    }
     setOverlay(null)
     setLassoPath(null)
     canvasRef.current?.releasePointerCapture(event.pointerId)

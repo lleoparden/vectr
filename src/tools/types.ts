@@ -7,6 +7,7 @@
  */
 
 import type { Point } from '../geom/shapeGeometry.ts'
+import type { ShapeKind } from '../doc/document.ts'
 import type { NodeId } from '../doc/types.ts'
 
 /** A pointer position in both coordinate systems the tools need. */
@@ -45,7 +46,20 @@ export type ToolHost = {
   commitMarquee(rect: MarqueeRect, deep: boolean): void
   viewport(): { panX: number; panY: number }
   panTo(panX: number, panY: number): void
+  /** The lasso's freehand path, drawn while the pointer moves and cleared on release. */
+  setLasso(points: Point[] | null): void
+  /** Resolves a lasso path to a selection, honouring the modifier that adds to it. */
+  commitLasso(points: Point[], modifiers: ToolModifiers): void
+  /** The shape being dragged out, drawn as the canvas preview. */
+  setShapePreview(preview: ShapePreview | null): void
+  /** Creates the shape the drag describes, or does nothing when the drag is too small. */
+  commitShape(toolId: string, start: Point, end: Point, shift: boolean): void
+  /** Places a text object at a scene point and opens its editor. */
+  placeText(scene: Point): void
 }
+
+/** The preview the canvas draws while a shape is being dragged out. */
+export type ShapePreview = { kind: ShapeKind; start: Point; current: Point; shift: boolean }
 
 export type Tool = {
   id: string

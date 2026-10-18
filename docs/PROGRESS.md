@@ -1,6 +1,33 @@
 # Progress
 
 
+## Phase 3.3 - every tool is a state machine (2026-10-18, issue #109)
+
+The canvas now contains no gesture logic at all: it routes pointer input to a machine and supplies the host.
+
+- **The lasso** (`tools/lasso.ts`) collects a freehand path (capped at 2,000 samples), decides nothing until
+  release, and commits through the host - which applies the same rule as before: Shift merges with the selection,
+  otherwise isolation filters the result.
+- **All seven shape tools** (`tools/shapes.ts`) are one machine: the tool id decides the kind, Shift is read on
+  every move so the preview updates live, and the host turns the drag into an object on release. **That includes
+  the rounded rectangle and the arc**, which the first attempt missed.
+- **The Type tool** (`tools/type.ts`) places a text object where the click landed and opens its editor; the canvas
+  still prevents the default focus change so the editor cannot be blurred before the first keystroke.
+- **The registry** (`tools/index.ts`) now holds all twelve tools the palette offers, and `isStateMachineTool`
+  answers for every one of them, so nothing falls through to dead code.
+
+**The packaged run caught a real regression, which is the point of it.** The first version registered five shape
+tools and forgot `roundedRect` and `arc`: those tools became no-ops and the run reported *created star* for a
+rounded-rectangle drag and *created line* for an arc drag. Registering the missing two restored all seven, and the
+run went green again - 126 steps, unchanged. The lesson is recorded in DECISIONS: the registry must be checked
+against the palette's tool list, not against the tools that happened to be ported.
+
+**Behaviour frozen:** 241/241 unit tests (5 new: lasso path and release semantics, the cap and Escape, live Shift
+in the shape preview, cancel leaving no object, Type placement), layer check on 95 files, clean typecheck and
+build, and the packaged run's **same 126 steps across seven reports**.
+
+
+
 ## Phase 3.2 - Selection, Direct Selection, and the Hand are state machines (2026-10-18, issue #108)
 
 The canvas stopped owning gestures. `src/tools/` now holds a tool contract and three machines.

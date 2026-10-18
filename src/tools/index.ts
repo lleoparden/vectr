@@ -1,12 +1,14 @@
 /**
- * The tool registry (Phase 3.2).
+ * The tool registry (Phase 3.2-3.3).
  *
- * Only the tools that are state machines live here today; the lasso, the shape tools, and Type
- * follow in Phase 3.3. The registry is keyed by the tool ids the palette and the shortcuts use.
+ * Every tool the palette offers is a state machine; the canvas routes pointer input by tool id.
  */
 
 import { createHandTool } from './hand.ts'
+import { createLassoTool } from './lasso.ts'
 import { createSelectTool } from './select.ts'
+import { createShapeTool } from './shapes.ts'
+import { createTypeTool } from './type.ts'
 import type { Tool } from './types.ts'
 
 /** Cursors, chosen to read like Illustrator's without copying its artwork. */
@@ -14,6 +16,15 @@ export const TOOL_CURSORS = {
   select: 'default',
   directSelect: 'default',
   hand: 'grab',
+  lasso: 'crosshair',
+  rect: 'crosshair',
+  roundedRect: 'crosshair',
+  arc: 'crosshair',
+  ellipse: 'crosshair',
+  polygon: 'crosshair',
+  star: 'crosshair',
+  line: 'crosshair',
+  text: 'text',
 } as const
 
 export type StateMachineToolId = keyof typeof TOOL_CURSORS
@@ -23,10 +34,19 @@ export function createToolStateMachines(): Record<StateMachineToolId, Tool> {
     select: createSelectTool({ id: 'select', deep: false, cursor: TOOL_CURSORS.select }),
     directSelect: createSelectTool({ id: 'directSelect', deep: true, cursor: TOOL_CURSORS.directSelect }),
     hand: createHandTool(TOOL_CURSORS.hand),
+    lasso: createLassoTool({ cursor: TOOL_CURSORS.lasso }),
+    rect: createShapeTool('rect', TOOL_CURSORS.rect),
+    roundedRect: createShapeTool('roundedRect', TOOL_CURSORS.roundedRect),
+    arc: createShapeTool('arc', TOOL_CURSORS.arc),
+    ellipse: createShapeTool('ellipse', TOOL_CURSORS.ellipse),
+    polygon: createShapeTool('polygon', TOOL_CURSORS.polygon),
+    star: createShapeTool('star', TOOL_CURSORS.star),
+    line: createShapeTool('line', TOOL_CURSORS.line),
+    text: createTypeTool(TOOL_CURSORS.text),
   }
 }
 
-/** True when the active tool is one of the state machines, so the canvas can route to it. */
+/** True when the id names one of the state machines, so the canvas can route to it. */
 export function isStateMachineTool(tool: string): tool is StateMachineToolId {
-  return tool === 'select' || tool === 'directSelect' || tool === 'hand'
+  return Object.prototype.hasOwnProperty.call(TOOL_CURSORS, tool)
 }

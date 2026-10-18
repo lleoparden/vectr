@@ -1,6 +1,20 @@
 # Progress
 
 
+## A contribution guide (2026-10-18)
+
+`CONTRIBUTING.md` now exists at the root, where GitHub surfaces it when someone opens an issue or a pull request.
+It covers the ways to contribute, the setup and the scripts (including the `ELECTRON_RUN_AS_NODE` caveat), the
+branch and commit rules, the layer and component-kit rules in plain language, the six questions a pull request
+owes, what counts as evidence (real hit testing, not events fired at the canvas), the documentation and release
+gates, how to report a good bug, the style expectations, and the provenance rules - MIT for contributions, no
+Adobe assets or source, no VectorCraft source or branding.
+
+The README's Contributing section now points at the guide first and at `AGENTS.md` as the binding rulebook, and
+the documentation index lists it.
+
+
+
 ## Public repository, live site, and a rolling alpha release (2026-10-18)
 
 - **The repository is public.** GitHub Pages refused the private repository's plan; making it public was the

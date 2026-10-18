@@ -1,6 +1,6 @@
 # Documentation
 
-Eight documents carry the project record. Each has one job; when two seem to overlap, the more
+Nine documents carry the project record, and `../CONTRIBUTING.md` explains how to add to them. Each has one job; when two seem to overlap, the more
 specific one wins.
 
 | Document | Job | Update when |

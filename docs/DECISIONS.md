@@ -1937,3 +1937,14 @@ Implementation follows the contract above. Three decisions worth naming:
 - **A click is not a page.** A drag smaller than the minimum becomes nothing rather than a 1×1 artboard.
 - **Shift+O is Illustrator's own chord**, so the tool is reachable the way an Illustrator user reaches it.
 
+## 2026-10-18 — The Hand tool drags the camera (H, and Space to borrow it)
+
+- **One pan gesture, three ways in.** The Hand drag reuses the `pan` gesture the middle mouse button already
+  used, so the viewport has a single code path and the hand cannot drift from the wheel/zoom maths.
+- **Space borrows the hand instead of switching tools.** While Space is held, the tool becomes `hand`; on
+  release the previous tool comes back. That is Illustrator's behaviour and it means a pan never costs you
+  the tool you were drawing with — the reason the hand is useful in the middle of work.
+- **Space is swallowed when it would scroll.** The handler calls `preventDefault` so the page under the
+  canvas cannot scroll, and it is skipped inside text fields so typing a space still types a space.
+- **The cursor says what the tool does:** grab while the hand is active, grabbing while dragging it.
+

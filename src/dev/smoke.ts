@@ -982,12 +982,13 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 5 &&
+    slots.length === 6 &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
       lassoSlot?.title === 'Lasso Tool (Q)' &&
-      document.querySelector('[data-tool-slot="artboard"]') !== null,
+      document.querySelector('[data-tool-slot="artboard"]') !== null &&
+      document.querySelector('[data-tool-slot="hand"]') !== null,
     `${slots.length} slots, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
   )
 
@@ -1193,6 +1194,38 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   }
   documentStore.setTool('select')
   await settle(60)
+  // Hand tool: H, drag to move the camera, and Space borrows the hand in any tool.
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', bubbles: true }))
+  await settle(60)
+  const handCanvas = document.querySelector('canvas')
+  const panBefore = { ...documentStore.getState().viewport }
+  if (handCanvas !== null) {
+    const box = handCanvas.getBoundingClientRect()
+    const start = { clientX: box.left + 400, clientY: box.top + 300 }
+    const end = { clientX: box.left + 250, clientY: box.top + 200 }
+    handCanvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, ...start }))
+    handCanvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, ...end }))
+    handCanvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, ...end }))
+  }
+  await settle(80)
+  const panAfter = documentStore.getState().viewport
+  record(
+    'the Hand tool drags the view',
+    documentStore.getState().tool === 'hand' && Math.round(panAfter.panX - panBefore.panX) === -150,
+    'tool ' + documentStore.getState().tool + ', panX ' + Math.round(panBefore.panX) + ' -> ' + Math.round(panAfter.panX),
+  )
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+  await settle(60)
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }))
+  await settle(60)
+  const borrowed = documentStore.getState().tool
+  window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', key: ' ', bubbles: true }))
+  await settle(60)
+  record(
+    'holding Space borrows the Hand tool and gives the tool back',
+    borrowed === 'hand' && documentStore.getState().tool === 'select',
+    'while held ' + borrowed + ', after release ' + documentStore.getState().tool,
+  )
   // Put the selection back: the panels below are about the selected object, not the page.
   documentStore.setSelection(keptSelection)
   await settle(80)

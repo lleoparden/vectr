@@ -59,6 +59,7 @@ export const ACTION_IDS = [
   'tool.polygon',
   'tool.star',
   'tool.arc',
+  'tool.hand',
   'tool.artboard',
   'tool.text',
   'file.place',
@@ -134,6 +135,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.polygon': 'Polygon Tool',
   'tool.star': 'Star Tool',
   'tool.arc': 'Arc Tool',
+  'tool.hand': 'Hand Tool',
   'tool.artboard': 'Artboard Tool',
   'tool.text': 'Type Tool',
   'file.place': 'Place…',
@@ -949,6 +951,9 @@ export function runEditorAction(id: EditorActionId): void {
       // remembers it, so the palette's shape slot shows the tool last used the way Illustrator's
       // does. The action id and the member's name differ only for the rounded rectangle.
       setToolShapeMember(shapeKindForAction(id))
+      return
+    case 'tool.hand':
+      documentStore.setTool('hand')
       return
     case 'tool.artboard':
       documentStore.setTool('artboard')

@@ -27,6 +27,7 @@ export type Tool =
   | 'polygon'
   | 'star'
   | 'arc'
+  | 'hand'
   | 'artboard'
   | 'text'
 export type Viewport = { zoom: number; panX: number; panY: number }

@@ -1,6 +1,23 @@
 # Progress
 
 
+## Hand tool — drag to move the camera (2026-10-18)
+
+- **`H`** activates the Hand tool in its own palette slot with an original palm icon. Dragging the canvas
+  moves the view in the opposite direction, the way grabbing a sheet of paper does; the cursor is a grab
+  hand, and a closed one while dragging.
+- **Holding Space borrows the hand in any tool** and releasing it gives the previous tool back, so a pan
+  never costs you the tool you were working with. Space is swallowed while it would scroll the page, and it
+  still types a space inside a text field.
+- The drag reuses the same `pan` gesture the middle mouse button uses, so the viewport has one code path.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **219/219** (palette and chord
+assertions for the new slot); packaged run **119 steps across seven reports**, `[vectr-ui]` **20/20** with
+two new steps: pressing `H` and dragging the real canvas moves `panX` by exactly the drag distance, and
+holding Space reports the hand while held and the previous tool after release.
+
+
+
 ## Artboard tool with its shortcut (2026-10-18)
 
 - **Shift+O** activates the Artboard tool, in its own palette slot with an original page icon.

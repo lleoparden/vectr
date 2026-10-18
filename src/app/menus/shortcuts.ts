@@ -45,6 +45,8 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   // Vectr deliberately does not invent keys that would collide with a real Illustrator habit.
   { id: 'tool.line', chord: { key: '\\' }, illustratorDefault: true },
   { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
+  // H is Illustrator's own chord for the Hand tool; Space reaches it temporarily.
+  { id: 'tool.hand', chord: { key: 'h' }, illustratorDefault: true },
   // Shift+O is Illustrator's own chord for the Artboard tool.
   { id: 'tool.artboard', chord: { key: 'o', shift: true }, illustratorDefault: true },
 

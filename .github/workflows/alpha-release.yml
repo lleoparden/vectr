@@ -74,10 +74,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # The notes keep "<version>" as a placeholder so the file survives a version bump; the published
+          # body states the exact version the installer was built from.
+          VERSION=$(node -p "require('./package.json').version")
+          sed "s/<version>/$VERSION/g" docs/RELEASES.md > "$RUNNER_TEMP/alpha-notes.md"
           if gh release view alpha >/dev/null 2>&1; then
-            gh release edit alpha --prerelease --title "Vectr alpha (rolling)" --notes-file docs/RELEASES.md
+            gh release edit alpha --prerelease --title "Vectr alpha (rolling)" --notes-file "$RUNNER_TEMP/alpha-notes.md"
           else
-            gh release create alpha --prerelease --title "Vectr alpha (rolling)" --notes-file docs/RELEASES.md
+            gh release create alpha --prerelease --title "Vectr alpha (rolling)" --notes-file "$RUNNER_TEMP/alpha-notes.md"
           fi
 
       - name: Attach the installer, replacing any older one

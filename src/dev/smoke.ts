@@ -997,7 +997,8 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
       (button) => button.textContent?.trim() === text,
     )
   const setNumber = (value: string) => {
-    const input = bar()?.querySelector<HTMLInputElement>('input[type="number"]')
+    // Number fields are the shared scrub-able control now, which is a text input with a spinbutton role.
+    const input = bar()?.querySelector<HTMLInputElement>('input[role="spinbutton"]')
     if (input === undefined || input === null) return false
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
     setter?.call(input, value)
@@ -1765,11 +1766,10 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     )
   /** Sets one of the bar's labelled number fields, the way typing into it would. */
   const setField = (label: string, value: string) => {
-    const field = Array.from(bar()?.querySelectorAll('label') ?? []).find((element) =>
-      element.textContent?.trim().startsWith(label),
+    const input = Array.from(bar()?.querySelectorAll<HTMLInputElement>('input[role="spinbutton"]') ?? []).find((element) =>
+      (element.getAttribute('aria-label') ?? '').startsWith(label),
     )
-    const input = field?.querySelector('input[type="number"]')
-    if (input === undefined || input === null) return false
+    if (input === undefined) return false
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
     setter?.call(input, value)
     input.dispatchEvent(new Event('input', { bubbles: true }))

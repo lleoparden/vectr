@@ -20,6 +20,10 @@ import {
   setToolTextSize,
 } from '../actions.ts'
 import { ACTION_LABELS } from '../actions.ts'
+import { SegmentButton } from '../ui/components/SegmentButton.tsx'
+import { SwatchTile } from '../ui/components/SwatchTile.tsx'
+import { NumberField } from '../ui/components/fields.tsx'
+import { Button } from '../ui/components/Button.tsx'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { toolOptionsModel, groupFor, type ToolOptionControl } from '../ui/toolOptions.ts'
@@ -104,20 +108,14 @@ function Control({ control }: { control: ToolOptionControl }) {
       return (
         <span role="group" className="flex shrink-0 items-center gap-[2px] rounded-ui bg-chrome-sunken p-[2px]">
           {control.options.map((option) => (
-            <button
+            <SegmentButton
               key={option.value}
-              type="button"
-              aria-pressed={option.active}
+              active={option.active}
               title={option.title}
-              className={`${SEGMENT_CLASS} ${
-                option.active
-                  ? 'border-accent bg-accent text-accent-ink'
-                  : 'border-hairline bg-chrome text-ink-muted hover:bg-chrome-active'
-              }`}
               onClick={() => onSegmented(control.id, option.value)}
             >
               {option.label}
-            </button>
+            </SegmentButton>
           ))}
         </span>
       )
@@ -125,64 +123,49 @@ function Control({ control }: { control: ToolOptionControl }) {
       return (
         <label className="flex items-center gap-1 text-ui-xs text-ink-faint">
           {control.label}
-          <input
-            type="number"
+          <NumberField
+            inline
+            label={control.label}
             min={control.min}
             max={control.max}
             step={control.step}
             value={control.value}
-            className="h-6 w-14 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent hover:border-chrome-active"
-            onChange={(event) => onShapeNumber(control.id, Number(event.currentTarget.value))}
+            onChange={(value) => onShapeNumber(control.id, value)}
           />
         </label>
       )
     case 'toggle':
       return (
-        <button
-          type="button"
-          aria-pressed={control.active}
-          className={`${SEGMENT_CLASS} ${
-            control.active
-              ? 'border-accent bg-accent text-accent-ink'
-              : 'border-hairline bg-chrome text-ink-muted hover:bg-chrome-active'
-          }`}
-          onClick={() => onToggle(control.id, control.active)}
-        >
+        <SegmentButton active={control.active} onClick={() => onToggle(control.id, control.active)}>
           {control.label}
-        </button>
+        </SegmentButton>
       )
     case 'swatches':
       return (
         <span role="group" aria-label={control.id === 'shape.fill' ? 'Fill colour' : 'Text colour'} className="flex items-center gap-[3px]">
           {control.colors.map((color) => (
-            <button
-              key={`${control.id}-${color}`}
-              type="button"
-              aria-pressed={control.active.toLowerCase() === color.toLowerCase()}
-              title={color}
-              aria-label={`${control.id === 'shape.fill' ? 'Fill' : 'Text colour'} ${color}`}
-              className="h-4 w-4 rounded-ui border border-hairline"
-              style={{
-                background: color,
-                outline: control.active.toLowerCase() === color.toLowerCase() ? '1px solid var(--color-accent)' : 'none',
-                outlineOffset: '1px',
-              }}
-              onClick={() => onSwatches(control.id, color)}
-            />
+            <span key={`${control.id}-${color}`} className="w-4">
+              <SwatchTile
+                color={color}
+                label={`${control.id === 'shape.fill' ? 'Fill' : 'Text colour'} ${color}`}
+                title={color}
+                size="sm"
+                selected={control.active.toLowerCase() === color.toLowerCase()}
+                onPick={() => onSwatches(control.id, color)}
+              />
+            </span>
           ))}
         </span>
       )
     case 'action':
       return (
-        <button
-          type="button"
+        <SegmentButton
           disabled={!control.enabled}
           title={ACTION_LABELS[control.id]}
-          className={ACTION_CLASS}
           onClick={() => runEditorAction(control.id)}
         >
           {ACTION_LABELS[control.id]}
-        </button>
+        </SegmentButton>
       )
   }
 }
@@ -210,25 +193,25 @@ export function ToolOptionsBar() {
         <Control key={`${control.kind}-${index}`} control={control} />
       ))}
       <span className="ml-auto flex items-center" role="group" aria-label="Place image">
-        <button
-          type="button"
-          data-place-image
+        <Button
+          variant="dialog"
+          data={{ 'data-place-image': '' }}
           title="Place embedded image"
-          className="flex items-center gap-1 rounded-l-ui border border-hairline bg-chrome-panel px-2 py-[2px] text-ui-xs text-ink-muted hover:border-accent hover:bg-chrome-hover hover:text-ink"
+          icon={<IconImage size={14} />}
+          className="rounded-r-none rounded-l-ui"
           onClick={() => runEditorAction('file.place')}
         >
-          <IconImage size={14} />
           Place image
-        </button>
-        <button
-          type="button"
-          data-place-linked-image
+        </Button>
+        <Button
+          variant="dialog"
+          data={{ 'data-place-linked-image': '' }}
           title="Place linked image"
-          className="-ml-px rounded-r-ui border border-hairline bg-chrome-panel px-2 py-[2px] text-ui-xs text-ink-muted hover:border-accent hover:bg-chrome-hover hover:text-ink"
+          className="-ml-px rounded-l-none rounded-r-ui"
           onClick={() => runEditorAction('file.placeLinked')}
         >
           Link
-        </button>
+        </Button>
       </span>
     </div>
   )

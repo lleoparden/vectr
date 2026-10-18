@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../ui/components/Button.tsx'
+import { NumberField } from '../ui/components/fields.tsx'
 import { workspaceStore } from '../../state/workspaceStore.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
@@ -70,18 +71,15 @@ export function PreferencesDialog() {
 
         <label className="mt-3 flex items-center gap-2 text-ui-xs text-ink">
           Every
-          <input
-            type="number"
-            aria-label="Autosave interval in minutes"
+          <NumberField
+            inline
+            label="Autosave interval in minutes"
             min={MIN_AUTOSAVE_INTERVAL_MINUTES}
             max={MAX_AUTOSAVE_INTERVAL_MINUTES}
-            value={draft}
-            onChange={(event) => setDraft(event.currentTarget.value)}
-            onBlur={applyDraft}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') applyDraft()
+            value={Number(draft)}
+            onChange={(minutes) => {
+              setDraft(String(minutes))
             }}
-            className="w-16 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
           />
           minutes
           <span className="text-ink-faint">

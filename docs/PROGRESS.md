@@ -1,6 +1,34 @@
 # Progress
 
 
+## UI component kit, final pass - zero hand-written controls outside the kit (2026-10-18, closes #133)
+
+The last pass took the menus, the palette, the options bar, and the dialogs, and then tightened the standard to
+"anything, anywhere".
+
+- **`Menu`** is the menu kit: a surface, a row (label, chord, disabled, popup state, trailing element, ref, tab
+  index, keyboard handler), a title with the underlined mnemonic, a separator, and the dialog backdrop. The menu
+  bar, the panel flyouts, the palette flyouts, and the canvas context menu all compose it, and their keyboard
+  navigation stayed exactly where it was.
+- **`ToolSlot`** holds the palette's three controls: the square slot with its active state, the flyout corner, and
+  the member row inside the flyout.
+- **`SegmentButton`** is the options bar's chip, used by the shape switch, the toggles, and the action buttons.
+- **The options bar's numeric fields are `NumberField`**, so the bar's shape parameters are scrub-able and accept
+  arithmetic like every other number in the product; the Preferences interval joined it too.
+- **The standards test now fails on any raw `<button>` or `type="number"` outside `components/`**, across the whole
+  interface (the benchmark and smoke harnesses are excluded because they build their own minimal DOM).
+
+**A regression the packaged run caught:** replacing the options bar's number inputs made two harness selectors
+stale - they looked for `input[type="number"]` - so the polygon, star, arc, rounded-rectangle, line, and Type
+steps failed with "the field was not rendered". The product was right and the test was looking for the old
+control; the harness now finds `input[role="spinbutton"]`. Behaviour afterwards: **272/272 tests**, layer check on
+116 files, clean typecheck and build, packaged run **145 steps across seven reports**.
+
+**The cleanup is complete:** no panel, dialog, toolbar, palette, or menu hand-writes a button or a number input.
+Issue #133 closes.
+
+
+
 ## UI component kit, second pass (2026-10-18, issue #133)
 
 The first pass unified the button, the empty state, and the field primitives. This pass takes the rest of the

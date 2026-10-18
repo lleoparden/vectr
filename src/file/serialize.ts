@@ -7,6 +7,7 @@
  */
 
 import { validateDocument } from '../doc/validate.ts'
+import type { Guide } from '../doc/types.ts'
 import { FORMAT_VERSION } from '../doc/types.ts'
 import type { AssetRef, Document, GroupNode, LayerNode } from '../doc/types.ts'
 import { MANIFEST_VERSION, canonicalJson, manifestFor, type Manifest } from './format.ts'
@@ -79,6 +80,7 @@ export function deserializeDocument(text: string): DeserializeResult {
     artboards: Array.isArray(upgraded.artboards) ? upgraded.artboards : [],
     root: upgraded.root,
     assets: Array.isArray(upgraded.assets) ? upgraded.assets : [],
+    guides: Array.isArray(upgraded.guides) ? upgraded.guides : [],
   }
 
   const validation = validateDocument(document)

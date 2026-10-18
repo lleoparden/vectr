@@ -24,6 +24,7 @@ import {
   isGroup,
   isText,
   type Artboard,
+  type Guide,
   type AssetRef,
   type Document,
   type GroupNode,
@@ -47,6 +48,10 @@ export type Command =
   | { type: 'setCornerRadius'; nodeId: NodeId; cornerRadius: number }
   /** Makes a direct child clip its group's other children, or releases the clip (issue #71). */
   | { type: 'setClip'; groupId: NodeId; clipChildId: NodeId | null }
+  /** Guide lines are document data (issue #67); positions are scene units. */
+  | { type: 'addGuide'; guide: Guide }
+  | { type: 'removeGuide'; guideId: string }
+  | { type: 'setGuide'; guideId: string; position: number }
   /** Artboards are document data (Phase 2.4, issue #67); positions are derived, never stored. */
   | { type: 'addArtboard'; artboard: Artboard; index: number }
   | { type: 'removeArtboard'; artboardId: string }
@@ -319,6 +324,47 @@ export function applyCommand(document: Document, command: Command): CommandResul
           ),
         }),
         inverse: { type: 'setArtboard', artboardId: artboard.id, name: artboard.name, width: artboard.width, height: artboard.height },
+      }
+    }
+
+    case 'addGuide': {
+      const guides = document.guides ?? []
+      if (guides.some((guide) => guide.id === command.guide.id)) {
+        return rejected('duplicate-id', `Guide ${command.guide.id} already exists.`)
+      }
+      if (!Number.isFinite(command.guide.position)) {
+        return rejected('non-finite', 'A guide needs a finite position.')
+      }
+      return {
+        ok: true,
+        document: withRevision({ ...document, guides: [...guides, { ...command.guide }] }),
+        inverse: { type: 'removeGuide', guideId: command.guide.id },
+      }
+    }
+
+    case 'removeGuide': {
+      const guides = document.guides ?? []
+      const guide = guides.find((candidate) => candidate.id === command.guideId)
+      if (guide === undefined) return rejected('absent-node', `Guide ${command.guideId} does not exist.`)
+      return {
+        ok: true,
+        document: withRevision({ ...document, guides: guides.filter((candidate) => candidate.id !== guide.id) }),
+        inverse: { type: 'addGuide', guide: { ...guide } },
+      }
+    }
+
+    case 'setGuide': {
+      const guides = document.guides ?? []
+      const guide = guides.find((candidate) => candidate.id === command.guideId)
+      if (guide === undefined) return rejected('absent-node', `Guide ${command.guideId} does not exist.`)
+      if (!Number.isFinite(command.position)) return rejected('non-finite', 'A guide needs a finite position.')
+      return {
+        ok: true,
+        document: withRevision({
+          ...document,
+          guides: guides.map((candidate) => (candidate.id === guide.id ? { ...candidate, position: command.position } : candidate)),
+        }),
+        inverse: { type: 'setGuide', guideId: guide.id, position: guide.position },
       }
     }
 

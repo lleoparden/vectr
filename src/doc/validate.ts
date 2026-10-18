@@ -152,6 +152,13 @@ export function validateDocument(document: Document): ValidationResult {
       return fail('non-finite', `Artboard ${artboard.id} has a non-finite position.`)
     }
   }
+  const guideIds = new Set<string>()
+  for (const guide of document.guides ?? []) {
+    if (guideIds.has(guide.id)) return fail('duplicate-id', `Duplicate guide id ${guide.id}.`)
+    guideIds.add(guide.id)
+    if (guide.axis !== 'x' && guide.axis !== 'y') return fail('invalid-index', `Guide ${guide.id} has an unknown axis.`)
+    if (!Number.isFinite(guide.position)) return fail('non-finite', `Guide ${guide.id} has a non-finite position.`)
+  }
   const seen = new Set<NodeId>()
   const walk = (node: LayerNode, ancestry: Set<NodeId>): ValidationResult => {
     if (seen.has(node.id)) return fail('duplicate-id', `Duplicate node id ${node.id}.`, node.id)

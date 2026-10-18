@@ -1,6 +1,26 @@
 # Progress
 
 
+## Issue #67 completed — rulers, grid, and guides (2026-10-18)
+
+- **Rulers** along the top and left in scene units, with labelled major ticks that re-step as you zoom, and
+  a corner box, so a position on the page has a number.
+- **Guides are document data.** Drag off a ruler to place one, drag the line to move it, double-click to
+  remove it, or View ▸ Clear Guides to empty them. They save with the document and reopen with it, and
+  **Smart Guides snap to them**.
+- **Grid** drawn inside each page under the artwork — 10-unit lines with a stronger line every 100 —
+  toggled with Ctrl+'.
+- Shortcuts follow Illustrator: **Ctrl+R** rulers, **Ctrl+'** grid, **Ctrl+;** guides, **Ctrl+Alt+;** clear
+  guides. All of it is view chrome except the guides themselves.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **219/219** (4 new in
+`tests/guides.test.ts`: add/move/remove with exact inverses, validation of duplicate ids, unknown axes and
+non-finite positions, a save/reopen round trip, the guide as a snap target, and the action path through the
+store); packaged run **122 steps across seven reports**, `[vectr-ui]` **23/23** with three new steps — a
+guide is drawn beside the rulers, removing it takes it off the canvas, and the grid toggles.
+
+
+
 ## Fixed: the canvas was covered, so the wheel and the Hand tool did nothing (2026-10-18)
 
 The owner reported that the Hand tool did nothing and the scroll wheel had stopped zooming. Both were

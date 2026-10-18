@@ -188,6 +188,9 @@ export type LeafNode = ShapeNode | TextNode | ImageNode
  * A page. `x`/`y` are optional: a file written before pages could be placed has none, and the layout
  * then flows it after the previous page. A dragged page stores where it was put.
  */
+/** A guide line: a position in scene units on one axis (issue #67). */
+export type Guide = { id: string; axis: 'x' | 'y'; position: number }
+
 export type Artboard = { id: string; name: string; width: number; height: number; x?: number; y?: number }
 
 /** Asset descriptors stay here for later slices; slice 5 fills them in. */
@@ -211,6 +214,8 @@ export type Document = {
   /** The document root is always a group, which keeps tree code uniform. */
   root: GroupNode
   assets: AssetRef[]
+  /** Guide lines; absent in files written before guides existed. */
+  guides?: Guide[]
 }
 
 export function createTransform(x = 0, y = 0): Transform {

@@ -96,6 +96,11 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'view.fitArtboard', chord: { key: '0', ctrl: true }, illustratorDefault: true },
   { id: 'view.actualSize', chord: { key: '1', ctrl: true }, illustratorDefault: true },
   { id: 'view.smartGuides', chord: { key: 'u', ctrl: true }, illustratorDefault: true },
+  // Illustrator's own view chords.
+  { id: 'view.rulers', chord: { key: 'r', ctrl: true }, illustratorDefault: true },
+  { id: 'view.grid', chord: { key: "'", ctrl: true }, illustratorDefault: true },
+  { id: 'view.guides', chord: { key: ';', ctrl: true }, illustratorDefault: true },
+  { id: 'view.clearGuides', chord: { key: ';', ctrl: true, alt: true }, illustratorDefault: true },
 
   // Window: Illustrator's panel shortcuts.
   { id: 'window.togglePanel.layers', chord: { key: 'f7' }, illustratorDefault: true },

@@ -1975,3 +1975,18 @@ handles, the drag maths module, and its tests. Pages stay fully managed from Pro
 presets, typed W/H) with names and sizes on the canvas and an outline on the active page — the parts the
 owner asked for originally.
 
+## 2026-10-18 — Rulers, grid, and guides (issue #67 completed)
+
+- **Guides are document data; rulers and the grid are view state.** A guide is a position someone chose for
+  this artwork, so it persists (`document.guides`, optional, so older files open with none). Rulers and the
+  grid are chrome: session flags, never written, so a file cannot record that you had rulers on.
+- **The grid is drawn by the renderer, clipped to the page, under the artwork.** It cannot be DOM: the
+  canvas is opaque above it, and a grid that floated over the drawing would be a different product. Minor
+  lines are skipped below 4 screen pixels apart so zooming out cannot cost a thousand draws.
+- **Guide drags use the live-edit transaction**, so dragging a guide is one undo entry and the guide is
+  visible while it moves — the same rule as the colour and transform fields.
+- **Guides snap.** `snapTargets` includes them, which is the whole point of placing one: a guide you cannot
+  snap to is a line you can only look at.
+- **Ctrl+R / Ctrl+' / Ctrl+; / Ctrl+Alt+;** are Illustrator's own chords for rulers, grid, guides, and
+  clearing guides; nothing new was invented.
+

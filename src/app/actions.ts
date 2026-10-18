@@ -112,6 +112,10 @@ export const ACTION_IDS = [
   'view.zoomOut',
   'view.fitArtboard',
   'view.actualSize',
+  'view.rulers',
+  'view.grid',
+  'view.guides',
+  'view.clearGuides',
   'view.smartGuides',
   'window.togglePanel.layers',
   'window.togglePanel.properties',
@@ -186,6 +190,10 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'view.zoomOut': 'Zoom Out',
   'view.fitArtboard': 'Fit Artboard in Window',
   'view.actualSize': 'Actual Size',
+  'view.rulers': 'Rulers',
+  'view.grid': 'Grid',
+  'view.guides': 'Guides',
+  'view.clearGuides': 'Clear Guides',
   'view.smartGuides': 'Smart Guides',
   'window.togglePanel.layers': 'Layers',
   'window.togglePanel.properties': 'Properties',
@@ -900,6 +908,29 @@ export function artboardList(): Array<{ id: string; name: string; width: number;
   }))
 }
 
+/** Places a guide at a scene position (issue #67). Dragging from a ruler calls this. */
+export function addGuide(axis: 'x' | 'y', position: number): string | null {
+  if (!Number.isFinite(position)) return null
+  const guide = {
+    id: 'guide-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    axis,
+    position: Math.round(position),
+  }
+  const result = documentStore.dispatch({ type: 'addGuide', guide }, 'add guide')
+  return result.ok ? guide.id : null
+}
+
+/** Moves an existing guide; call inside a live session so a drag is one entry. */
+export function moveGuide(guideId: string, position: number): void {
+  if (!Number.isFinite(position)) return
+  documentStore.dispatch({ type: 'setGuide', guideId, position: Math.round(position) }, 'move guide')
+}
+
+/** Removes one guide. */
+export function removeGuide(guideId: string): void {
+  documentStore.dispatch({ type: 'removeGuide', guideId }, 'remove guide')
+}
+
 /** Runs one action. Components reach the stores through this table and nowhere else. */
 export function runEditorAction(id: EditorActionId): void {
   const editor = documentStore.getState()
@@ -1117,6 +1148,24 @@ export function runEditorAction(id: EditorActionId): void {
     case 'view.fitArtboard':
       documentStore.setViewport(fitRect(artboardRect(editor.document, workspace.activeArtboardId) ?? artboardRects(editor.document)[0], workspace.canvas))
       return
+    case 'view.rulers':
+      workspaceStore.setViewChrome({ showRulers: !workspace.showRulers })
+      return
+    case 'view.grid':
+      workspaceStore.setViewChrome({ showGrid: !workspace.showGrid })
+      return
+    case 'view.guides':
+      workspaceStore.setViewChrome({ showGuides: !workspace.showGuides })
+      return
+    case 'view.clearGuides': {
+      const document = documentStore.getState().document
+      const guides = document.guides ?? []
+      if (guides.length === 0) return
+      documentStore.beginTransaction('clear guides')
+      for (const guide of guides) documentStore.dispatch({ type: 'removeGuide', guideId: guide.id })
+      documentStore.commitTransaction()
+      return
+    }
     case 'view.smartGuides':
       workspaceStore.setSmartGuides(!workspace.smartGuides)
       return

@@ -2023,3 +2023,28 @@ owner asked for originally.
   pattern/mesh model the document does not have; the catalog says so rather than shipping a control that
   changes nothing.
 
+## 2026-10-18 — Architecture replan: VectorCraft's layers, their gap list, and a retrofit phase
+
+The owner's verdict was that the build does not yet feel good, and the question was whether to fork
+VectorCraft as the base. Reading that repository changed the answer, and the owner approved the result:
+
+- **What we take from VectorCraft: its architecture and its behaviour.** Its documented layering (L0 geometry
+  and colour, L1 document, L2 operations, L3 renderer and formats, L4 tools as state machines, L5 engine and
+  command registry, L6 interface, L7 shells) becomes ours, with an enforced import direction. Its ranked gap
+  list against Illustrator becomes our prioritisation evidence. Its source is **not** ported: no Rust is
+  translated, no file is copied. The rule in `AGENTS.md` stands, and the reason is practical as well as legal -
+  idioms do not survive translation, and a ported codebase would be stranger than the one we have.
+- **What we do not take: the fork.** Their workspace is ~354k lines of Rust with a native `vello_cpu` renderer;
+  adopting it would discard ~17k lines of TypeScript, 26 test suites, the v4 format with its validation and
+  exact inverses, the command/history model, and every packaged-evidence run, before parity improved at all.
+- **Their gap list says the feel problem is gap 1** (interaction fidelity, 60-90 agent hours there), ahead of
+  file formats, stability, type, and effects. That is the owner's complaint, and it is craft, not base.
+- **A new Phase 3 exists purely to retrofit what is already built** into the architecture - layer check, tool
+  state machines, one command registry - with **behaviour frozen**: same tests, same packaged run, no
+  document-format change. Fidelity work then starts from a structure worth adding to.
+- **The phase order changed**: 3 realignment, 4 interaction fidelity, 5 path model and booleans, 6 type,
+  7 appearance and effects, 8 files and interoperability, 9 core parity gate, 10 compiler (unchanged position,
+  no longer reachable only by skipping parity), 11 MCP, 12 cloud, 13 distant expansion.
+- **What does not change:** the format stays v4 through the retrofit, every slice still ships with typecheck,
+  tests, build, packaged evidence, and self-review, and no control ships that does not do what it says.
+

@@ -66,12 +66,14 @@ The order changes so that "feels good" is early and the compiler is not stranded
 
 | Phase | Contents | Why here |
 |---|---|---|
-| **2.9 Interaction fidelity (new, next)** | Extract `src/tools/` state machines; cursors and hover; live previews for every tool; keyboard coverage; selection/undo semantics per tool; snapping feel (thresholds, guide visuals) | It is gap 1 in their ranking and the owner's complaint; it makes everything after it feel finished |
-| 3 Path model and booleans | Bézier pen and anchor editing (`PATH-02`), Pathfinder/Shape Builder (`PATH-04`), width profiles (#103), live corners | The drawing grammar Illustrator users expect |
-| 4 Type | Area text, text on a path, threading, character/paragraph styles | Their gap 6 |
-| 5 Files and interoperability | SVG read/write, PDF export, `.ai` and EPS read (their gap 2) | Needed before anyone can bring work in |
-| 6 Compiler | React + Tailwind output (`COMP-01/02`) — our differentiator | Unchanged position in the master plan, now with a document model that supports more of what it must emit |
-| 7 MCP, 8 cloud, 9+ | As planned | Unchanged |
+| **3 Architecture realignment** | Layer check; `src/tools/` state machines; one command registry; behaviour frozen | The retrofit phase the owner asked for: the structure has to be right before fidelity work adds to it |
+| **4 Interaction fidelity** | Cursors, hover, live previews, keyboard and modifiers, snapping feel, panel liveness | Their gap 1 and the owner's complaint: this is what "does not feel good" means |
+| **5 Path model and booleans** | Bezier pen and anchors, Pathfinder/Shape Builder, width profiles, live shapes, compound paths | The drawing grammar Illustrator users expect |
+| **6 Type** | Area text, text on a path, threading, styles, vertical type, text-to-outline | Their gap 6 |
+| **7 Appearance and effects** | Appearance stacks, transparency groups, raster effects, brushes/patterns/symbols, mesh and recolour | The depth a real illustration needs |
+| **8 Files and interoperability** | SVG, PDF, `.ai` and EPS reading, fidelity matrix | Their gap 2: nobody can bring work in until this exists |
+| **9 Core parity gate** | Capability audit, hardening, platforms, performance, accessibility | Their gaps 3, 4, 5, 10, 15, 19 |
+| **10 Compiler** | React and Tailwind output - the differentiator | Unchanged position, now with a document model that supports more of what it must emit |
 
 ## What we will not do
 

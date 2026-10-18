@@ -982,11 +982,12 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 4 &&
+    slots.length === 5 &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
-      lassoSlot?.title === 'Lasso Tool (Q)',
+      lassoSlot?.title === 'Lasso Tool (Q)' &&
+      document.querySelector('[data-tool-slot="artboard"]') !== null,
     `${slots.length} slots, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
   )
 
@@ -1160,6 +1161,38 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     labels.length === documentStore.getState().document.artboards.length,
     labels.length + ' label(s) for ' + documentStore.getState().document.artboards.length + ' page(s)',
   )
+  // Artboard tool (issue #67 follow-up): Shift+O, then drag on the pasteboard to make a page.
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'O', shiftKey: true, bubbles: true }))
+  await settle(80)
+  record(
+    'Shift+O activates the Artboard tool',
+    documentStore.getState().tool === 'artboard',
+    'tool ' + documentStore.getState().tool,
+  )
+  const canvasEl = document.querySelector('canvas')
+  if (canvasEl !== null) {
+    const box = canvasEl.getBoundingClientRect()
+    const viewport = documentStore.getState().viewport
+    const at = (x: number, y: number) => ({ clientX: box.left + x * viewport.zoom + viewport.panX, clientY: box.top + y * viewport.zoom + viewport.panY })
+    const from = at(2600, 1400)
+    const to = at(2900, 1600)
+    const pagesBefore = documentStore.getState().document.artboards.length
+    canvasEl.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, ...from }))
+    canvasEl.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, ...to }))
+    await settle(60)
+    const preview = document.querySelector('[data-artboard-preview]')
+    canvasEl.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, ...to }))
+    await settle(120)
+    const pagesAfter = documentStore.getState().document.artboards
+    const created = pagesAfter[pagesAfter.length - 1]
+    record(
+      'dragging with the Artboard tool creates a page where it was dragged',
+      preview !== null && pagesAfter.length === pagesBefore + 1 && created.width === 300 && created.height === 200,
+      'preview ' + (preview !== null) + ', pages ' + pagesBefore + ' -> ' + pagesAfter.length + ', ' + created.width + 'x' + created.height,
+    )
+  }
+  documentStore.setTool('select')
+  await settle(60)
   // Put the selection back: the panels below are about the selected object, not the page.
   documentStore.setSelection(keptSelection)
   await settle(80)

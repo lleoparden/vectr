@@ -27,6 +27,7 @@ export type Tool =
   | 'polygon'
   | 'star'
   | 'arc'
+  | 'artboard'
   | 'text'
 export type Viewport = { zoom: number; panX: number; panY: number }
 export type CommandError = { code: string; message: string; command: Command }

@@ -1924,3 +1924,16 @@ Implementation follows the contract above. Three decisions worth naming:
 - **A new page copies the active page's size**, so setting a preset then creating a page gives two sheets of
   the same size, which is what a multi-page document wants.
 
+## 2026-10-18 — The Artboard tool places pages (Shift+O)
+
+- **A placed page stores its corner.** `Artboard.x`/`y` are optional: a page created by the tool keeps where
+  it was dragged, and a page from an older file has none and still flows after the previous one. No format
+  bump — the fields are optional in v4.
+- **Only right, bottom, and the corner resize a page.** The placed corner is the anchor, so growing left or
+  upward would mean moving the page, which is a separate gesture. Offering edges that do nothing would be
+  the lie the UI rule forbids, so the overlay shows the three that work.
+- **A resize drag is one live session**, not one command per pointer move: the same transaction the live
+  fields use, so the whole drag is a single undo entry.
+- **A click is not a page.** A drag smaller than the minimum becomes nothing rather than a 1×1 artboard.
+- **Shift+O is Illustrator's own chord**, so the tool is reachable the way an Illustrator user reaches it.
+

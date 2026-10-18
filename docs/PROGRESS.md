@@ -1,6 +1,24 @@
 # Progress
 
 
+## Artboard tool with its shortcut (2026-10-18)
+
+- **Shift+O** activates the Artboard tool, in its own palette slot with an original page icon.
+- **Drag on the pasteboard** to make a page exactly where you drag: it keeps the dragged size and corner,
+  becomes active, and is one undo entry.
+- **Click a page** to make it active; **drag its right, bottom, or corner handle** to resize it. The whole
+  resize is one undo entry, and only the three growable edges are offered because a page's placed corner is
+  its anchor.
+- A dragged rectangle smaller than the minimum is ignored rather than creating a 1×1 page.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **219/219** (4 new in
+`tests/artboardTool.test.ts`: normalised drag rectangles with the minimum, the three resize edges, dragging
+creating an active page where it landed and undoing in one step, and a live resize drag as one entry);
+packaged run with a new `[vectr-ui]` step that presses Shift+O and drags the real canvas, asserting the
+preview element appears and a 300×200 page is created.
+
+
+
 ## Canvas pass — sized artboards on a grey pasteboard, with presets (2026-10-17)
 
 The owner asked for artboards with sizes to choose from and a canvas that is a set sheet with grey around

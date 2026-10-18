@@ -27,6 +27,7 @@ import {
 import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
+import { artboardFromDrag, dragIsAPage, resizedPage, type ResizeEdge } from './editing/artboardDrag.ts'
 import type { BlendMode, FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import { groupToIsolate } from './editing/isolation.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
@@ -58,6 +59,7 @@ export const ACTION_IDS = [
   'tool.polygon',
   'tool.star',
   'tool.arc',
+  'tool.artboard',
   'tool.text',
   'file.place',
   'file.placeLinked',
@@ -132,6 +134,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.polygon': 'Polygon Tool',
   'tool.star': 'Star Tool',
   'tool.arc': 'Arc Tool',
+  'tool.artboard': 'Artboard Tool',
   'tool.text': 'Type Tool',
   'file.place': 'Place…',
   'file.placeLinked': 'Place Linked…',
@@ -877,6 +880,29 @@ export function setActiveArtboard(artboardId: string): void {
   workspaceStore.setActiveArtboard(artboardId)
 }
 
+/** Creates a page where the Artboard tool was dragged and makes it active (issue #67 follow-up). */
+export function createArtboardFromRect(rect: { x: number; y: number; width: number; height: number }): void {
+  const document = documentStore.getState().document
+  const artboard = {
+    id: newArtboardId(),
+    name: 'Artboard ' + (document.artboards.length + 1),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height),
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+  }
+  const result = documentStore.dispatch(
+    { type: 'addArtboard', artboard, index: document.artboards.length },
+    'new artboard',
+  )
+  if (result.ok) workspaceStore.setActiveArtboard(artboard.id)
+}
+
+/** Resizes a page; call it inside a live-edit session so a resize drag is one history entry. */
+export function resizeArtboard(artboardId: string, size: { width: number; height: number }): void {
+  documentStore.dispatch({ type: 'setArtboard', artboardId, width: size.width, height: size.height }, 'resize artboard')
+}
+
 /** Resizes the active page through the validated command, one undo entry per commit. */
 export function setActiveArtboardSize(patch: { width?: number; height?: number }): void {
   const document = documentStore.getState().document
@@ -923,6 +949,9 @@ export function runEditorAction(id: EditorActionId): void {
       // remembers it, so the palette's shape slot shows the tool last used the way Illustrator's
       // does. The action id and the member's name differ only for the rounded rectangle.
       setToolShapeMember(shapeKindForAction(id))
+      return
+    case 'tool.artboard':
+      documentStore.setTool('artboard')
       return
     case 'tool.text':
       documentStore.setTool('text')

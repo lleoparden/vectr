@@ -54,6 +54,8 @@ export type SceneShape = {
   fill: string
   /** Linear gradient paint for the fill, or null for a solid fill (issue #70). */
   gradient: FillGradient | null
+  /** Which part the gradient paints: fill, stroke, or both (issue #70). */
+  gradientTarget: 'fill' | 'stroke' | 'both' | null
   stroke: { color: string; width: number } | null
   opacity: number
   /** Fill blend mode, or null for normal (issue #71). */
@@ -148,6 +150,7 @@ function walkShapes(
     pie: node.type === 'arc' ? node.pie : false,
     fill: node.style.fill,
     gradient: node.style.gradient ?? null,
+    gradientTarget: node.style.gradientTarget ?? null,
     stroke: node.style.stroke,
     opacity: opacity * node.style.opacity,
     blendMode: node.style.blendMode ?? null,

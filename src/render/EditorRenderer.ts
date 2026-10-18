@@ -18,7 +18,7 @@
  *   skipped rather than drawn wrongly.
  */
 
-import type { BlendMode as CanvasBlendMode } from 'canvaskit-wasm'
+import type { BlendMode as CanvasBlendMode, Shader } from 'canvaskit-wasm'
 import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import CanvasKitInit, {
@@ -641,12 +641,33 @@ export class EditorRenderer {
     const positions = shape.gradient.stops.map((stop) => stop.offset)
     const start: number[] = [shape.gradient.from.x * shape.width, shape.gradient.from.y * shape.height]
     const end: number[] = [shape.gradient.to.x * shape.width, shape.gradient.to.y * shape.height]
-    const shader = this.kit.Shader.MakeLinearGradient(start, end, colors, positions, this.kit.TileMode.Clamp)
+    const shader =
+      shape.gradient.type === 'radial'
+        ? this.kit.Shader.MakeRadialGradient(
+            start,
+            Math.max(1, Math.hypot(end[0] - start[0], end[1] - start[1])),
+            colors,
+            positions,
+            this.kit.TileMode.Clamp,
+          )
+        : this.kit.Shader.MakeLinearGradient(start, end, colors, positions, this.kit.TileMode.Clamp)
     const paint = new this.kit.Paint()
     paint.setAntiAlias(true)
     paint.setShader(shader)
     if (shape.opacity < 1) paint.setAlphaf(Math.round(shape.opacity * 100) / 100)
     return paint
+  }
+
+  /** The gradient shader for a shape in its own box, or null when it has no gradient. */
+  private gradientShaderFor(shape: SceneShape): Shader | null {
+    if (shape.gradient === null) return null
+    const colors = shape.gradient.stops.map((stop) => this.color(stop.color))
+    const positions = shape.gradient.stops.map((stop) => stop.offset)
+    const start: number[] = [shape.gradient.from.x * shape.width, shape.gradient.from.y * shape.height]
+    const end: number[] = [shape.gradient.to.x * shape.width, shape.gradient.to.y * shape.height]
+    return shape.gradient.type === 'radial'
+      ? this.kit.Shader.MakeRadialGradient(start, Math.max(1, Math.hypot(end[0] - start[0], end[1] - start[1])), colors, positions, this.kit.TileMode.Clamp)
+      : this.kit.Shader.MakeLinearGradient(start, end, colors, positions, this.kit.TileMode.Clamp)
   }
 
 /**
@@ -671,6 +692,10 @@ export class EditorRenderer {
       paint.setStrokeJoin(stroke.join === 'round' ? this.kit.StrokeJoin.Round : stroke.join === 'bevel' ? this.kit.StrokeJoin.Bevel : this.kit.StrokeJoin.Miter)
     }
     paint.setPathEffect(this.kit.PathEffect.MakeDash(stroke.dash.slice(), 0))
+    if (shape.gradientTarget === 'stroke' || shape.gradientTarget === 'both') {
+      const shader = this.gradientShaderFor(shape)
+      if (shader !== null) paint.setShader(shader)
+    }
     return paint
   }
 
@@ -693,6 +718,26 @@ export class EditorRenderer {
         return this.kit.BlendMode.Darken
       case 'lighten':
         return this.kit.BlendMode.Lighten
+      case 'color-dodge':
+        return this.kit.BlendMode.ColorDodge
+      case 'color-burn':
+        return this.kit.BlendMode.ColorBurn
+      case 'hard-light':
+        return this.kit.BlendMode.HardLight
+      case 'soft-light':
+        return this.kit.BlendMode.SoftLight
+      case 'difference':
+        return this.kit.BlendMode.Difference
+      case 'exclusion':
+        return this.kit.BlendMode.Exclusion
+      case 'hue':
+        return this.kit.BlendMode.Hue
+      case 'saturation':
+        return this.kit.BlendMode.Saturation
+      case 'color':
+        return this.kit.BlendMode.Color
+      case 'luminosity':
+        return this.kit.BlendMode.Luminosity
       default:
         return this.kit.BlendMode.SrcOver
     }

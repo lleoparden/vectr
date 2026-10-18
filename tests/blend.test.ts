@@ -47,7 +47,7 @@ test("an unsupported blend mode is refused at the boundary", () => {
   document = inserted(document, [rect])
   const node = document.root.children[0]
   if (node.type === "group") throw new Error("expected a leaf")
-  node.style = { ...node.style, blendMode: "color-dodge" as never }
+  node.style = { ...node.style, blendMode: "vivid-light" as never }
   assert.equal(validateDocument(document).ok, false)
 
   node.style = { ...node.style, blendMode: "screen" }

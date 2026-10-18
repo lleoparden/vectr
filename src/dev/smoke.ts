@@ -20,7 +20,7 @@ import { deepHitWithin, groupToIsolate } from '../app/editing/isolation.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
-import { addCmykSwatch, applySwatch, removeSwatch, setSelectionStrokeAlign, addGuide, nudgeSelection, placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
+import { addCmykSwatch, addGradientStop, addGuide, applySwatch, linearGradientFrom, nudgeSelection, placeImage, removeGradientStop, removeSwatch, runEditorAction, setSelectionBlendMode, setSelectionCornerRadius, setSelectionGradient, setSelectionGradientTarget, setSelectionGradientType, setSelectionStrokeAlign } from '../app/actions.ts'
 import {
   newDocument,
   openDocument,
@@ -1219,6 +1219,33 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     aligned !== null && aligned.type !== 'group' ? 'align ' + String(aligned.style.stroke?.align) : 'no node',
   )
   removeSwatch(swatchId ?? '')
+  await settle(60)
+  // Gradients and blends (issue #70): radial, multi-stop, stroke target, full blend set.
+  const gradientTarget = documentStore.getState().document.root.children[0]
+  if (gradientTarget !== undefined) documentStore.setSelection([gradientTarget.id])
+  await settle(60)
+  setSelectionGradient(linearGradientFrom(0, '#000000', '#ffffff'))
+  setSelectionGradientType('radial')
+  addGradientStop(0.5, '#ff0000')
+  setSelectionGradientTarget('both')
+  setSelectionBlendMode('difference')
+  await settle(80)
+  const gradientNode = gradientTarget === undefined ? null : findNode(documentStore.getState().document, gradientTarget.id)
+  record(
+    'a radial gradient with a third stop paints the stroke too',
+    gradientNode !== null &&
+      gradientNode.type !== 'group' &&
+      gradientNode.style.gradient?.type === 'radial' &&
+      gradientNode.style.gradient?.stops.length === 3 &&
+      gradientNode.style.gradientTarget === 'both' &&
+      gradientNode.style.blendMode === 'difference',
+    gradientNode !== null && gradientNode.type !== 'group'
+      ? gradientNode.style.gradient?.type + ', ' + gradientNode.style.gradient?.stops.length + ' stops, on ' + String(gradientNode.style.gradientTarget) + ', ' + String(gradientNode.style.blendMode)
+      : 'no node',
+  )
+  removeGradientStop(1)
+  setSelectionGradientType('linear')
+  setSelectionBlendMode('normal')
   await settle(60)
   // Canvas input goes through hit testing, not through the canvas element directly. This is the
   // regression test for the bug where an overlay covered the canvas and ate every wheel and drag.

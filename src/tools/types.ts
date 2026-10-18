@@ -8,7 +8,8 @@
 
 import type { Point } from '../geom/shapeGeometry.ts'
 import type { ShapeKind } from '../doc/document.ts'
-import type { NodeId } from '../doc/types.ts'
+import type { Rect } from '../geom/transform.ts'
+import type { NodeId, Transform } from '../doc/types.ts'
 
 /** A pointer position in both coordinate systems the tools need. */
 export type ToolPoint = {
@@ -56,6 +57,12 @@ export type ToolHost = {
   commitShape(toolId: string, start: Point, end: Point, shift: boolean): void
   /** Places a text object at a scene point and opens its editor. */
   placeText(scene: Point): void
+  /** Captures the selection's box and transforms and opens the scale transaction. */
+  scaleBegin(): { box: Rect; originals: Map<NodeId, Transform> } | null
+  /** Applies one node's transform during a scale. */
+  setNodeTransform(nodeId: NodeId, transform: Transform): void
+  scaleEnd(): void
+  scaleCancel(): void
 }
 
 /** The preview the canvas draws while a shape is being dragged out. */

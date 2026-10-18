@@ -2132,3 +2132,17 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   Phase 4, where proportional handles and rotation are being rebuilt anyway - porting them now would mean porting
   them twice.
 
+## 2026-10-18 - The scale gesture is a tool, and its math split across two layers (Phase 4.1)
+
+- **The gesture is at L4 even though its input is a DOM handle.** The tool exposes `startHandle`, `moveHandle`,
+  `endHandle`, and `cancelHandle` beside the pointer contract, because the overlay is the input surface today.
+  Keeping the gesture in the canvas until the handles are canvas-drawn would leave the last direct-manipulation
+  path outside the tool layer for no gain.
+- **The math is split by what it touches.** `unionBounds` walks the document tree, so it belongs to L1
+  (`doc/transform.ts`); factors, scaled transforms, and handle points touch only geometry and a transform, so they
+  are L0 (`geom/transform.ts`). The first attempt kept the whole file at L0 and the layer check refused it - the
+  right outcome, and the reason the check exists.
+- **Shift constrains corners, not edges.** The tests now assert what the code does: a corner handle with Shift
+  gives equal factors, while a side handle keeps scaling one axis. That matches Illustrator; the first test
+  assumed otherwise and was wrong, not the code.
+

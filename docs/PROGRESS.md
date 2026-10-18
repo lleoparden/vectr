@@ -1,6 +1,29 @@
 # Progress
 
 
+## Phase 4.1 - the scale gesture is a tool (2026-10-18, issue #119)
+
+The last direct-manipulation path that lived in the canvas moved behind the tool layer.
+
+- **`src/tools/transform.ts`** owns the gesture: it captures the selection's box and every original transform
+  once, computes factors from the gesture's start (not compounded), applies each node's transform through the
+  host, and ends or cancels the transaction. The canvas's three overlay callbacks are now three one-line
+  adapters onto it, and `scaleRef` is gone.
+- **The transform math moved down a layer.** `unionBounds` walks the document tree, so it now lives in
+  `src/doc/transform.ts` (L1); the pure algebra - `scaleFactors`, `scaledTransform`, `handlePoints`,
+  `anchoredEdge`, `nudgedTransform` - lives at L0 in `src/geom/transform.ts`. Without that split the new tool
+  could not have used it without importing upward.
+- **The handles stay where they are** (the DOM overlay), and that is deliberate: they are the input surface for
+  this gesture, and Phase 4.3-4.4 may draw them on the canvas. The gesture, the state, and the math are in the
+  tool either way.
+
+**Behaviour frozen:** 250/250 tests (4 new in `tests/scaleTool.test.ts`: scaling from the gesture's start about
+the opposite corner, an absolute not compounded move, Shift on a corner giving equal factors, Alt from centre
+applying a transform, a drag that never started, and Escape cancelling instead of committing), layer check on 98
+files, clean typecheck and build, and the packaged run **unchanged at 126 steps across seven reports**.
+
+
+
 ## Phase 3.5 - the architecture is recorded, and Phase 3 is complete (2026-10-18, issue #111)
 
 - **`AGENTS.md` carries the review checklist**: every pull request answers six questions - which layer and which

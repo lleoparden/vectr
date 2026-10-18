@@ -14,7 +14,8 @@ the same unit-suite result and the same 126-step packaged run.
 
 Gap 1 in the reference gap list, and the owner's central complaint. The first three slices, in order:
 
-1. **Scale handles as a tool** - move the last direct-manipulation path out of the canvas, add proportional
+1. **Scale handles as a tool** - DONE in #125: `src/tools/transform.ts` owns the gesture; the math split into L0
+   `geom/transform.ts` and L1 `doc/transform.ts`; `scaleRef` is gone; 4 new tests. - move the last direct-manipulation path out of the canvas, add proportional
    framing with Shift, and give the handles the Illustrator cursor set.
 2. **Rotation** - rotate from outside the corners, with the rotation stored in the transform, the inverse applied
    in hit testing, and the packaged run asserting a rotated object can be selected and moved where it looks.

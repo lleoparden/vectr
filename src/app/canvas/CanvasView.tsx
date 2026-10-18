@@ -23,10 +23,12 @@ import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { ArtboardOverlay } from './ArtboardOverlay.tsx'
 import { RulersOverlay } from './RulersOverlay.tsx'
 import { createToolStateMachines, isStateMachineTool } from '../../tools/index.ts'
+import { createScaleTool, type ScaleTool } from '../../tools/transform.ts'
 import type { ToolHost, ToolPoint } from '../../tools/types.ts'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
-import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
+import { unionBounds } from '../../doc/transform.ts'
+import { type HandleId } from '../../geom/transform.ts'
 import { artboardAtPoint, artboardRect, artboardRects } from '../../doc/artboards.ts'
 import { EditorRenderer, type RenderStats } from '../../render/EditorRenderer.ts'
 import { getActiveRenderer, setActiveRenderer } from '../../render/activeRenderer.ts'
@@ -94,7 +96,9 @@ export function CanvasView() {
   /** Smart-guide lines shown while a snapped drag is in flight (issue #68). */
   const [guides, setGuides] = useState<SnapGuide[]>([])
   /** The scale gesture's starting box and transforms, captured once so every move is absolute. */
-  const scaleRef = useRef<{ handle: HandleId; box: Rect; originals: Map<string, Transform> } | null>(null)
+  // Phase 4.1: the scale gesture is a tool; the overlay's callbacks below adapt to it.
+  const scaleToolRef = useRef<ScaleTool | null>(null)
+  if (scaleToolRef.current === null) scaleToolRef.current = createScaleTool('default')
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState<ContextMenuState>(null)
   const [editing, setEditing] = useState<{ nodeId: NodeId; text: string } | null>(null)
@@ -257,38 +261,19 @@ export function CanvasView() {
   }
 
   /**
-   * A handle drag scales the selection about its opposite corner (Phase 2.2, issue #65). The
-   * starting box and every transform are captured once, so each move computes absolute values from
-   * the gesture's start rather than compounding — the same rule the drag-move gesture uses.
+   * The overlay's three callbacks, adapted onto the scale tool (Phase 4.1). The gesture, its captured
+   * box, and the per-node transforms live in `src/tools/transform.ts`; this is the wiring only.
    */
   function startScale(handle: HandleId) {
-    const current = documentStore.getState()
-    const box = unionBounds(current.document, current.selection)
-    if (box === null) return
-    const originals = new Map<string, Transform>()
-    for (const id of current.selection) {
-      const node = findNode(current.document, id)
-      if (node !== null && !node.locked) originals.set(id, { ...node.transform })
-    }
-    if (originals.size === 0) return
-    documentStore.beginTransaction('scale')
-    scaleRef.current = { handle, box, originals }
+    scaleToolRef.current?.startHandle(toolHost(), handle)
   }
 
-  function moveScale(handle: HandleId, point: Point, modifiers: { constrain: boolean; fromCenter: boolean }) {
-    const gesture = scaleRef.current
-    if (gesture === null) return
-    const factors = scaleFactors(gesture.handle, gesture.box, point, modifiers)
-    for (const [id, original] of gesture.originals) {
-      const next = scaledTransform(original, factors.anchor, factors.sx, factors.sy)
-      documentStore.dispatch({ type: 'setTransform', nodeId: id, transform: { ...original, ...next } })
-    }
+  function moveScale(_handle: HandleId, point: Point, modifiers: { constrain: boolean; fromCenter: boolean }) {
+    scaleToolRef.current?.moveHandle(toolHost(), point, modifiers)
   }
 
   function endScale() {
-    if (scaleRef.current === null) return
-    scaleRef.current = null
-    documentStore.commitTransaction()
+    scaleToolRef.current?.endHandle(toolHost())
   }
 
   /** A pointer position in scene units and in screen pixels, which the Hand tool needs. */
@@ -423,6 +408,24 @@ export function CanvasView() {
         )
         if (result.ok) documentStore.setSelection([node.id])
       },
+      scaleBegin: () => {
+        const current = documentStore.getState()
+        const box = unionBounds(current.document, current.selection)
+        if (box === null) return null
+        const originals = new Map<string, Transform>()
+        for (const id of current.selection) {
+          const node = findNode(current.document, id)
+          if (node !== null && !node.locked) originals.set(id, { ...node.transform })
+        }
+        if (originals.size === 0) return null
+        documentStore.beginTransaction('scale')
+        return { box, originals }
+      },
+      setNodeTransform: (nodeId, transform) => {
+        documentStore.dispatch({ type: 'setTransform', nodeId, transform }, 'scale')
+      },
+      scaleEnd: () => documentStore.commitTransaction(),
+      scaleCancel: () => documentStore.abortTransaction(),
       placeText: (scene) => {
         const document = documentStore.getState().document
         const existing = document.root.children.filter((node) => node.type === 'text').length

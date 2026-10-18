@@ -1,6 +1,25 @@
 # Progress
 
 
+## Versioned pre-releases replace the moving tag (2026-10-18)
+
+The rolling «alpha» tag was the wrong shape, and the owner was right to question it. A GitHub release is always
+backed by a tag; the problem was that ours **moved**, which broke the promises a download makes.
+
+- **One version per phase, «v0.<phase>.0».** The tag is created on the commit its installer was built from and is
+  **never moved**. Re-running the workflow for an existing version edits notes or re-attaches a missing installer;
+  it never recreates the tag.
+- **Old installers stay downloadable.** A version exists to be reproducible; pruning a phase's build defeats it.
+- **The workflow decides with facts**: a new version builds, an existing version without an installer builds, a
+  manual «rebuild» builds, otherwise it only refreshes notes. It is triggered by changes to «docs/RELEASES.md»,
+  «package.json», or the workflow itself.
+- **The number agrees in three places**: «package.json» «0.4.0», the tag «v0.4.0», and the installer
+  «Vectr-0.4.0-Setup.exe»; the README, the site, and the release title say the same number.
+- **Migrated:** the «alpha» release and tag are deleted, and «v0.4.0» is created from the same commit with the
+  same installer.
+
+
+
 ## A Windows installer, published with the release (2026-10-18)
 
 - **`npm run package:win` builds `Vectr-0.4.0-Setup.exe`** (NSIS, x64, per-user, ~96 MB, unsigned) through

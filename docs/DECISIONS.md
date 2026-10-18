@@ -2348,3 +2348,18 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   installer file name matches, and nobody has to guess which build they downloaded.
 - **The screenshot is part of the release.** A phase that changes the interface regenerates
   `site/screenshot.png` with the harness, because a release page showing last phase's chrome is a lie of omission.
+
+## 2026-10-18 - Versioned, immutable release tags replace the rolling alpha tag
+
+- **A moving tag was the wrong shape.** GitHub releases are always backed by a tag; the problem was that ours
+  moved. A tag that moves breaks the two promises a download makes: the URL returns different bytes later, and a
+  user cannot say which build they run. It also made the release title ("alpha") disagree with the installer name
+  ("0.4.0"), and forced pruning so the tag would not accumulate files.
+- **One version per phase: `v0.<phase>.0`.** The tag is created on the commit the installer was built from and is
+  never moved. Re-running the workflow for an existing version edits the notes or re-attaches a missing installer;
+  it never recreates the tag.
+- **Old installers stay.** A version exists to be reproducible; deleting a phase's build would defeat the reason to
+  version in the first place.
+- **The workflow is the only publisher**, and it decides with facts: new version → build, existing version without
+  an installer → build, manual `rebuild` → build, otherwise just refresh notes. That is why `package:win` passes
+  `--publish never` and why no step ever deletes a tag.

@@ -2114,3 +2114,21 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **Divergence must pay a note.** A shortcut that is not Illustrator's default must carry a note, enforced by a
   test rather than by review, because the divergence list is a product promise.
 
+## 2026-10-18 - The architecture is now a checklist, and the retrofit leftovers are gone (Phase 3.5)
+
+- **The checklist is in `AGENTS.md`**, because a rule that lives only in a decision record is a story, not an
+  obligation. Six questions per pull request: which layer and which imports, which architecture rule and why it
+  holds, which evidence is owed (including identical packaged results during Phase 3), which catalog row moves,
+  what the change deliberately leaves undone, and the residual doubt. A new user-visible action must be one
+  registry entry reachable from menus, palette, and keyboard.
+- **The canvas keeps two gesture kinds, not six.** `move`, `marquee`, `lasso`, and `create` moved into the tools;
+  leaving their union variants behind would have suggested the canvas still owned them. The lasso's sample cap
+  moved with the lasso.
+- **A cancelled pointer drops the gesture.** `onPointerCancel` now calls the active tool's `cancel` instead of
+  routing to `onPointerUp`, so a cancelled lasso cannot select and a cancelled drag cannot move. This closes the
+  residual doubt recorded in Phase 3.3.
+- **What is deliberately still outside a tool:** the scale handles (`scaleRef` and `SelectionOverlay`). They are the
+  last direct-manipulation path in the canvas, and moving them behind a tool is the first fidelity slice of
+  Phase 4, where proportional handles and rotation are being rebuilt anyway - porting them now would mean porting
+  them twice.
+

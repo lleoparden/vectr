@@ -1,6 +1,26 @@
 # Progress
 
 
+## Phase 3.5 - the architecture is recorded, and Phase 3 is complete (2026-10-18, issue #111)
+
+- **`AGENTS.md` carries the review checklist**: every pull request answers six questions - which layer and which
+  imports, which architecture rule and why it holds, which evidence is owed (including identical packaged results
+  during a retrofit), which catalog row moves, what is deliberately left undone, and the residual doubt. A new
+  user-visible action must be one registry entry reachable from menus, palette, and keyboard.
+- **The canvas carries two gesture kinds, not six**: `move`, `marquee`, `lasso`, and `create` are gone from its
+  union, and the lasso's sample cap moved into the lasso tool.
+- **A cancelled pointer drops the gesture**: `onPointerCancel` calls the active tool's `cancel`, so a cancelled lasso
+  cannot select and a cancelled drag cannot move - the doubt recorded in Phase 3.3 is closed.
+- **Deliberately still outside a tool**: the scale handles, which Phase 4 rebuilds anyway (proportional handles,
+  rotation); porting them now would mean porting them twice.
+
+**Phase 3 exit criteria met:** the layer check runs in `npm test` and passes on 96 files; every tool is a state
+machine; one command registry; every slice left the unit suite and the packaged run reporting the same results;
+no document-format change. 246/246 tests, clean typecheck and build, packaged run **126 steps across seven
+reports**.
+
+
+
 ## Phase 3.4 - one command registry (2026-10-18, issue #110)
 
 A command's identity, its label, and its chord lived in three files; they live in one now.

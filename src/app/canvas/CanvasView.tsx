@@ -38,17 +38,13 @@ import { workspaceStore } from '../../state/workspaceStore.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { fitRect, zoomAtPoint } from '../../geom/viewport.ts'
 
-type Gesture =
-  | { kind: 'none' }
-  | { kind: 'create'; tool: ShapeKind; start: Point; current: Point; shift: boolean }
-  | { kind: 'move'; start: Point; current: Point; originals: Map<string, Transform>; box: Rect | null }
-  | { kind: 'marquee'; start: Point; current: Point; deep: boolean }
-  | { kind: 'lasso'; points: Point[] }
-  | { kind: 'pan'; startClient: Point; panStart: Point }
+/**
+ * What the canvas still tracks itself: the middle-button pan. Every other gesture belongs to a tool
+ * (Phase 3.2-3.3), which is why this union is down to two members.
+ */
+type Gesture = { kind: 'none' } | { kind: 'pan'; startClient: Point; panStart: Point }
 
 const MIN_DRAG = 4
-/** Enough samples for a smooth lasso without letting a long drag grow the path unbounded. */
-const MAX_LASSO_POINTS = 2000
 
 /** The shape a tool draws, or `null` for the tools that are not shapes. */
 export function shapeKindForTool(tool: Tool): ShapeKind | null {
@@ -570,7 +566,18 @@ export function CanvasView() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={(event) => {
+      // A cancelled pointer never completed the gesture, so the tool drops it rather than
+      // committing: a cancelled lasso must not select, and a cancelled drag must not move.
+      const gesture = gestureRef.current
+      gestureRef.current = { kind: 'none' }
+      if (gesture.kind === 'none' && isStateMachineTool(state.tool)) {
+        toolsRef.current?.[state.tool].cancel(toolHost())
+      }
+      setOverlay(null)
+      setLassoPath(null)
+      canvasRef.current?.releasePointerCapture(event.pointerId)
+    }}
         onDoubleClick={(event) => {
           // Illustrator's double-click descends one level into the group under the pointer, and
           // opens a text object it reaches. Shape and lasso tools have no double-click meaning.

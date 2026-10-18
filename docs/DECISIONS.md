@@ -2166,3 +2166,17 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   smoke step builds a 200x40 bar and probes a point 80 units above its centre: outside before the turn, inside
   after it. A square would have passed for the wrong reason.
 
+## 2026-10-18 - Cursors are data, hover uses the tool hit test (Phase 4.3)
+
+- **The cursor vocabulary is a pure function**, not scattered classes: `cursorForTool` and `cursorWhileDragging`,
+  both tested, so the packaged run can assert what the canvas actually shows rather than reading a class string.
+  A drag's cursor outranks the tool's because the thing being done outranks the tool being held.
+- **Hover is the tools' own hit test**, called from the canvas on pointer move with no buttons down. If hover had
+  its own geometry, the outline and the click could disagree - the worst kind of lie this interface can tell.
+  The cost is one hit test per pointer move; it is measured again in Phase 9's performance work.
+- **The rotation zone checks sides now.** A press inside the frame near a corner is a scale, not a rotation; the
+  4.2 divergence is closed. The zone remains 18 screen pixels outside, with Shift snapping to 15 degrees.
+- **A packaged failure is not automatically a product failure.** The rotation step failed four times because the
+  test helper converted coordinates with a viewport captured before the viewport was pinned. The lesson is
+  recorded above the rule it protects: debug which side is wrong before changing the feature.
+

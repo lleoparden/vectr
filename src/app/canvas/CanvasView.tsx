@@ -22,6 +22,8 @@ import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { ArtboardOverlay } from './ArtboardOverlay.tsx'
 import { RulersOverlay } from './RulersOverlay.tsx'
+import { HoverOverlay } from './HoverOverlay.tsx'
+import { cursorForTool, cursorWhileDragging } from './cursor.ts'
 import { createToolStateMachines, isStateMachineTool } from '../../tools/index.ts'
 import { createScaleTool, type ScaleTool } from '../../tools/transform.ts'
 import type { ToolHost, ToolPoint } from '../../tools/types.ts'
@@ -97,6 +99,12 @@ export function CanvasView() {
   const [ready, setReady] = useState(false)
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
+  /** The object a click would select, outlined (Phase 4.3). */
+  const [hover, setHover] = useState<{ box: { x: number; y: number; width: number; height: number }; rotation: number } | null>(null)
+  /** What the pointer is doing, so the cursor can say so (Phase 4.3). */
+  const [dragging, setDragging] = useState<'move' | 'marquee' | 'pan' | null>(null)
+  /** The angle shown while a rotation gesture is in flight (Phase 4.3). */
+  const [rotationBadge, setRotationBadge] = useState<string | null>(null)
   const [lassoPath, setLassoPath] = useState<Point[] | null>(null)
   /** Smart-guide lines shown while a snapped drag is in flight (issue #68). */
   const [guides, setGuides] = useState<SnapGuide[]>([])
@@ -341,6 +349,7 @@ export function CanvasView() {
       select: (id) => documentStore.setSelection([id]),
       toggleSelection: (id) => documentStore.toggleSelection(id),
       beginMove: () => {
+        setDragging('move')
         const document = documentStore.getState().document
         const originals = new Map<string, Transform>()
         for (const id of documentStore.getState().selection) {
@@ -382,18 +391,21 @@ export function CanvasView() {
         }
       },
       endMove: () => {
+        setDragging(null)
         if (moveRef.current === null) return
         moveRef.current = null
         setGuides([])
         documentStore.commitTransaction()
       },
       cancelMove: () => {
+        setDragging(null)
         if (moveRef.current === null) return
         moveRef.current = null
         setGuides([])
         documentStore.abortTransaction()
       },
-      setMarquee: (rect) =>
+      setMarquee: (rect) => {
+        setDragging(rect === null ? null : 'marquee')
         setOverlay(
           rect === null
             ? null
@@ -403,7 +415,8 @@ export function CanvasView() {
                 current: { x: rect.x + rect.width, y: rect.y + rect.height },
                 shift: false,
               },
-        ),
+        )
+      },
       commitMarquee: (rect, deep) =>
         documentStore.setSelection(marqueeHitTest(documentStore.getState().document, rect, { deep })),
       viewport: () => {
@@ -454,10 +467,17 @@ export function CanvasView() {
         return captured
       },
       rotationBegin: (point) => {
-        if (selectionRotation() === 0) return null
         const captured = captureSelection()
         if (captured === null) return null
         const tolerance = ROTATE_ZONE / documentStore.getState().viewport.zoom
+        // A press *inside* the frame near a corner is a scale, not a rotation - Illustrator's own rule.
+        const inFrame = rotatePoint(point, captured.centre, -captured.rotation)
+        const insideFrame =
+          inFrame.x > captured.box.x &&
+          inFrame.x < captured.box.x + captured.box.width &&
+          inFrame.y > captured.box.y &&
+          inFrame.y < captured.box.y + captured.box.height
+        if (insideFrame) return null
         const corners = handlePoints(captured.box)
         const inZone = CORNERS.some((handle) => {
           const corner = rotatePoint(corners[handle], captured.centre, captured.rotation)
@@ -474,6 +494,7 @@ export function CanvasView() {
         if (gesture === null) return
         const raw = angleFromCentre(gesture.centre, point) - gesture.startAngle
         const degrees = normaliseAngle(shift ? snapAngle(raw) : raw)
+        setRotationBadge(Math.round(degrees) + '°')
         for (const node of gesture.nodes) {
           const next = rotatedTransform(node.transform, node, gesture.centre, degrees)
           documentStore.dispatch({ type: 'setTransform', nodeId: node.id, transform: next }, 'rotate')
@@ -482,11 +503,13 @@ export function CanvasView() {
         }
       },
       rotateEnd: () => {
+        setRotationBadge(null)
         if (rotateRef.current === null) return
         rotateRef.current = null
         documentStore.commitTransaction()
       },
       rotateCancel: () => {
+        setRotationBadge(null)
         if (rotateRef.current === null) return
         rotateRef.current = null
         documentStore.abortTransaction()
@@ -529,6 +552,7 @@ export function CanvasView() {
     // The pointer tools are state machines (Phase 3.2): the canvas routes the event and supplies
     // the host, so the tool owns the gesture and the canvas owns the document.
     if (event.button === 0 && isStateMachineTool(state.tool)) {
+      setHover(null)
       // A real mouse-down moves focus after this handler, which would blur the text editor the Type
       // tool is about to open and close it before a character could be typed.
       if (state.tool === 'text') event.preventDefault()
@@ -554,7 +578,37 @@ export function CanvasView() {
 
   }
 
+  /**
+   * Outlines the object the pointer would select, using the tools' own hit test so the outline and the
+   * click cannot disagree (Phase 4.3).
+   */
+  function updateHover(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (event.buttons !== 0 || !isStateMachineTool(state.tool)) return
+    if (state.tool !== 'select' && state.tool !== 'directSelect') {
+      setHover(null)
+      return
+    }
+    const document = documentStore.getState().document
+    const point = toScene(event)
+    const isolated = workspaceStore.getState().isolatedGroupId
+    const hit = isolated === null
+      ? hitTest(document, point, state.tool === 'directSelect' ? { deep: true } : {})
+      : deepHitWithin(document, isolated, point)
+    if (hit === null) {
+      setHover(null)
+      return
+    }
+    const box = unionBounds(document, [hit])
+    const node = findNode(document, hit)
+    if (box === null || node === null) {
+      setHover(null)
+      return
+    }
+    setHover({ box, rotation: node.type === 'group' ? 0 : node.transform.rotation })
+  }
+
   function onPointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
+    updateHover(event)
     const gesture = gestureRef.current
     if (gesture.kind === 'none') {
       if (isStateMachineTool(state.tool)) {
@@ -631,14 +685,13 @@ export function CanvasView() {
     <div className="relative min-h-0">
       <canvas
         ref={canvasRef}
-        className={
-          'block h-full w-full touch-none bg-neutral-900 ' +
-          (state.tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : '')
-        }
+        className="block h-full w-full touch-none bg-neutral-900"
+        style={{ cursor: cursorWhileDragging(state.tool, dragging) }}
         aria-label="Design canvas"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerLeave={() => setHover(null)}
         onPointerCancel={(event) => {
       // A cancelled pointer never completed the gesture, so the tool drops it rather than
       // committing: a cancelled lasso must not select, and a cancelled drag must not move.
@@ -768,6 +821,23 @@ export function CanvasView() {
             />
           )
         })()}
+      {hover !== null && (
+        <HoverOverlay
+          box={hover.box}
+          rotation={hover.rotation}
+          zoom={state.viewport.zoom}
+          panX={state.viewport.panX}
+          panY={state.viewport.panY}
+        />
+      )}
+      {rotationBadge !== null && (
+        <div
+          data-rotation-badge
+          className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded bg-chrome-panel/95 px-2 py-1 text-[11px] tabular-nums text-ink shadow"
+        >
+          {rotationBadge}
+        </div>
+      )}
       <RulersOverlay
         guides={state.document.guides ?? []}
         showRulers={workspace.showRulers}

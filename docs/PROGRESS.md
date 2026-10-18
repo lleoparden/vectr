@@ -1,6 +1,34 @@
 # Progress
 
 
+## Phase 4.3 - hover, cursors, and a live rotation readout (2026-10-18, issue #121)
+
+The visible half of "feels good": the canvas now says what a click will do before it happens.
+
+- **The cursor vocabulary is data** (`src/app/canvas/cursor.ts`): shape tools and the lasso draw with a
+  crosshair, Type with an I-beam, the Hand with a grab, the arrows with the default pointer, and a drag overrides
+  the tool cursor while it lasts (move, marquee, grabbing). Kept as a pure function so the packaged run can
+  assert the mapping instead of describing it.
+- **Hover outlines** (`HoverOverlay.tsx`): the object a click would select is outlined with the **same hit test
+  the tools use**, so the outline and the selection cannot disagree; it follows the object's rotation and clears
+  on pointer down or when the pointer leaves.
+- **A live rotation readout**: the angle is shown while a rotation drag is in flight and cleared when it ends.
+- **The rotation zone now checks the side it starts on**: a press just *inside* the frame near a corner is a
+  scale, not a rotation - the divergence recorded in 4.2 is closed.
+
+**Behaviour, measured:** 257/257 tests (2 new in `tests/cursor.test.ts`: every tool's cursor and the
+drag overrides), layer check on 98 files, clean typecheck and build, and the packaged run now **133 steps** with
+three new steps - each tool's cursor read from the live canvas, the hover outline appearing over an object and
+clearing when the pointer leaves, and a real rotation drag showing its angle, clearing it, and turning the
+object.
+
+**A harness lesson, recorded:** the rotation step failed four times for a reason that was not the product - the
+smoke helper captured the viewport in a closure *before* pinning it, so the synthetic press landed at the wrong
+scene point. Converting with the pinned viewport fixed it. A packaged step that fails is worth debugging to
+"which of the two is wrong" before touching the feature.
+
+
+
 ## Phase 4.2 - rotation (2026-10-18, issue #120)
 
 Rotation is real: it renders, it hit-tests, it has a frame, a gesture, a number, and an undo entry.

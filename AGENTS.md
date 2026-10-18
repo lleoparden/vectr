@@ -115,12 +115,16 @@ The interface is repetitive by nature, so repetition in the code is a defect. On
 
 ## Release gate
 
-The product ships **versioned pre-releases**, one per phase, until the compiler lands. Every phase ends with a
-new version and its own release; a tag never moves.
+The product ships **versioned releases**, one per phase, until the compiler lands. Every phase ends with a new
+version and its own release; a tag never moves.
 
 - **The version is `0.<phase>.0`.** `package.json` carries it and it is bumped in the phase's final pull request.
   The tag is `v<version>`, the installer is named `Vectr-<version>-Setup.exe`, and the release title says the
   version - one number in three places, and they must agree.
+- **A release is a normal release, not a GitHub pre-release.** Only normal releases appear in the repository
+  sidebar with their version and the "Latest" badge, which is where a download is found; "alpha" is said in the
+  title and the notes, not by hiding the release. "gh release edit ... --prerelease=false --latest" is the
+  idempotent form.
 - **Tags are immutable.** `v0.4.0` points at the commit that built that installer and never moves; a download URL
   must always return the same bytes, and a bug report that says "0.4.0" must be answerable. The release workflow
   creates the tag when a version is new and refuses to recreate or move an existing one.
@@ -134,6 +138,9 @@ new version and its own release; a tag never moves.
   `npx electron . --screenshot=site/screenshot.png` (fresh profile, so no recovery prompt intrudes), update the
   site's feature list, its version line, and the README status where the phase changed them, and merge that with
   the notes. The Pages workflow deploys `site/` automatically.
+- The notes are download-first: a download badge linking straight at the installer asset, one paragraph on what
+  changed, then the install steps, the limits, and the evidence in collapsed `<details>` blocks, so the
+  release reads as a download menu with the extra information underneath it.
 - A phase is not closed until `docs/PROGRESS.md`, `docs/RELEASES.md`, the site, and the release for its version
   agree.
 

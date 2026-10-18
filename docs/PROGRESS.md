@@ -1,6 +1,22 @@
 # Progress
 
 
+## A Windows installer, published with the release (2026-10-18)
+
+- **`npm run package:win` builds `Vectr-0.4.0-Setup.exe`** (NSIS, x64, per-user, ~96 MB, unsigned) through
+  electron-builder. The build config now carries the installer target and its options instead of the benchmark's
+  `dir` target alone.
+- **The alpha workflow builds and attaches it.** It runs on `windows-latest`, and it rebuilds the installer only
+  when a merge changes `docs/RELEASES.md` - the phase-close signal - or when dispatched by hand. The release is
+  now **edited** rather than deleted and recreated, so its assets survive a notes refresh, and exactly one
+  `Setup.exe` is kept: older ones are pruned before the new one is uploaded.
+- **The version scheme is `0.<phase>.0`**: `0.4.0` at the close of Phase 4, bumped with the notes at each phase.
+- **The rule is in `AGENTS.md`**: at phase close, bump the version, update the notes (which rebuilds the
+  installer), regenerate the screenshot with `npx electron . --screenshot=site/screenshot.png`, and update the
+  site's feature list. The installer, the notes, the site, and `docs/PROGRESS.md` must agree before a phase closes.
+
+
+
 ## The rose palette, a fixed site, and a screenshot harness (2026-10-18)
 
 - **The brand palette is applied and documented.** Charcoal `#1B1B1F` for the chrome, `#242428` for panels, rose-vale

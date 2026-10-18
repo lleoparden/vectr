@@ -2332,3 +2332,19 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   drifting whenever the interface changes.
 - **A stashed change is the owner's intent.** The site conflict was resolved by keeping the `Stashed changes` side
   in full and dropping the upstream head; anything the owner writes in that file wins over an older copy.
+
+## 2026-10-18 - An unsigned installer on the rolling alpha, built only when the notes change
+
+- **electron-builder's NSIS target, per-user, no admin prompt.** A desktop tool should install like one; the
+  per-user default avoids elevation and keeps the installer runnable by anyone who can run an app.
+- **Unsigned, and the notes say so.** Code signing needs a certificate the project does not have; an unsigned
+  installer that explains SmartScreen is honest, a signed-looking one without a certificate is impossible.
+- **Built only when `docs/RELEASES.md` changes.** Rebuilding a ~96 MB installer on every merge would waste minutes
+  and disk for no new build; the notes are the phase-close signal, and a manual dispatch exists for one-offs.
+- **Edit, do not recreate.** The release is updated in place so its assets survive a notes refresh; the alternative
+  (delete and recreate on every push) dropped the installer each time. Exactly one installer is kept per release to
+  stop the rolling tag accumulating a file per phase.
+- **Version is `0.<phase>.0`.** It is a pre-release line, not semver theatre: the minor number names the phase, the
+  installer file name matches, and nobody has to guess which build they downloaded.
+- **The screenshot is part of the release.** A phase that changes the interface regenerates
+  `site/screenshot.png` with the harness, because a release page showing last phase's chrome is a lie of omission.

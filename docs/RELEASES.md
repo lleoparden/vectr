@@ -10,16 +10,27 @@ written down rather than hidden.
 - **What works today**: [docs/AUDIT.md](AUDIT.md)
 - **How it is verified**: [docs/PROGRESS.md](PROGRESS.md)
 
-## Download and run
+## Install on Windows
 
-This alpha ships as source; there is no installer yet.
+**[Download the latest installer](https://github.com/lleoparden/vectr/releases/tag/alpha)** — `Vectr-<version>-Setup.exe`, built from this release's commit.
 
-`bash
+1. Run the setup file and choose an install location (per-user, no admin prompt).
+2. Windows SmartScreen will warn that the publisher is unknown: the installer is **not code-signed**. Choose
+   "More info" and then "Run anyway" if you trust the source.
+3. Vectr opens; `File ▸ Save` writes a `.vectr/` project folder.
+
+The installer is rebuilt automatically whenever these notes change — which is at every phase close — and the
+version in the file name matches `package.json` (`0.<phase>.0`). One installer is kept on the release; older ones
+are pruned.
+
+## Run from source
+
+```bash
 git clone https://github.com/lleoparden/vectr.git
 cd vectr
 npm install
 npm start
-`
+```
 
 Requires Node.js 22+ and npm. Windows is the reference platform; macOS and Linux are Phase 9.
 
@@ -49,6 +60,6 @@ run of 143 steps across seven reports. The details are in [docs/PROGRESS.md](PRO
 
 ---
 
-_This release is regenerated from `docs/RELEASES.md` by `.github/workflows/alpha-release.yml` on every push to
-`main`, so it always describes the current `main`. It is marked as a pre-release because it is not a stable
-release._
+_This release is regenerated from `docs/RELEASES.md` and `package.json` by `.github/workflows/alpha-release.yml`
+on every push to `main`, so it always describes the current `main`. The installer is rebuilt only when these
+notes change. It is marked as a pre-release because it is not a stable release._

@@ -1135,6 +1135,36 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     `flyout listed ${members.length} member(s), tool now ${documentStore.getState().tool}`,
   )
 
+  // Artboards (UI pass): the page is a sized sheet on a grey pasteboard, with its own chrome.
+  const keptSelection = documentStore.getState().selection
+  documentStore.clearSelection()
+  await settle(120)
+  const presetSelect = document.querySelector<HTMLSelectElement>('[aria-label="Artboard size preset"]')
+  const presetCount = presetSelect?.options.length ?? 0
+  if (presetSelect !== null && presetSelect !== undefined) {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+    const hd = Array.from(presetSelect.options).find((option) => option.value.includes('HD'))
+    setter?.call(presetSelect, hd?.value ?? '')
+    presetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+  }
+  await settle(120)
+  const resized = documentStore.getState().document.artboards[0]
+  record(
+    'a size preset resizes the page',
+    presetCount >= 6 && resized.width === 1920 && resized.height === 1080,
+    presetCount + ' presets, page ' + resized.width + 'x' + resized.height,
+  )
+  const labels = document.querySelectorAll('[data-artboard-label]')
+  record(
+    'each page is labelled on the canvas',
+    labels.length === documentStore.getState().document.artboards.length,
+    labels.length + ' label(s) for ' + documentStore.getState().document.artboards.length + ' page(s)',
+  )
+  // Put the selection back: the panels below are about the selected object, not the page.
+  documentStore.setSelection(keptSelection)
+  await settle(80)
+
+
   // UI pass, second half: the Color and Appearance panels are the same live controls.
   const tab = (name: string) =>
     Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(

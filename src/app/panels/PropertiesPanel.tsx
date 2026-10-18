@@ -11,6 +11,7 @@
  */
 
 import { findNode, worldBounds, DEFAULT_FONT_FAMILY } from '../../doc/document.ts'
+import { ARTBOARD_PRESETS, presetByName, presetFor } from '../../doc/artboards.ts'
 import { isGroup, isImage, isText, nodeSize } from '../../doc/types.ts'
 import type { BlendMode } from '../../doc/types.ts'
 import { documentStore } from '../../state/documentStore.ts'
@@ -114,9 +115,30 @@ export function PropertiesPanel() {
             ))}
           </div>
           {active !== undefined && (
-            <div className="grid grid-cols-2 gap-1.5 pt-1">
+            <div className="flex flex-col gap-1.5 pt-1">
+              <label className="flex min-w-0 items-center gap-2">
+                <span className="w-14 shrink-0 truncate text-ui-xs text-ink-faint">Size</span>
+                <select
+                  aria-label="Artboard size preset"
+                  value={presetFor(active.width, active.height)}
+                  className="h-6 min-w-0 flex-1 rounded-ui border border-hairline bg-chrome-sunken px-1.5 text-ui-xs text-ink outline-none hover:border-chrome-active focus:border-accent"
+                  onChange={(event) => {
+                    const preset = presetByName(event.currentTarget.value)
+                    if (preset !== null) setActiveArtboardSize({ width: preset.width, height: preset.height })
+                  }}
+                >
+                  {ARTBOARD_PRESETS.map((preset) => (
+                    <option key={preset.name} value={preset.name}>
+                      {preset.name}
+                    </option>
+                  ))}
+                  <option value="Custom">Custom</option>
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
               <NumberField label="W" value={active.width} min={1} onChange={(width) => setActiveArtboardSize({ width })} />
-              <NumberField label="H" value={active.height} min={1} onChange={(height) => setActiveArtboardSize({ height })} />
+                <NumberField label="H" value={active.height} min={1} onChange={(height) => setActiveArtboardSize({ height })} />
+              </div>
             </div>
           )}
           <ButtonRow>

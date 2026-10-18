@@ -15,6 +15,34 @@ export const ARTBOARD_GAP = 80
 
 export type ArtboardRect = { id: string; name: string; x: number; y: number; width: number; height: number }
 
+/**
+ * Common sheet sizes, in the units the document uses (pixels at 72 dpi, which is what a screen
+ * design needs). Illustrator offers a much longer list tied to print; these are the sizes people
+ * actually start a web or social document at, and the list is data so it can grow without UI work.
+ */
+export type ArtboardPreset = { name: string; width: number; height: number }
+
+export const ARTBOARD_PRESETS: ArtboardPreset[] = [
+  { name: 'Default 1200 × 800', width: 1200, height: 800 },
+  { name: 'HD 1920 × 1080', width: 1920, height: 1080 },
+  { name: 'Square 1080 × 1080', width: 1080, height: 1080 },
+  { name: 'Story 1080 × 1920', width: 1080, height: 1920 },
+  { name: 'Portrait 1080 × 1350', width: 1080, height: 1350 },
+  { name: 'A4 at 300 dpi', width: 2480, height: 3508 },
+  { name: 'Letter at 300 dpi', width: 2550, height: 3300 },
+]
+
+/** The preset a size matches exactly, or "Custom" when the user has typed their own. */
+export function presetFor(width: number, height: number): string {
+  const found = ARTBOARD_PRESETS.find((preset) => preset.width === width && preset.height === height)
+  return found === undefined ? 'Custom' : found.name
+}
+
+/** The preset with this name, for the size menu. */
+export function presetByName(name: string): ArtboardPreset | null {
+  return ARTBOARD_PRESETS.find((preset) => preset.name === name) ?? null
+}
+
 /** Every artboard with its derived scene rectangle, in document order. */
 export function artboardRects(document: Document): ArtboardRect[] {
   const rects: ArtboardRect[] = []

@@ -2,7 +2,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import { applyCommand } from "../src/doc/commands.ts"
-import { artboardAtPoint, artboardRect, artboardRects, ARTBOARD_GAP } from "../src/doc/artboards.ts"
+import { artboardAtPoint, artboardRect, artboardRects, ARTBOARD_GAP, ARTBOARD_PRESETS, presetByName, presetFor } from "../src/doc/artboards.ts"
 import { createDocument } from "../src/doc/document.ts"
 import { validateDocument } from "../src/doc/validate.ts"
 
@@ -62,4 +62,17 @@ test("document validation checks artboard ids, sizes, and names", () => {
   assert.equal(validateDocument(document).ok ? "" : (validateDocument(document) as { issue: { code: string } }).issue.code, "non-positive-size")
   document.artboards = [board("a"), { id: "b", name: "  ", width: 10, height: 10 }]
   assert.equal(validateDocument(document).ok ? "" : (validateDocument(document) as { issue: { code: string } }).issue.code, "invalid-index")
+})
+
+test("common sheet sizes are offered as presets, and a typed size reads as Custom", () => {
+  assert.ok(ARTBOARD_PRESETS.length >= 5)
+  const hd = ARTBOARD_PRESETS.find((preset) => preset.name.includes("HD"))
+  assert.ok(hd !== undefined)
+  if (hd === undefined) return
+  assert.equal(presetFor(hd.width, hd.height), hd.name, "an exact size names its preset")
+  assert.equal(presetFor(hd.width + 1, hd.height), "Custom", "any other size is custom")
+  assert.deepEqual(presetByName(hd.name), hd)
+  assert.equal(presetByName("No such size"), null)
+  // The presets themselves are usable artboards: positive and finite.
+  assert.ok(ARTBOARD_PRESETS.every((preset) => preset.width > 0 && preset.height > 0 && Number.isFinite(preset.width)))
 })

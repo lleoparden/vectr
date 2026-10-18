@@ -20,6 +20,7 @@ import { placeImage } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
+import { ArtboardOverlay } from './ArtboardOverlay.tsx'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
@@ -31,6 +32,7 @@ import { buildScene, type SceneShape } from '../../render/scene.ts'
 import { documentStore, type Tool, type Viewport } from '../../state/documentStore.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { workspaceStore } from '../../state/workspaceStore.ts'
+import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { fitRect, zoomAtPoint } from './viewportOps.ts'
 
 type Gesture =
@@ -78,6 +80,7 @@ function boundsOf(shape: SceneShape) {
 
 export function CanvasView() {
   const state = useEditorState()
+  const workspace = useWorkspaceState()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<EditorRenderer | null>(null)
   const gestureRef = useRef<Gesture>({ kind: 'none' })
@@ -654,6 +657,13 @@ export function CanvasView() {
             />
           )
         })()}
+      <ArtboardOverlay
+        pages={artboardRects(state.document)}
+        activeId={workspace.activeArtboardId}
+        zoom={state.viewport.zoom}
+        panX={state.viewport.panX}
+        panY={state.viewport.panY}
+      />
       {selectionBox !== null && (
         <SelectionOverlay
           box={selectionBox}

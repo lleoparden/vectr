@@ -10,9 +10,9 @@ Until the owner explicitly changes this direction, agents build the product.
 The long-term goal is VectorCraft/Illustrator-level feature parity plus the
 React compiler; afterward, the owner will extend the product directly.
 
-The platform and technical stack are intentionally undecided. Do not select a
-stack, initialize an app, add dependencies, or write product code until the
-owner approves a feature plan.
+The stack is decided: Electron + React + TypeScript + Tailwind + Vite with CanvasKit/Skia (see
+`docs/MASTER_PLAN.md`). Do not change it, add a dependency, or introduce a service without the owner's
+approval, and do not write product code until the owner approves a feature plan.
 
 ## Product identity
 
@@ -37,9 +37,25 @@ owner approves a feature plan.
   simply not built yet. The parity catalog's `UI-01`/`UI-02` entries carry the
   status.
 
+## Reference architecture
+
+Vectr follows the layering documented in VectorCraft's `docs/architecture.md` - behaviour and architecture
+evidence only; its source and branding are never copied. A module may only import from a lower layer:
+
+L0 geometry and colour - L1 document model - L2 operations (booleans, text layout, effects) - L3 renderer and
+file formats - L4 tools as state machines - L5 engine (sessions, history, command registry) - L6 interface -
+L7 application shells and tooling.
+
+- `scripts/check-layers.mjs` enforces the direction and runs in `npm test`.
+- The document layer never imports React, Skia, or Electron; the renderer never imports React and never mutates
+  the document; tools never mutate the document directly - they emit commands.
+- Every user-visible action is one command in the registry, reachable from menus, palette, and keyboard.
+- During the Phase 3 realignment **behaviour is frozen**: a retrofit slice must leave the tests and the packaged
+  run reporting the same results, and any behaviour change it uncovers is a follow-up, not part of the port.
+
 ## Start and finish every session
 
-1. Read `docs/PLAN.md` and `docs/PROGRESS.md`.
+1. Read `docs/PLAN.md`, `docs/PROGRESS.md`, and `docs/PARITY_ROADMAP.md`.
 2. Read `docs/DECISIONS.md` before revisiting a settled choice.
 3. For any change larger than a small documentation fix, write the proposed
    plan in `docs/PLAN.md` and wait for approval before changing files.
@@ -108,7 +124,7 @@ owner approves a feature plan.
   agent wrote moments earlier: re-read the full diff as a reviewer, post what it
   actually changes, any counter-argument or risk found, what was verified, and any
   residual doubt. An unresolved doubt blocks the merge.
-- **Temporary Phase 1 merge authority (owner authorization, 2026-10-16).** Until
+- **Temporary Phase 1 merge authority (owner authorization, 2026-10-16; expired when Phase 1 closed).** Until
   Phase 1 is finished, agents may merge an approved pull request themselves —
   including an otherwise big or important one — after the required self-review is
   posted and the branch-head checks, documentation, catalog, and progress updates

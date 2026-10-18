@@ -1,6 +1,28 @@
 # Progress
 
 
+## Project replanned around the reference architecture (2026-10-18, owner-approved)
+
+The owner judged the build "not good enough" in feel and proposed using VectorCraft as a guideline. Reading that
+repository produced a better plan than either "keep going" or "fork it":
+
+- **Its most valuable artefacts are documents, not code.** `docs/gaps.md` is a ranked work list against
+  Illustrator with estimates, and **gap 1 is interaction fidelity (60-90 agent hours)** - exactly the felt
+  problem. `docs/architecture.md` prescribes an L0-L7 layering enforced by a build check.
+- **We adopt the architecture, not the source.** The layers, the import direction, tools as state machines, and
+  one command registry become ours; no Rust is ported, and the no-copy rule stands.
+- **A new Phase 3 retrofits what exists** - layer check, `src/tools/` state machines, command registry - with
+  behaviour frozen: identical tests and packaged run, no format change.
+- **The phases were resequenced**: 3 realignment, 4 interaction fidelity, 5 path model and booleans, 6 type,
+  7 appearance and effects, 8 files/interoperability, 9 parity gate, 10 compiler, 11 MCP, 12 cloud, 13 distant.
+  The compiler keeps its position after the parity gate rather than being used to skip it.
+
+**Recorded in:** `docs/MASTER_PLAN.md` (rewritten), `docs/PARITY_ROADMAP.md` (new, approved),
+`docs/PLAN.md` (Phase 3 checklist), `docs/DECISIONS.md`, and `AGENTS.md` (the layer rule). No product code
+changed in this replan.
+
+
+
 ## Issue #70 — radial gradients, stop editing, gradient strokes, full blend set (2026-10-18)
 
 - **Radial gradients** on the same definition as linear ones (centre + radius), switchable without losing

@@ -1,6 +1,36 @@
 # Vectr roadmap
 
-The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). This file
+The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md), replanned on 2026-10-18 around
+[PARITY_ROADMAP.md](PARITY_ROADMAP.md). This file is the operational checklist for the **phase in progress**.
+
+## Current phase - Phase 3, architecture realignment (approved 2026-10-18)
+
+**The one rule:** behaviour is frozen. Every slice here is a refactor that must leave the tests and the packaged
+run reporting the same results. A behaviour change found on the way is recorded as a follow-up, not folded in.
+
+**Slices, in order.**
+
+1. **Layer rule + check** - `scripts/check-layers.mjs` asserting the L0-L7 import direction; extract `src/geom/`
+   for the colour and geometry primitives; wire the check into `npm test`. No product change.
+2. **Tool interface + Selection, Direct Selection, Hand** - create `src/tools/` with the state-machine contract
+   (enter, pointer down/move/up, key, cancel, overlay, cursor); port the three pointer tools; `CanvasView`
+   becomes the host that routes events. Behaviour frozen, packaged run re-recorded.
+3. **The rest of the tools** - Lasso, the seven shape tools, Type; each ported behind the existing tests.
+4. **Command registry** - one table with id, label, menu path, chord, enabled, and run; `menuModel`,
+   `shortcuts`, and the palette read it; `actions.ts` becomes the implementation hub behind it.
+5. **Record the architecture** - update `AGENTS.md` and `DECISIONS.md` with the layer rules and the review
+   checklist a future slice must satisfy.
+
+**Exit:** layer check green in CI; every tool a state machine; one command registry; identical test and
+packaged-run results; no document-format change. Then Phase 4 (interaction fidelity) starts.
+
+## Phase 2 history (complete, for reference)
+
+The Phase 2 slices shipped across #75-#102 and are audited in `docs/PROGRESS.md`. Their records stay in this
+file below; nothing in them is active work.
+
+
+The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md). [PARITY_ROADMAP.md](PARITY_ROADMAP.md) is the **proposed** parity re-sequencing (interaction fidelity first, then the path model, type, files, compiler) and is awaiting owner approval. This file
 remains the short operational checklist for the active phase.
 
 Every phase in the master plan owns an epic GitHub issue; all phase epics are

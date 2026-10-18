@@ -1,6 +1,28 @@
 # Progress
 
 
+## Issue #69 — stroke alignment and the colour system (2026-10-18)
+
+- **Stroke alignment**: centre (default), inside, or outside, in the Properties stroke section. Inside and
+  outside clip to the outline and draw at double width, so the visible half is on the requested side.
+- **Named swatches with CMYK and spot definitions**: create from the selection's fill or from CMYK values,
+  apply with one click, and remove without touching objects already filled with that colour. Swatches are
+  document data, validate at the boundary, and survive save/reopen.
+- **CMYK** is stored exactly as entered and converted to RGB for display by a documented plain arithmetic
+  conversion (`ui/cmyk.ts`); there is no ICC profile yet, and the record says so. `spot` marks a named ink
+  without claiming separations.
+- **Width profiles are recorded as unsupported** rather than faked: they need stroke-to-outline geometry,
+  which this build does not have.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **224/224** (5 new in
+`tests/swatches.test.ts`: CMYK↔hex round trips, add/set/remove with exact inverses, save/reopen of swatches,
+the boundary refusals including CMYK outside 0–100, applying a swatch and storing stroke alignment, and an
+unsupported alignment refused); packaged run **125 steps across seven reports**, `[vectr-ui]` **26/26** with
+three new steps — a CMYK swatch is created and listed, applying it fills the selection, and stroke alignment
+is stored.
+
+
+
 ## Issue #67 completed — rulers, grid, and guides (2026-10-18)
 
 - **Rulers** along the top and left in scene units, with labelled major ticks that re-step as you zoom, and

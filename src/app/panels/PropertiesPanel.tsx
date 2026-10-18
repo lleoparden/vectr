@@ -33,6 +33,7 @@ import {
   setSelectionGradient,
   setSelectionOpacity,
   setSelectionStroke,
+  setSelectionStrokeAlign,
   gradientAngle,
 } from '../actions.ts'
 import {
@@ -245,6 +246,12 @@ export function PropertiesPanel() {
             max={100}
             step={0.5}
             onChange={(width) => setSelectionStroke({ width })}
+          />
+          <SelectField
+            label="Align"
+            value={stroke?.align ?? 'center'}
+            options={['center' as const, 'inside' as const, 'outside' as const]}
+            onChange={(align) => setSelectionStrokeAlign(align)}
           />
           <div className="grid grid-cols-2 gap-1.5">
             <SelectField label="Cap" value={stroke?.cap ?? 'butt'} options={CAPS} onChange={(cap) => setSelectionStroke({ cap })} />

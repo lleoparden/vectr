@@ -81,6 +81,7 @@ export function deserializeDocument(text: string): DeserializeResult {
     root: upgraded.root,
     assets: Array.isArray(upgraded.assets) ? upgraded.assets : [],
     guides: Array.isArray(upgraded.guides) ? upgraded.guides : [],
+    swatches: Array.isArray(upgraded.swatches) ? upgraded.swatches : [],
   }
 
   const validation = validateDocument(document)

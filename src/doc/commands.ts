@@ -24,7 +24,9 @@ import {
   isGroup,
   isText,
   type Artboard,
+  type Cmyk,
   type Guide,
+  type Swatch,
   type AssetRef,
   type Document,
   type GroupNode,
@@ -50,6 +52,10 @@ export type Command =
   | { type: 'setClip'; groupId: NodeId; clipChildId: NodeId | null }
   /** Guide lines are document data (issue #67); positions are scene units. */
   | { type: 'addGuide'; guide: Guide }
+  /** Named colours are document data (issue #69). */
+  | { type: 'addSwatch'; swatch: Swatch }
+  | { type: 'removeSwatch'; swatchId: string }
+  | { type: 'setSwatch'; swatchId: string; name?: string; color?: string; cmyk?: Cmyk | null; spot?: boolean }
   | { type: 'removeGuide'; guideId: string }
   | { type: 'setGuide'; guideId: string; position: number }
   /** Artboards are document data (Phase 2.4, issue #67); positions are derived, never stored. */
@@ -89,6 +95,9 @@ export type Command =
 export type CommandResult =
   | { ok: true; document: Document; inverse: Command }
   | { ok: false; code: ValidationCode; message: string }
+
+/** Bounded so a hand-edited file cannot make the swatch list unbounded. */
+const MAX_SWATCHES = 512
 
 function rejected(code: ValidationCode, message: string): CommandResult {
   return { ok: false, code, message }
@@ -339,6 +348,69 @@ export function applyCommand(document: Document, command: Command): CommandResul
         ok: true,
         document: withRevision({ ...document, guides: [...guides, { ...command.guide }] }),
         inverse: { type: 'removeGuide', guideId: command.guide.id },
+      }
+    }
+
+    case 'addSwatch': {
+      const swatches = document.swatches ?? []
+      if (swatches.some((swatch) => swatch.id === command.swatch.id)) {
+        return rejected('duplicate-id', `Swatch ${command.swatch.id} already exists.`)
+      }
+      if (swatches.length >= MAX_SWATCHES) {
+        return rejected('invalid-index', `A document may hold ${MAX_SWATCHES} swatches.`)
+      }
+      const name = command.swatch.name.trim()
+      if (name.length === 0 || name.length > 128) {
+        return rejected('invalid-index', 'A swatch name must be between 1 and 128 characters.')
+      }
+      if (!/^#[0-9a-fA-F]{6}$/.test(command.swatch.color)) {
+        return rejected('invalid-index', `Swatch ${command.swatch.id} needs a hex colour.`)
+      }
+      return {
+        ok: true,
+        document: withRevision({ ...document, swatches: [...swatches, { ...command.swatch, name }] }),
+        inverse: { type: 'removeSwatch', swatchId: command.swatch.id },
+      }
+    }
+
+    case 'removeSwatch': {
+      const swatches = document.swatches ?? []
+      const swatch = swatches.find((candidate) => candidate.id === command.swatchId)
+      if (swatch === undefined) return rejected('absent-node', `Swatch ${command.swatchId} does not exist.`)
+      return {
+        ok: true,
+        document: withRevision({ ...document, swatches: swatches.filter((candidate) => candidate.id !== swatch.id) }),
+        inverse: { type: 'addSwatch', swatch: { ...swatch } },
+      }
+    }
+
+    case 'setSwatch': {
+      const swatches = document.swatches ?? []
+      const swatch = swatches.find((candidate) => candidate.id === command.swatchId)
+      if (swatch === undefined) return rejected('absent-node', `Swatch ${command.swatchId} does not exist.`)
+      const name = command.name === undefined ? swatch.name : command.name.trim()
+      if (name.length === 0 || name.length > 128) {
+        return rejected('invalid-index', 'A swatch name must be between 1 and 128 characters.')
+      }
+      const color = command.color ?? swatch.color
+      if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+        return rejected('invalid-index', 'A swatch needs a hex colour.')
+      }
+      const cmyk = command.cmyk === undefined ? swatch.cmyk : (command.cmyk ?? undefined)
+      if (cmyk !== undefined && ![cmyk.c, cmyk.m, cmyk.y, cmyk.k].every((value) => Number.isFinite(value) && value >= 0 && value <= 100)) {
+        return rejected('non-finite', 'CMYK components run from 0 to 100.')
+      }
+      return {
+        ok: true,
+        document: withRevision({
+          ...document,
+          swatches: swatches.map((candidate) =>
+            candidate.id === swatch.id
+              ? { ...candidate, name, color, cmyk, spot: command.spot ?? candidate.spot }
+              : candidate,
+          ),
+        }),
+        inverse: { type: 'setSwatch', swatchId: swatch.id, name: swatch.name, color: swatch.color, cmyk: swatch.cmyk ?? null, spot: swatch.spot },
       }
     }
 

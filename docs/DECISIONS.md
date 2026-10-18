@@ -1990,3 +1990,20 @@ owner asked for originally.
 - **Ctrl+R / Ctrl+' / Ctrl+; / Ctrl+Alt+;** are Illustrator's own chords for rulers, grid, guides, and
   clearing guides; nothing new was invented.
 
+## 2026-10-18 — Stroke alignment, named swatches, and what PAINT-02 does not claim (#69)
+
+- **Inside and outside alignment are clipping, not offset geometry.** Skia strokes straddle the path, so a
+  stroke asked to sit inside is clipped to the outline and drawn at double width; outside uses the
+  difference clip. The result is exact for the visible half, needs no path offsetting, and keeps one paint
+  path for dashes, caps, and joins.
+- **CMYK is stored as entered and converted by plain arithmetic.** There is no ICC profile in the product,
+  so a press-accurate conversion is not available to be honest about; the values a person types are kept
+  verbatim in the swatch and the RGB used for display is derived from them, documented in `ui/cmyk.ts`.
+- **A spot swatch is a label, not a separation.** It marks a named ink in the document; producing
+  separations or overprint is later print work, and claiming otherwise would be worse than the label.
+- **Deleting a swatch never changes artwork.** A swatch is a name for a colour; objects keep the colour
+  they were filled with, which is why removal has no inverse side effects on the tree.
+- **Width profiles are recorded as unsupported.** A variable-width stroke needs stroke-to-outline geometry
+  (a real vector operation), not a paint setting; shipping a slider that changed nothing would be the
+  lie the UI rule forbids.
+

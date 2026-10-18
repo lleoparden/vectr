@@ -20,7 +20,7 @@ import { deepHitWithin, groupToIsolate } from '../app/editing/isolation.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
-import { addGuide, nudgeSelection, placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
+import { addCmykSwatch, applySwatch, removeSwatch, setSelectionStrokeAlign, addGuide, nudgeSelection, placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
 import {
   newDocument,
   openDocument,
@@ -1187,6 +1187,39 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   )
   runEditorAction('view.grid')
   await settle(60)
+  // Named swatches and stroke alignment (issue #69).
+  const swatchTarget = documentStore.getState().document.root.children[0]
+  if (swatchTarget !== undefined) documentStore.setSelection([swatchTarget.id])
+  Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    .find((button) => button.textContent?.trim() === 'Color')
+    ?.click()
+  await settle(120)
+  const swatchId = addCmykSwatch('Deep Cyan', { c: 100, m: 0, y: 0, k: 0 }, true)
+  await settle(80)
+  const swatchButtons = document.querySelectorAll('[aria-label^="Apply swatch"]').length
+  record(
+    'a named CMYK swatch is created and listed',
+    swatchId !== null && swatchButtons >= 1,
+    swatchButtons + ' swatch button(s), id ' + String(swatchId).slice(0, 12),
+  )
+  applySwatch(swatchId ?? '')
+  await settle(60)
+  const swatchNode = findNode(documentStore.getState().document, swatchTarget?.id ?? '')
+  record(
+    'applying a named swatch fills the selection',
+    swatchNode !== null && swatchNode.type !== 'group' && swatchNode.style.fill === '#00ffff',
+    swatchNode !== null && swatchNode.type !== 'group' ? 'fill ' + swatchNode.style.fill : 'no node',
+  )
+  setSelectionStrokeAlign('inside')
+  await settle(60)
+  const aligned = findNode(documentStore.getState().document, swatchTarget?.id ?? '')
+  record(
+    'stroke alignment is stored',
+    aligned !== null && aligned.type !== 'group' && aligned.style.stroke?.align === 'inside',
+    aligned !== null && aligned.type !== 'group' ? 'align ' + String(aligned.style.stroke?.align) : 'no node',
+  )
+  removeSwatch(swatchId ?? '')
+  await settle(60)
   // Canvas input goes through hit testing, not through the canvas element directly. This is the
   // regression test for the bug where an overlay covered the canvas and ate every wheel and drag.
   const canvasEl = document.querySelector('canvas')
@@ -1255,8 +1288,10 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(
       (button) => button.textContent?.trim() === name,
     )
-  tab('Color')?.click()
-  await settle(120)
+  if (document.querySelector('[aria-label^="Apply Violet"]') === null) {
+    tab('Color')?.click()
+    await settle(120)
+  }
   const paletteSwatch = document.querySelector<HTMLButtonElement>('[aria-label^="Apply Violet"]')
   const paletteCount = document.querySelectorAll('[aria-label^="Apply "]').length
   paletteSwatch?.click()
@@ -1268,8 +1303,10 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     paletteCount + ' swatches, fill ' + (afterSwatch !== null && afterSwatch.type !== 'group' ? afterSwatch.style.fill : 'none'),
   )
 
-  tab('Appearance')?.click()
-  await settle(120)
+  if (document.querySelector('input[aria-label="Opacity"]') === null) {
+    tab('Appearance')?.click()
+    await settle(120)
+  }
   const opacitySlider = document.querySelector<HTMLInputElement>('[data-panel-body="appearance"] input[aria-label="Opacity"]') ?? document.querySelector<HTMLInputElement>('input[aria-label="Opacity"]')
   if (opacitySlider !== null && opacitySlider !== undefined) {
     opacitySlider.focus()

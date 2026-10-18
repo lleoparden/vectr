@@ -137,7 +137,8 @@ The phase-by-phase plan with exit criteria is [**docs/MASTER_PLAN.md**](docs/MAS
 | [docs/PARITY_CATALOG.md](docs/PARITY_CATALOG.md) | The capability catalogue and its status rules |
 | [docs/PARITY_ROADMAP.md](docs/PARITY_ROADMAP.md) | The reference architecture and the ranked gap list |
 | [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) | Every phase, in order, with exit criteria |
-| [AGENTS.md](AGENTS.md) | The rules a contributor — human or agent — follows here |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to set up, test, and land a change |
+| [AGENTS.md](AGENTS.md) | The binding rulebook behind the contribution guide |
 
 ## Contributing
 

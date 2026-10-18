@@ -1,0 +1,121 @@
+name: Release
+
+# Versioned pre-releases, one per phase. The tag is `v<version>` from package.json and it never moves:
+# a download URL must always return the same bytes, and "which build am I running" must have an answer.
+#
+# The notes are `docs/RELEASES.md` with `<version>` substituted, and the Windows installer is built by
+# this workflow when the version is new, when a merge changes the notes, or when dispatched by hand.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/RELEASES.md"
+      - "package.json"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: Rebuild the installer even if this version's asset already exists
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Read the version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the renderer
+        run: npm run build
+
+      # A new version needs an installer. An existing version only needs one if its asset is missing
+      # (a previous run failed) or a human asked to rebuild.
+      - name: Should the installer be built?
+        id: decide
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          EXISTS="${{ steps.version.outputs.exists }}"
+          HAS_ASSET=false
+          if [ "$EXISTS" = "true" ]; then
+            if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -q 'Setup\.exe$'; then
+              HAS_ASSET=true
+            fi
+          fi
+          if [ "$EXISTS" = "false" ] || [ "$HAS_ASSET" = "false" ] || [ "${{ inputs.rebuild }}" = "true" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the Windows installer
+        if: steps.decide.outputs.build == 'true'
+        run: npm run package:win
+
+      # Create the tag only when the version is new. An existing tag is never moved: that is the rule.
+      - name: Immutable tag for this version
+        if: steps.version.outputs.exists == 'false'
+        shell: bash
+        run: |
+          git config user.name "vectr-release"
+          git config user.email "release@vectr.local"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Vectr ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Publish the pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          sed "s/<version>/$VERSION/g" docs/RELEASES.md > "$RUNNER_TEMP/notes.md"
+          if [ "${{ steps.version.outputs.exists }}" = "true" ]; then
+            gh release edit "$TAG" --prerelease --title "Vectr $VERSION (alpha)" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" --prerelease --title "Vectr $VERSION (alpha)" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
+
+      - name: Attach the installer
+        if: steps.decide.outputs.build == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.version.outputs.tag }}" release/Vectr-*-Setup.exe --clobber
+          gh release view "${{ steps.version.outputs.tag }}" --json assets --jq '.assets[].name' | sed 's/^/attached: /'

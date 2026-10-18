@@ -86,7 +86,9 @@ test('modifiers must match exactly and Command acts as Control', () => {
   assert.notEqual(matchShortcut(chordFromEvent({ key: 'a', ctrlKey: true, shiftKey: true })), 'select.all')
   assert.equal(matchShortcut(chordFromEvent({ key: 'a', metaKey: true })), 'select.all', 'macOS Command')
   assert.equal(matchShortcut(chordFromEvent({ key: 'w' })), null, 'unbound keys stay unbound')
-  assert.equal(matchShortcut(chordFromEvent({ key: 'z' })), null, 'Ctrl+Z must not fire from bare Z')
+  // Bare Z is Illustrator's Zoom tool; Ctrl+Z stays Undo and must not fire from bare Z.
+  assert.equal(matchShortcut(chordFromEvent({ key: 'z' })), 'tool.zoom')
+  assert.equal(matchShortcut(chordFromEvent({ key: 'z', ctrlKey: true })), 'edit.undo')
 })
 
 test('chords print the way a menu shows them', () => {

@@ -13,12 +13,16 @@ export type CanvasCursor =
   | 'grab'
   | 'grabbing'
   | 'move'
+  | 'zoom-in'
+  | 'zoom-out'
 
 /** The cursor a tool shows over empty canvas. */
 export function cursorForTool(tool: string): CanvasCursor {
   switch (tool) {
     case 'hand':
       return 'grab'
+    case 'zoom':
+      return 'zoom-in'
     case 'lasso':
     case 'rect':
     case 'roundedRect':

@@ -48,6 +48,11 @@ export type ToolHost = {
   commitMarquee(rect: MarqueeRect, deep: boolean): void
   viewport(): { panX: number; panY: number }
   panTo(panX: number, panY: number): void
+  /** Zooms by a factor about a screen point, for the Zoom tool (issue #131). */
+  zoomAt(screen: Point, factor: number): void
+  /** Zooms so a scene rectangle fills the canvas, for a dragged zoom. */
+  zoomToBox(box: Rect): void
+
   /** The lasso's freehand path, drawn while the pointer moves and cleared on release. */
   setLasso(points: Point[] | null): void
   /** Resolves a lasso path to a selection, honouring the modifier that adds to it. */

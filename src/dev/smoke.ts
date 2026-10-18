@@ -1529,6 +1529,45 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     }
   }
 
+  // The Zoom tool (issue #131): Z, click in, Alt-click out, drag to frame, double-click for 100%.
+  const zoomStop = { ...documentStore.getState().viewport }
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }))
+  await settle(80)
+  const zoomToolActive = documentStore.getState().tool === 'zoom'
+  const zoomCursor = topmost === null ? '' : getComputedStyle(topmost).cursor
+  const zoomStart = documentStore.getState().viewport.zoom
+  topmost?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, clientX: centre?.x ?? 100, clientY: centre?.y ?? 100 }))
+  topmost?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, clientX: centre?.x ?? 100, clientY: centre?.y ?? 100 }))
+  await settle(80)
+  const zoomedIn = documentStore.getState().viewport.zoom
+  topmost?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, altKey: true, clientX: centre?.x ?? 100, clientY: centre?.y ?? 100 }))
+  topmost?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, altKey: true, clientX: centre?.x ?? 100, clientY: centre?.y ?? 100 }))
+  await settle(80)
+  const zoomedOut = documentStore.getState().viewport.zoom
+  record(
+    'the Zoom tool activates on Z, shows its cursor, and clicks in and out',
+    zoomToolActive && zoomCursor === 'zoom-in' && Math.abs(zoomedIn / zoomStart - 2) < 0.05 && Math.abs(zoomedOut - zoomStart) < 0.05,
+    'cursor ' + zoomCursor + ', zoom ' + zoomStart.toFixed(2) + ' -> ' + zoomedIn.toFixed(2) + ' -> ' + zoomedOut.toFixed(2),
+  )
+  const frameStart = zoomedOut
+  const frameAt = { x: centre?.x ?? 120, y: centre?.y ?? 120 }
+  topmost?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, clientX: frameAt.x, clientY: frameAt.y }))
+  topmost?.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 1, pointerId: 1, clientX: frameAt.x + 120, clientY: frameAt.y + 90 }))
+  topmost?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, clientX: frameAt.x + 120, clientY: frameAt.y + 90 }))
+  await settle(80)
+  const framedZoom = documentStore.getState().viewport.zoom
+  topmost?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: frameAt.x, clientY: frameAt.y }))
+  await settle(80)
+  const resetZoom = documentStore.getState().viewport.zoom
+  record(
+    'dragging frames an area and double-click returns to 100%',
+    framedZoom > frameStart && Math.abs(resetZoom - 1) < 0.001,
+    'zoom ' + frameStart.toFixed(2) + ' -> framed ' + framedZoom.toFixed(2) + ' -> double-click ' + resetZoom.toFixed(2),
+  )
+  documentStore.setViewport(zoomStop)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+  await settle(80)
+
   // The Align and Transform panels (issue #122): the commands and fields now have their Illustrator homes.
   const alignA = createRect('Smoke Align A', 10, 10, 50, 50)
   const alignB = createRect('Smoke Align B', 300, 120, 60, 30)

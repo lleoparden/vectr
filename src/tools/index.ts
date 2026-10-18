@@ -9,6 +9,7 @@ import { createLassoTool } from './lasso.ts'
 import { createSelectTool } from './select.ts'
 import { createShapeTool } from './shapes.ts'
 import { createTypeTool } from './type.ts'
+import { createZoomTool } from './zoom.ts'
 import type { Tool } from './types.ts'
 
 /** Cursors, chosen to read like Illustrator's without copying its artwork. */
@@ -25,6 +26,7 @@ export const TOOL_CURSORS = {
   star: 'crosshair',
   line: 'crosshair',
   text: 'text',
+  zoom: 'zoom-in',
 } as const
 
 export type StateMachineToolId = keyof typeof TOOL_CURSORS
@@ -43,6 +45,7 @@ export function createToolStateMachines(): Record<StateMachineToolId, Tool> {
     star: createShapeTool('star', TOOL_CURSORS.star),
     line: createShapeTool('line', TOOL_CURSORS.line),
     text: createTypeTool(TOOL_CURSORS.text),
+    zoom: createZoomTool(TOOL_CURSORS.zoom),
   }
 }
 

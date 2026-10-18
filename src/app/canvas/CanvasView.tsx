@@ -31,6 +31,7 @@ import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/sn
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { unionBounds } from '../../doc/transform.ts'
 import { angleFromCentre, handlePoints, normaliseAngle, rotatePoint, rotatedTransform, snapAngle } from '../../geom/transform.ts'
+import { clampZoom } from '../../geom/viewport.ts'
 import type { RotateCapture } from '../../tools/types.ts'
 import { type HandleId } from '../../geom/transform.ts'
 import { artboardAtPoint, artboardRect, artboardRects } from '../../doc/artboards.ts'
@@ -105,6 +106,8 @@ export function CanvasView() {
   const [dragging, setDragging] = useState<'move' | 'marquee' | 'pan' | null>(null)
   /** The angle shown while a rotation gesture is in flight (Phase 4.3). */
   const [rotationBadge, setRotationBadge] = useState<string | null>(null)
+  /** Alt turns the zoom cursor into the zoom-out cursor, as Illustrator's does (issue #131). */
+  const [altHeld, setAltHeld] = useState(false)
   const [lassoPath, setLassoPath] = useState<Point[] | null>(null)
   /** Smart-guide lines shown while a snapped drag is in flight (issue #68). */
   const [guides, setGuides] = useState<SnapGuide[]>([])
@@ -431,6 +434,21 @@ export function CanvasView() {
       },
       panTo: (panX, panY) => documentStore.setViewport({ panX, panY }),
       setLasso: (points) => setLassoPath(points),
+      zoomAt: (screen, factor) => {
+        documentStore.setViewport(zoomAtPoint(documentStore.getState().viewport, screen, factor))
+      },
+      zoomToBox: (box) => {
+        // A dragged zoom frames the rectangle with a small margin, like Illustrator's marquee zoom.
+        const canvas = workspaceStore.getState().canvas
+        if (box.width <= 0 || box.height <= 0) return
+        const margin = 0.92
+        const zoom = clampZoom(Math.min(canvas.width / box.width, canvas.height / box.height) * margin)
+        documentStore.setViewport({
+          zoom,
+          panX: canvas.width / 2 - (box.x + box.width / 2) * zoom,
+          panY: canvas.height / 2 - (box.y + box.height / 2) * zoom,
+        })
+      },
       commitLasso: (points, modifiers) => {
         const document = documentStore.getState().document
         const ids = lassoHitTest(document, points)
@@ -670,6 +688,25 @@ export function CanvasView() {
     renderer.retainAssets(wanted)
   }, [ready, state.document.assets])
 
+  useEffect(() => {
+    if (state.tool !== 'zoom') {
+      setAltHeld(false)
+      return
+    }
+    const down = (event: KeyboardEvent) => {
+      if (event.key === 'Alt') setAltHeld(true)
+    }
+    const up = (event: KeyboardEvent) => {
+      if (event.key === 'Alt') setAltHeld(false)
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  }, [state.tool])
+
   // Wheel zoom needs a non-passive listener, so it is attached directly.
   useEffect(() => {
     const canvas = canvasRef.current
@@ -697,7 +734,7 @@ export function CanvasView() {
       <canvas
         ref={canvasRef}
         className="block h-full w-full touch-none bg-neutral-900"
-        style={{ cursor: cursorWhileDragging(state.tool, dragging) }}
+        style={{ cursor: state.tool === 'zoom' && altHeld ? 'zoom-out' : cursorWhileDragging(state.tool, dragging) }}
         aria-label="Design canvas"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -716,6 +753,17 @@ export function CanvasView() {
       canvasRef.current?.releasePointerCapture(event.pointerId)
     }}
         onDoubleClick={(event) => {
+          // Illustrator's Zoom tool double-click returns to 100% about the click.
+          if (state.tool === 'zoom') {
+            const box = canvasRef.current?.getBoundingClientRect()
+            const viewport = documentStore.getState().viewport
+            if (box !== null && box !== undefined) {
+              documentStore.setViewport(
+                zoomAtPoint(viewport, { x: event.clientX - box.left, y: event.clientY - box.top }, 1 / viewport.zoom),
+              )
+            }
+            return
+          }
           // Illustrator's double-click descends one level into the group under the pointer, and
           // opens a text object it reaches. Shape and lasso tools have no double-click meaning.
           const document = documentStore.getState().document

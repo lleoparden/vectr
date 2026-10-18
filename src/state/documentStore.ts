@@ -21,6 +21,7 @@ export type Tool =
   | 'select'
   | 'directSelect'
   | 'lasso'
+  | 'zoom'
   | 'rect'
   | 'roundedRect'
   | 'ellipse'

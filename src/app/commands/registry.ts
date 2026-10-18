@@ -40,6 +40,7 @@ export const ACTION_IDS = [
   'tool.arc',
   'tool.hand',
   'tool.text',
+  'tool.zoom',
   'file.place',
   'file.placeLinked',
   'file.new',
@@ -121,6 +122,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'tool.arc': 'Arc Tool',
   'tool.hand': 'Hand Tool',
   'tool.text': 'Type Tool',
+  'tool.zoom': 'Zoom Tool',
   'file.place': 'Place…',
   'file.placeLinked': 'Place Linked…',
   'file.new': 'New',
@@ -201,6 +203,8 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
   // H is Illustrator's own chord for the Hand tool; Space reaches it temporarily.
   { id: 'tool.hand', chord: { key: 'h' }, illustratorDefault: true },
+  // Z is Illustrator's own chord for the Zoom tool.
+  { id: 'tool.zoom', chord: { key: 'z' }, illustratorDefault: true },
 
   // File (Illustrator's document chords, then Place).
   { id: 'file.new', chord: { key: 'n', ctrl: true }, illustratorDefault: true },

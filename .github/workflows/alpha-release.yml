@@ -1,0 +1,38 @@
+name: Alpha pre-release
+
+# A rolling pre-release: the `alpha` tag always points at `main`, and the release notes are
+# `docs/RELEASES.md`. Republishing replaces the tag and the release, which is the one place a
+# force-push is intended - tags are labels on commits, and this one is meant to move.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  alpha:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move the alpha tag to main
+        run: |
+          git config user.name "vectr-release"
+          git config user.email "release@vectr.local"
+          git tag -f alpha
+          git push -f origin alpha
+
+      - name: Republish the alpha release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete alpha --yes || true
+          gh release create alpha \
+            --prerelease \
+            --title "Vectr alpha (rolling)" \
+            --notes-file docs/RELEASES.md

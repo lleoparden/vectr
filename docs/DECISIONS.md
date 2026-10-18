@@ -2301,3 +2301,17 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **Phase 5 is issued before it is coded**, one sub-issue per slice with its boundaries and evidence, because the
   repository's workflow says the plan exists first - and because the path model is the slice everything after it
   depends on.
+
+## 2026-10-18 - Public repository, a Pages site, and a rolling pre-release
+
+- **Public, because Pages needed it and because the project is meant to be adopted.** The licence was already
+  MIT; the repository visibility now matches it. Any future decision to go private has to move the site.
+- **One rolling pre-release, not a version per phase.** The `alpha` tag follows `main`, and
+  `.github/workflows/alpha-release.yml` recreates the release from `docs/RELEASES.md` on every merge. Versioned
+  tags would either lie between phases or multiply; a rolling tag always describes the code that exists.
+- **The release body is a file in the repository.** Writing notes in the GitHub UI would drift from the code;
+  `docs/RELEASES.md` is reviewed like everything else and published mechanically.
+- **The one force-push in the project is the `alpha` tag**, and it is documented in the workflow: a tag is a
+  label, and this label is defined as pointing at the head of `main`. No branch is ever force-pushed.
+- **Phase close now has a release gate**: progress, release notes, and the site must agree before a phase is
+  called done.

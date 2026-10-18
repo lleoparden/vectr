@@ -3,6 +3,9 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { createSelectTool } from "../src/tools/select.ts"
 import { createHandTool } from "../src/tools/hand.ts"
+import { createLassoTool } from "../src/tools/lasso.ts"
+import { createShapeTool } from "../src/tools/shapes.ts"
+import { createTypeTool } from "../src/tools/type.ts"
 import { createToolStateMachines, isStateMachineTool } from "../src/tools/index.ts"
 import type { MarqueeRect, ToolHost, ToolPoint } from "../src/tools/types.ts"
 import type { NodeId } from "../src/doc/types.ts"
@@ -36,6 +39,11 @@ function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]
     commitMarquee: (rect, deep) => calls.push("commit:" + rect.width + "x" + rect.height + (deep ? ":deep" : "")),
     viewport: () => ({ panX: 5, panY: 7 }),
     panTo: (panX, panY) => calls.push("pan:" + panX + "," + panY),
+    setLasso: (points) => calls.push("lasso:" + (points === null ? "null" : points.length)),
+    commitLasso: (points, modifiers) => calls.push("commitLasso:" + points.length + (modifiers.shift ? ":shift" : "")),
+    setShapePreview: (preview) => calls.push("preview:" + (preview === null ? "null" : preview.kind + "@" + preview.current.x + "," + preview.current.y + (preview.shift ? ":shift" : ""))),
+    commitShape: (toolId, start, end, shift) => calls.push("shape:" + toolId + ":" + start.x + "," + start.y + ">" + end.x + "," + end.y + (shift ? ":shift" : "")),
+    placeText: (scene) => calls.push("text:" + scene.x + "," + scene.y),
   }
   return { host, calls, selected }
 }
@@ -109,13 +117,83 @@ test("the hand pans by screen pixels from the pan it started at", () => {
   assert.equal(calls.length, 2, "after release the hand no longer pans")
 })
 
-test("the registry exposes exactly the three machines and knows which tools they are", () => {
+test("the registry holds every palette tool as a state machine", () => {
   const machines = createToolStateMachines()
-  assert.deepEqual(Object.keys(machines).sort(), ["directSelect", "hand", "select"])
+  assert.deepEqual(Object.keys(machines).sort(), [
+    "arc",
+    "directSelect",
+    "ellipse",
+    "hand",
+    "lasso",
+    "line",
+    "polygon",
+    "rect",
+    "roundedRect",
+    "select",
+    "star",
+    "text",
+  ])
   assert.equal(machines.select.id, "select")
   assert.equal(machines.directSelect.id, "directSelect")
   assert.equal(machines.hand.id, "hand")
-  assert.equal(isStateMachineTool("select"), true)
-  assert.equal(isStateMachineTool("lasso"), false)
-  assert.equal(isStateMachineTool("rect"), false)
+  assert.equal(machines.lasso.id, "lasso")
+  for (const id of ["select", "directSelect", "hand", "lasso", "rect", "roundedRect", "ellipse", "polygon", "star", "line", "arc", "text"]) {
+    assert.equal(isStateMachineTool(id), true, id + " is a state machine")
+  }
+  assert.equal(isStateMachineTool("nosuchtool"), false)
+})
+
+test("the lasso collects a freehand path and decides on release", () => {
+  const tool = createLassoTool({ cursor: "crosshair" })
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(10, 10))
+  tool.onPointerMove(host, point(20, 10))
+  tool.onPointerMove(host, point(20, 20))
+  assert.deepEqual(calls, ["lasso:1", "lasso:2", "lasso:3"])
+  tool.onPointerUp(host, point(20, 20), { ...noModifiers, shift: true })
+  assert.deepEqual(calls.slice(3), ["commitLasso:3:shift", "lasso:null"])
+  tool.onPointerUp(host, point(20, 20), noModifiers)
+  assert.equal(calls.length, 5, "a second release commits nothing")
+})
+
+test("the lasso caps its path and Escape drops it without committing", () => {
+  const tool = createLassoTool({ cursor: "crosshair", maxPoints: 2 })
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(0, 0))
+  tool.onPointerMove(host, point(1, 1))
+  tool.onPointerMove(host, point(2, 2))
+  assert.deepEqual(calls, ["lasso:1", "lasso:2"])
+  tool.cancel(host)
+  assert.deepEqual(calls.slice(2), ["lasso:null"])
+})
+
+test("a shape tool previews the drag live and creates on release with the live Shift", () => {
+  const tool = createShapeTool("ellipse", "crosshair")
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(5, 5), noModifiers)
+  tool.onPointerMove(host, point(25, 15), noModifiers)
+  tool.onPointerMove(host, point(25, 15), { ...noModifiers, shift: true })
+  tool.onPointerUp(host, point(25, 15), { ...noModifiers, shift: true })
+  assert.deepEqual(calls, [
+    "preview:ellipse@5,5",
+    "preview:ellipse@25,15",
+    "preview:ellipse@25,15:shift",
+    "shape:ellipse:5,5>25,15:shift",
+    "preview:null",
+  ])
+})
+
+test("cancelling a shape drag leaves no object behind", () => {
+  const tool = createShapeTool("star", "crosshair")
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(1, 1), noModifiers)
+  tool.cancel(host)
+  assert.deepEqual(calls, ["preview:star@1,1", "preview:null"])
+})
+
+test("the Type tool places text where the click landed", () => {
+  const tool = createTypeTool("text")
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(42, 84))
+  assert.deepEqual(calls, ["text:42,84"])
 })

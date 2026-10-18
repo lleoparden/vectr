@@ -391,6 +391,66 @@ export function CanvasView() {
         return { panX: viewport.panX, panY: viewport.panY }
       },
       panTo: (panX, panY) => documentStore.setViewport({ panX, panY }),
+      setLasso: (points) => setLassoPath(points),
+      commitLasso: (points, modifiers) => {
+        const document = documentStore.getState().document
+        const ids = lassoHitTest(document, points)
+        if (modifiers.shift) {
+          // Shift adds to the selection, the way it does for a click or a marquee.
+          const merged = [...documentStore.getState().selection]
+          for (const id of ids) if (!merged.includes(id)) merged.push(id)
+          documentStore.setSelection(merged)
+        } else {
+          documentStore.setSelection(withinIsolation(document, workspaceStore.getState().isolatedGroupId, ids))
+        }
+      },
+      setShapePreview: (preview) => setOverlay(preview),
+      commitShape: (toolId, start, end, shift) => {
+        const kind = shapeKindForTool(toolId as Tool)
+        if (kind === null) return
+        const constrained = constrainEnd(start, end, kind, shift)
+        if (!dragIsBigEnough(start, constrained, kind, MIN_DRAG)) return
+        const box = boxFor(start, constrained, kind)
+        const defaults = workspaceStore.getState().creationDefaults
+        const label = shapeLabel(kind)
+        const document = documentStore.getState().document
+        const existing = document.root.children.filter((node) => node.type === kind).length
+        const node = createShape(kind, `${label} ${existing + 1}`, box, defaults.shape, lineFrom(start, constrained))
+        const result = documentStore.dispatch(
+          {
+            type: 'insertNodes',
+            parentId: document.root.id,
+            index: document.root.children.length,
+            nodes: [node],
+          },
+          `add ${label.toLowerCase()}`,
+        )
+        if (result.ok) documentStore.setSelection([node.id])
+      },
+      placeText: (scene) => {
+        const document = documentStore.getState().document
+        const existing = document.root.children.filter((node) => node.type === 'text').length
+        const defaults = workspaceStore.getState().creationDefaults
+        const node = createText(`Text ${existing + 1}`, scene.x, scene.y, '', {
+          // The Type tool's options apply to the object it is about to create.
+          fill: defaults.textFill,
+          fontSize: defaults.textFontSize,
+          align: defaults.textAlign,
+        })
+        const result = documentStore.dispatch(
+          {
+            type: 'insertNodes',
+            parentId: document.root.id,
+            index: document.root.children.length,
+            nodes: [node],
+          },
+          'add text',
+        )
+        if (result.ok) {
+          documentStore.setSelection([node.id])
+          setEditing({ nodeId: node.id, text: '' })
+        }
+      },
     }
   }
 
@@ -400,6 +460,9 @@ export function CanvasView() {
     // The pointer tools are state machines (Phase 3.2): the canvas routes the event and supplies
     // the host, so the tool owns the gesture and the canvas owns the document.
     if (event.button === 0 && isStateMachineTool(state.tool)) {
+      // A real mouse-down moves focus after this handler, which would blur the text editor the Type
+      // tool is about to open and close it before a character could be typed.
+      if (state.tool === 'text') event.preventDefault()
       gestureRef.current = { kind: 'none' }
       toolsRef.current?.[state.tool].onPointerDown(toolHost(), toolPoint(event), {
         shift: event.shiftKey,
@@ -419,50 +482,6 @@ export function CanvasView() {
     }
     if (event.button !== 0) return
 
-    // The Lasso collects a freehand path; what it selects is decided on release.
-    if (state.tool === 'lasso') {
-      gestureRef.current = { kind: 'lasso', points: [start] }
-      setLassoPath([start])
-      return
-    }
-
-    const shapeKind = shapeKindForTool(state.tool)
-    if (shapeKind !== null) {
-      gestureRef.current = { kind: 'create', tool: shapeKind, start, current: start, shift: event.shiftKey }
-      setOverlay({ kind: shapeKind, start, current: start, shift: event.shiftKey })
-      return
-    }
-
-    // The Type tool places a text object where the click landed and starts editing it, which
-    // is what Illustrator's Type tool does.
-    if (state.tool === 'text') {
-      // Keep focus on the canvas from moving: a real mouse-down runs the browser's default focus
-      // change *after* this handler, which would blur the editor we are about to open and close it
-      // before the user could type a character.
-      event.preventDefault()
-      const existing = state.document.root.children.filter((node) => node.type === 'text').length
-      const defaults = workspaceStore.getState().creationDefaults
-      const node = createText(`Text ${existing + 1}`, start.x, start.y, '', {
-        // The Type tool's options apply to the object it is about to create.
-        fill: defaults.textFill,
-        fontSize: defaults.textFontSize,
-        align: defaults.textAlign,
-      })
-      const result = documentStore.dispatch(
-        {
-          type: 'insertNodes',
-          parentId: state.document.root.id,
-          index: state.document.root.children.length,
-          nodes: [node],
-        },
-        'add text',
-      )
-      if (result.ok) {
-        documentStore.setSelection([node.id])
-        setEditing({ nodeId: node.id, text: '' })
-      }
-      return
-    }
 
   }
 
@@ -486,128 +505,24 @@ export function CanvasView() {
       })
       return
     }
-    const current = toScene(event)
-    if (gesture.kind === 'move') {
-      gestureRef.current = { ...gesture, current }
-      let dx = current.x - gesture.start.x
-      let dy = current.y - gesture.start.y
-      // Smart Guides: the gesture's raw delta may be replaced by the nearest snap target, so the
-      // pointer still drives the drag but the stored transform lands exactly on an edge (issue #68).
-      if (workspaceStore.getState().smartGuides && gesture.box !== null) {
-        const snap = snapBox(
-          { x: gesture.box.x + dx, y: gesture.box.y + dy, width: gesture.box.width, height: gesture.box.height },
-          snapTargets(state.document, [...gesture.originals.keys()], workspaceStore.getState().activeArtboardId),
-          SNAP_PIXELS / state.viewport.zoom,
-        )
-        dx += snap.dx
-        dy += snap.dy
-        setGuides(snap.guides)
-      } else {
-        setGuides([])
-      }
-      for (const [id, original] of gesture.originals) {
-        documentStore.dispatch(
-          { type: 'setTransform', nodeId: id, transform: { ...original, x: original.x + dx, y: original.y + dy } },
-          'move',
-        )
-      }
-      return
-    }
-    if (gesture.kind === 'create') {
-      // Shift is read every move so holding or releasing it mid-drag updates the shape live.
-      const next = { ...gesture, current, shift: event.shiftKey }
-      gestureRef.current = next
-      setOverlay({ kind: next.tool, start: next.start, current: next.current, shift: next.shift })
-      return
-    }
-    if (gesture.kind === 'lasso') {
-      const points = gesture.points.length >= MAX_LASSO_POINTS ? gesture.points : [...gesture.points, current]
-      gestureRef.current = { kind: 'lasso', points }
-      setLassoPath(points)
-      return
-    }
-    gestureRef.current = { ...gesture, current }
-    setOverlay({
-      kind: 'rect',
-      start: gesture.start,
-      current,
-      shift: false,
-    })
   }
 
   function onPointerUp(event: React.PointerEvent<HTMLCanvasElement>) {
     const gesture = gestureRef.current
     gestureRef.current = { kind: 'none' }
+    // Phase 3.2-3.3: every tool is a state machine, so the release goes to the active one and it
+    // decides what the gesture meant. The canvas only releases the pointer.
     if (gesture.kind === 'none' && isStateMachineTool(state.tool)) {
-      const toolPointNow = toolPoint(event)
-      toolsRef.current?.[state.tool].onPointerUp(toolHost(), toolPointNow, {
+      toolsRef.current?.[state.tool].onPointerUp(toolHost(), toolPoint(event), {
         shift: event.shiftKey,
         alt: event.altKey,
         meta: event.metaKey,
         ctrl: event.ctrlKey,
       })
-      canvasRef.current?.releasePointerCapture(event.pointerId)
-      return
     }
     setOverlay(null)
     setLassoPath(null)
     canvasRef.current?.releasePointerCapture(event.pointerId)
-
-    if (gesture.kind === 'move') {
-      documentStore.commitTransaction()
-      return
-    }
-    if (gesture.kind === 'lasso') {
-      const ids = lassoHitTest(state.document, gesture.points)
-      if (event.shiftKey) {
-        // Shift adds to the selection, the way it does for a click or a marquee.
-        const merged = [...documentStore.getState().selection]
-        for (const id of ids) if (!merged.includes(id)) merged.push(id)
-        documentStore.setSelection(merged)
-      } else {
-        documentStore.setSelection(withinIsolation(state.document, workspaceStore.getState().isolatedGroupId, ids))
-      }
-      return
-    }
-    if (gesture.kind === 'marquee') {
-      documentStore.setSelection(
-        marqueeHitTest(
-          state.document,
-          {
-            x: Math.min(gesture.start.x, gesture.current.x),
-            y: Math.min(gesture.start.y, gesture.current.y),
-            width: Math.abs(gesture.current.x - gesture.start.x),
-            height: Math.abs(gesture.current.y - gesture.start.y),
-          },
-          { deep: gesture.deep },
-        ),
-      )
-      return
-    }
-    if (gesture.kind !== 'create') return
-    const end = constrainEnd(gesture.start, gesture.current, gesture.tool, gesture.shift)
-    if (!dragIsBigEnough(gesture.start, end, gesture.tool, MIN_DRAG)) return
-    const box = boxFor(gesture.start, end, gesture.tool)
-    const defaults = workspaceStore.getState().creationDefaults
-    const label = shapeLabel(gesture.tool)
-    const existing = state.document.root.children.filter((node) => node.type === gesture.tool).length
-    const node = createShape(
-      gesture.tool,
-      `${label} ${existing + 1}`,
-      box,
-      defaults.shape,
-      lineFrom(gesture.start, end),
-    )
-    const result = documentStore.dispatch(
-      {
-        type: 'insertNodes',
-        parentId: state.document.root.id,
-        index: state.document.root.children.length,
-        nodes: [node],
-      },
-      `add ${label.toLowerCase()}`,
-    )
-    if (result.ok) documentStore.setSelection([node.id])
   }
 
   // Hand the renderer the bytes for every asset the document carries, then release any decoded

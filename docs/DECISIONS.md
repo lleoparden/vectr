@@ -2081,3 +2081,20 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   filtering, unlike the lasso. That asymmetry is existing behaviour, recorded rather than silently "fixed",
   because Phase 3 freezes behaviour.
 
+## 2026-10-18 - The tool registry must match the palette, and the canvas keeps no gestures (Phase 3.3)
+
+- **A tool that is not in the registry silently becomes a no-op.** The first version of this slice registered five
+  shape tools and forgot the rounded rectangle and the arc; both tools stopped creating anything, and the packaged
+  run reported a star for a rounded-rectangle drag and a line for an arc drag. The fix is mechanical, but the
+  lesson is recorded: when tools move behind a registry, enumerate the palette's tool list and assert it, rather
+  than porting the tools you remember. The registry test now names all twelve ids.
+- **All seven shapes are one machine.** The tool id decides the kind and the host resolves it through
+  `shapeKindForTool`, so a new shape tool is a registry entry plus a case in that map - not another machine that
+  can drift from its siblings.
+- **The canvas keeps no gesture logic.** It routes pointer down/move/up, implements `ToolHost`, and draws overlays.
+  The old `Gesture` union now only carries the middle-button pan; the rest of its variants are dead and should be
+  pruned when the scale handles move behind a tool in Phase 4.
+- **Overlay clearing is belt and braces.** The tool clears its own preview on release, and the canvas also clears
+  on pointer up; that double clear is deliberate during the retrofit so a forgotten tool cannot leave a stale
+  preview on screen.
+

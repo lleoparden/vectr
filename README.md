@@ -2,6 +2,8 @@
 
 <img src="./vectr.png" alt="Vectr" width="112" />
 
+#Vectr
+
 **Draw like Illustrator. Ship React.**
 
 A desktop-first vector design tool with Illustrator's conventions and its own compiler: every layer becomes a readable React component styled with Tailwind.

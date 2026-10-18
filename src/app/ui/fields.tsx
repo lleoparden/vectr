@@ -372,17 +372,21 @@ export function PanelButton({
   onClick,
   disabled,
   tone = 'quiet',
+  'aria-label': ariaLabel,
 }: {
   children: React.ReactNode
   onClick: () => void
   disabled?: boolean
   tone?: 'quiet' | 'accent'
+  /** The accessible name; panel buttons carry icon-like short text, so the name is explicit. */
+  'aria-label'?: string
 }) {
   const base = 'min-w-0 rounded-ui border px-2 py-1 text-ui-xs transition-colors disabled:opacity-40'
   return (
     <button
       type="button"
       disabled={disabled}
+      aria-label={ariaLabel}
       onClick={onClick}
       className={
         tone === 'accent'

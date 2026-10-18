@@ -2180,3 +2180,18 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   test helper converted coordinates with a viewport captured before the viewport was pinned. The lesson is
   recorded above the rule it protects: debug which side is wrong before changing the feature.
 
+## 2026-10-18 - Panels are dock data, and availability is the command's rule (Phase 4.4)
+
+- **A panel is three pieces of data and one component**: an id in `PanelId`, a label, and a slot in
+  `PANEL_GROUPS`; the Window menu and the dock then both see it. Adding Align and Transform cost one group entry
+  each and no bespoke wiring, which is the test of whether the dock was designed as data.
+- **Disabled means what the command refuses.** `alignAvailability` counts unlocked objects and requires two to
+  align and three to distribute, because that is what the commands need; the panel never invents its own rule,
+  and the rule is unit-tested rather than inspected.
+- **No key-object claim.** The Align panel's caption says it aligns inside the selection's own box, because that
+  is what the commands do. A key-object mode is real Illustrator behaviour and belongs with the boolean slice,
+  where align gains an explicit reference object.
+- **Accessible names are part of a control, not a nicety.** `PanelButton` dropped props it did not declare, so
+  panel buttons had no accessible name at all; forwarding `aria-label` fixed a real accessibility gap that the
+  packaged run had surfaced by being unable to find the button.
+

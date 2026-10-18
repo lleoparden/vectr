@@ -1428,6 +1428,70 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     await settle(60)
   }
 
+  // The Align and Transform panels (issue #122): the commands and fields now have their Illustrator homes.
+  const alignA = createRect('Smoke Align A', 10, 10, 50, 50)
+  const alignB = createRect('Smoke Align B', 300, 120, 60, 30)
+  documentStore.dispatch(
+    { type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [alignA, alignB] },
+    'smoke align prep',
+  )
+  documentStore.setSelection([alignA.id, alignB.id])
+  await settle(80)
+  const openPanel = (label: string) =>
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find((button) => button.textContent?.trim() === label)?.click()
+  await settle(120)
+  const alignPanel = document.querySelector('[data-panel-body="align"]')
+  const alignLeftButton = document.querySelector<HTMLButtonElement>('[aria-label="Align left"]')
+  alignLeftButton?.click()
+  await settle(80)
+  const alignedA = findNode(documentStore.getState().document, alignA.id)
+  const alignedB = findNode(documentStore.getState().document, alignB.id)
+  record(
+    'the Align panel aligns the selection through the real button',
+    alignPanel !== null &&
+      alignedA !== null && alignedA.type !== 'group' &&
+      alignedB !== null && alignedB.type !== 'group' &&
+      alignedA.transform.x === alignedB.transform.x,
+    alignedA !== null && alignedA.type !== 'group' && alignedB !== null && alignedB.type !== 'group'
+      ? 'x ' + alignedA.transform.x + ' and ' + alignedB.transform.x
+      : 'no node',
+  )
+  if (alignLeftButton !== null) documentStore.undo()
+  await settle(60)
+  documentStore.setSelection([alignA.id])
+  await settle(60)
+  const singleSelectDisabled = document.querySelector<HTMLButtonElement>('[aria-label="Align left"]')?.disabled === true
+  documentStore.setSelection([alignA.id, alignB.id])
+  await settle(60)
+  const twoSelectEnabled = document.querySelector<HTMLButtonElement>('[aria-label="Align left"]')?.disabled === false
+  record(
+    'the Align panel disables exactly what the command would refuse',
+    singleSelectDisabled && twoSelectEnabled,
+    'one object ' + (singleSelectDisabled ? 'disabled' : 'enabled') + ', two ' + (twoSelectEnabled ? 'enabled' : 'disabled'),
+  )
+
+  // Transform is the other tab of the same group, which is open on Align.
+  openPanel('Transform')
+  await settle(120)
+  const transformPanel = document.querySelector('[data-panel-body="transform"]')
+  const xInput = document.querySelector<HTMLInputElement>('[data-panel-body="transform"] input[aria-label="X"]')
+  if (xInput !== null) {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(xInput, '321')
+    xInput.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  await settle(80)
+  const movedA = findNode(documentStore.getState().document, alignA.id)
+  const transformWorked = transformPanel !== null && movedA !== null && movedA.type !== 'group' && movedA.transform.x === 321
+  documentStore.undo()
+  await settle(60)
+  const restoredA = findNode(documentStore.getState().document, alignA.id)
+  record(
+    'the Transform panel edits X live and undo restores it',
+    transformWorked && restoredA !== null && restoredA.type !== 'group' && restoredA.transform.x === 10,
+    'x became ' + (movedA !== null && movedA.type !== 'group' ? movedA.transform.x : '?') + ', undo -> ' + (restoredA !== null && restoredA.type !== 'group' ? restoredA.transform.x : '?'),
+  )
+
   // Put the selection back: the panels below are about the selected object, not the page.
   documentStore.setSelection(keptSelection)
   await settle(80)

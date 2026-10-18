@@ -151,6 +151,8 @@ export const MENU_BAR: MenuSpec[] = [
     items: [
       command('window.togglePanel.layers'),
       command('window.togglePanel.properties'),
+      command('window.togglePanel.align'),
+      command('window.togglePanel.transform'),
       command('window.togglePanel.appearance'),
       command('window.togglePanel.color'),
     ],

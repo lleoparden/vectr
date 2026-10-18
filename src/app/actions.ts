@@ -56,6 +56,8 @@ export type { EditorActionId } from './commands/registry.ts'
 const PANEL_ACTION_IDS: Record<PanelId, EditorActionId> = {
   layers: 'window.togglePanel.layers',
   properties: 'window.togglePanel.properties',
+  align: 'window.togglePanel.align',
+  transform: 'window.togglePanel.transform',
   appearance: 'window.togglePanel.appearance',
   color: 'window.togglePanel.color',
 }

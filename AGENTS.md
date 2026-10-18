@@ -73,6 +73,22 @@ L7 application shells and tooling.
   explain`, or `graphify path` before broad source exploration. Update the
   graph after production-code changes.
 
+## Review checklist
+
+Every pull request states, in its description:
+
+1. **Which layer it belongs to** (L0-L7) and **which imports it adds**; the layer check must pass.
+2. **Which architecture rule it touches** - document purity, renderer purity, tools emit commands, one registry - and
+   why the change respects it.
+3. **Which evidence it owes**: typecheck, the full unit suite, a production build, and packaged evidence for any
+   user-visible path. During Phase 3 a retrofit also owes **identical** packaged-run results, step for step.
+4. **Which catalog row it moves**, or that it moves none because nothing a user can do has changed.
+5. **What it deliberately does not do**, including the dead code it leaves behind and why.
+6. **Its residual doubt**, named. An unresolved correctness or data-loss doubt blocks the merge.
+
+A new user-visible action is not complete until it is one entry in `src/app/commands/registry.ts` reachable from
+the menus, the palette, and the keyboard: the registry is the only door.
+
 ## Working rules
 
 - Reuse existing patterns before creating a parallel helper or subsystem.

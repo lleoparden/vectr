@@ -3,29 +3,25 @@
 The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md), replanned on 2026-10-18 around
 [PARITY_ROADMAP.md](PARITY_ROADMAP.md). This file is the operational checklist for the **phase in progress**.
 
-## Current phase - Phase 3, architecture realignment (approved 2026-10-18; slice 1 shipped)
+## Current phase - Phase 4, interaction fidelity (Phase 3 complete 2026-10-18)
 
-**The one rule:** behaviour is frozen. Every slice here is a refactor that must leave the tests and the packaged
-run reporting the same results. A behaviour change found on the way is recorded as a follow-up, not folded in.
+**Phase 3 shipped in five slices:** 3.1 layer rule and `src/geom/` (#114), 3.2 Selection, Direct Selection, and
+Hand as machines (#115), 3.3 lasso, all seven shape tools, and Type (#116), 3.4 one command registry (#117), 3.5
+the review checklist and the pruned leftovers (#118). Behaviour stayed frozen throughout: every slice ended with
+the same unit-suite result and the same 126-step packaged run.
 
-**Slices, in order.**
+## Phase 4 - interaction fidelity (next)
 
-1. **Layer rule + check** - `scripts/check-layers.mjs` asserting the L0-L7 import direction; extract `src/geom/`
-   for the colour and geometry primitives; wire the check into `npm test`. No product change.
-2. **Tool interface + Selection, Direct Selection, Hand** - DONE in #115: `src/tools/` with the host contract and
-   three machines, routed from the canvas; 8 new tests; packaged run unchanged. - create `src/tools/` with the state-machine contract
-   (enter, pointer down/move/up, key, cancel, overlay, cursor); port the three pointer tools; `CanvasView`
-   becomes the host that routes events. Behaviour frozen, packaged run re-recorded.
-3. **The rest of the tools** - DONE in #116: lasso, all seven shape tools, and Type are machines; the canvas has
-   no gesture code left. The packaged run caught two unregistered shape tools and they were added. - Lasso, the seven shape tools, Type; each ported behind the existing tests.
-4. **Command registry** - DONE in #117: `src/app/commands/registry.ts` owns ids, labels, and chords; `actions.ts`
-   and `shortcuts.ts` re-export; the menus build every command item through `labelFor`; 5 new tests. - one table with id, label, menu path, chord, enabled, and run; `menuModel`,
-   `shortcuts`, and the palette read it; `actions.ts` becomes the implementation hub behind it.
-5. **Record the architecture** (next) - update `AGENTS.md` and `DECISIONS.md` with the layer rules and the review
-   checklist a future slice must satisfy.
+Gap 1 in the reference gap list, and the owner's central complaint. The first three slices, in order:
 
-**Exit:** layer check green in CI; every tool a state machine; one command registry; identical test and
-packaged-run results; no document-format change. Then Phase 4 (interaction fidelity) starts.
+1. **Scale handles as a tool** - move the last direct-manipulation path out of the canvas, add proportional
+   framing with Shift, and give the handles the Illustrator cursor set.
+2. **Rotation** - rotate from outside the corners, with the rotation stored in the transform, the inverse applied
+   in hit testing, and the packaged run asserting a rotated object can be selected and moved where it looks.
+3. **Hover and previews** - hover outlines, tool-specific cursors over objects and handles, and a live preview for
+   every gesture that currently only shows its result after release.
+
+Then snapping feel, modifier previews, and panel liveness, per the phase epic (#112).
 
 ## Phase 2 history (complete, for reference)
 

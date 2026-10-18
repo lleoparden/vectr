@@ -123,7 +123,18 @@ The product ships a **rolling alpha pre-release**, not versioned releases, until
 - The `alpha` tag is the one tag allowed to move: it always points at `main`. No branch is ever force-pushed.
 - The site in `site/` is published by `.github/workflows/pages.yml` on changes to that folder; a phase that
   changes what the product can do updates the site's feature list in the same pull request.
-- A phase is not closed until `docs/PROGRESS.md`, `docs/RELEASES.md`, and the site agree with each other.
+- **The version is `0.<phase>.0`.** `package.json` carries it, the installer is named after it, and it
+  is bumped in the phase's final pull request. The README and the release notes state the version.
+- **The installer is built by CI, never by hand.** `npm run package:win` produces
+  `Vectr-<version>-Setup.exe` with electron-builder's NSIS target (per-user, unsigned). The alpha workflow
+  rebuilds it **only when a merge changes `docs/RELEASES.md`** - the phase-close signal - or when dispatched
+  manually, and keeps exactly one installer on the rolling release: older `Setup.exe` assets are pruned first.
+  Unsigned means SmartScreen warns; the notes say so rather than pretending otherwise.
+- **At phase close, regenerate the screenshot and the site.** Run
+  `npx electron . --screenshot=site/screenshot.png` (fresh profile, so no recovery prompt intrudes), update
+  the site's feature list and the README status where the phase changed them, and merge that with the notes.
+  The Pages workflow deploys `site/` automatically.
+- A phase is not closed until `docs/PROGRESS.md`, `docs/RELEASES.md`, the site, and the installer agree.
 
 ## Review checklist
 

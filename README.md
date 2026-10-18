@@ -98,11 +98,16 @@ The interface is a component kit in `src/app/ui/components/`: one button, one nu
 
 ## Getting started
 
-**Prerequisites:** Node.js 22+ and npm. Windows is the reference platform today.
+**Install on Windows:** download `Vectr-<version>-Setup.exe` from the
+[alpha pre-release](https://github.com/lleoparden/vectr/releases/tag/alpha). The installer is unsigned, so
+SmartScreen warns once and the release notes explain it; it is rebuilt at every phase close.
+
+**Run from source:** Node.js 22+ and npm. Windows is the reference platform today.
 
 ```bash
 npm install
-npm start        # build and launch the desktop editor
+npm start             # build and launch the desktop editor
+npm run package:win   # optional: build the installer into release/
 ```
 
 ## Verify it

@@ -278,17 +278,16 @@ export function PropertiesPanel() {
                       onChange={(event) => setGradientStop(index, { color: event.currentTarget.value })}
                       className="h-5 w-7 shrink-0 rounded-[2px] border border-hairline"
                     />
-                    <input
-                      type="number"
-                      aria-label={'Gradient stop ' + (index + 1) + ' position'}
+                    <NumberField
+                      inline
+                      label={'Gradient stop ' + (index + 1) + ' position'}
                       min={0}
                       max={100}
                       step={1}
+                      suffix="%"
                       value={Math.round(stop.offset * 100)}
-                      onChange={(event) => setGradientStop(index, { offset: Number(event.currentTarget.value) / 100 })}
-                      className="h-6 w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent"
+                      onChange={(percent) => setGradientStop(index, { offset: percent / 100 })}
                     />
-                    <span className="shrink-0 text-[10px] text-ink-faint">%</span>
                     <button
                       type="button"
                       aria-label={'Remove gradient stop ' + (index + 1)}

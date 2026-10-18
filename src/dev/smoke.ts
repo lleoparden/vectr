@@ -1428,6 +1428,107 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     await settle(60)
   }
 
+  // Number fields (issue #130): scrub to change, Shift to go finer, and small arithmetic on commit.
+  // The Properties tab has been replaced by Color earlier in this report, so bring it back first.
+  if (document.querySelector('[data-panel-body="properties"]') === null) {
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find((button) => button.textContent?.trim() === 'Properties')?.click()
+    await settle(140)
+  }
+  const scrubLeaf = documentStore.getState().document.root.children.find((child) => child.type !== 'group')
+  if (scrubLeaf !== undefined) documentStore.setSelection([scrubLeaf.id])
+  await settle(80)
+  const scrubId = documentStore.getState().selection[0]
+  const scrubField = document.querySelector<HTMLInputElement>('[data-panel-body="properties"] input[aria-label="X"]')
+  const xBefore = scrubId === undefined ? null : findNode(documentStore.getState().document, scrubId)
+  if (scrubField !== null && xBefore !== null && xBefore.type !== 'group') {
+    const startX = xBefore.transform.x
+    scrubField.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, clientX: 200, clientY: 10 }))
+    scrubField.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 1, pointerId: 1, clientX: 240, clientY: 10 }))
+    scrubField.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, clientX: 240, clientY: 10 }))
+    await settle(80)
+    const scrubbed = findNode(documentStore.getState().document, scrubId ?? '')
+    const coarseDelta = scrubbed !== null && scrubbed.type !== 'group' ? Math.round(scrubbed.transform.x - startX) : 0
+    scrubField.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, clientX: 200, clientY: 10 }))
+    scrubField.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 1, pointerId: 1, clientX: 240, clientY: 10, shiftKey: true }))
+    scrubField.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, clientX: 240, clientY: 10 }))
+    await settle(80)
+    const afterFine = findNode(documentStore.getState().document, scrubId ?? '')
+    const fineDelta = afterFine !== null && afterFine.type !== 'group' ? Math.round(afterFine.transform.x - startX - coarseDelta) : 0
+    record(
+      'dragging a number field scrubs it, and Shift makes the scrub finer',
+      Math.abs(coarseDelta - 20) <= 2 && Math.abs(fineDelta - 2) <= 1,
+      'drag moved ' + coarseDelta + ', Shift moved ' + fineDelta,
+    )
+
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(scrubField, '100+20')
+    scrubField.dispatchEvent(new Event('input', { bubbles: true }))
+    scrubField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await settle(80)
+    const afterExpression = findNode(documentStore.getState().document, scrubId ?? '')
+    record(
+      'a number field accepts small arithmetic',
+      afterExpression !== null && afterExpression.type !== 'group' && afterExpression.transform.x === 120,
+      'x became ' + (afterExpression !== null && afterExpression.type !== 'group' ? afterExpression.transform.x : '?'),
+    )
+    // End the field session this step opened, or a later undo would fold into it instead of its own step.
+    scrubField.blur()
+    await settle(80)
+  }
+
+  // The palette order: the Hand belongs directly under the selection tools.
+  const toolSlotOrder = Array.from(document.querySelectorAll('[data-tool-slot]')).map((slot) => slot.getAttribute('data-tool-slot'))
+  record(
+    'the Hand tool sits directly under the selection tools',
+    toolSlotOrder.indexOf('hand') === toolSlotOrder.indexOf('select') + 1,
+    'order ' + toolSlotOrder.join(', '),
+  )
+
+  // Shift+wheel scrolls sideways without zooming, Illustrator's own wheel modifier.
+  const wheelBefore = { ...documentStore.getState().viewport }
+  topmost?.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, shiftKey: true, clientX: centre?.x ?? 0, clientY: centre?.y ?? 0, bubbles: true, cancelable: true }))
+  await settle(80)
+  const wheelAfter = documentStore.getState().viewport
+  record(
+    'Shift with the wheel pans sideways instead of zooming',
+    Math.round(wheelAfter.panX - wheelBefore.panX) === -100 && wheelAfter.zoom === wheelBefore.zoom,
+    'panX ' + Math.round(wheelBefore.panX) + ' -> ' + Math.round(wheelAfter.panX) + ', zoom ' + wheelAfter.zoom.toFixed(2),
+  )
+
+  // Alt-drag duplicates: the drag moves a copy and one undo puts everything back.
+  const altLeaf = documentStore.getState().document.root.children.find((child) => child.type !== 'group')
+  if (altLeaf !== undefined && topmost !== null) {
+    documentStore.setSelection([altLeaf.id])
+    await settle(60)
+    const altBox = unionBounds(documentStore.getState().document, [altLeaf.id])
+    const altViewport = documentStore.getState().viewport
+    const canvasRect = (canvasEl as HTMLCanvasElement).getBoundingClientRect()
+    if (altBox !== null) {
+      const at = {
+        x: canvasRect.left + (altBox.x + altBox.width / 2) * altViewport.zoom + altViewport.panX,
+        y: canvasRect.top + (altBox.y + altBox.height / 2) * altViewport.zoom + altViewport.panY,
+      }
+      const beforeCount = documentStore.getState().document.root.children.length
+      const beforeDepth = documentStore.getState().undoDepth
+      const beforeX = altLeaf.transform.x
+      topmost.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, altKey: true, clientX: at.x, clientY: at.y }))
+      topmost.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 1, pointerId: 1, altKey: true, clientX: at.x + 30, clientY: at.y }))
+      topmost.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, clientX: at.x + 30, clientY: at.y }))
+      await settle(120)
+      const afterCount = documentStore.getState().document.root.children.length
+      const afterDepth = documentStore.getState().undoDepth
+      documentStore.undo()
+      await settle(80)
+      const restoredCount = documentStore.getState().document.root.children.length
+      const originalStill = findNode(documentStore.getState().document, altLeaf.id)
+      record(
+        'Alt-drag leaves a copy behind and one undo restores the original',
+        afterCount === beforeCount + 1 && afterDepth === beforeDepth + 1 && restoredCount === beforeCount && originalStill !== null && originalStill.type !== 'group' && originalStill.transform.x === beforeX,
+        'children ' + beforeCount + ' -> ' + afterCount + ' -> ' + restoredCount + ', undo depth +' + (afterDepth - beforeDepth),
+      )
+    }
+  }
+
   // The Align and Transform panels (issue #122): the commands and fields now have their Illustrator homes.
   const alignA = createRect('Smoke Align A', 10, 10, 50, 50)
   const alignB = createRect('Smoke Align B', 300, 120, 60, 30)

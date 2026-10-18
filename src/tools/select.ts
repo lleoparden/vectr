@@ -39,6 +39,8 @@ export function createSelectTool({ id, deep, cursor }: SelectToolOptions): Tool 
       }
       if (modifiers.shift || modifiers.meta || modifiers.ctrl) host.toggleSelection(hit)
       else if (!host.selection().includes(hit)) host.select(hit)
+      // Illustrator's Alt-drag: the drag moves a duplicate and leaves the original where it was.
+      if (modifiers.alt) host.duplicateSelection()
       host.beginMove()
       state = { kind: 'move', start: point.scene }
     },

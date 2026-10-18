@@ -15,6 +15,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { isLightColor, normalizeHex, PANEL_SWATCHES } from '../../geom/color.ts'
 import { beginLiveEdit, endLiveEdit, markLiveChanged } from './liveEdit.ts'
+import { evaluateExpression, scrubValue } from './number.ts'
 
 const FIELD =
   'h-6 w-full min-w-0 rounded-ui border border-hairline bg-chrome-sunken px-1.5 text-ui-xs text-ink ' +
@@ -64,44 +65,133 @@ type NumberFieldProps = {
 }
 
 /** A number that edits as you type, guarded against non-finite input. */
-export function NumberField({ label, value, min, max, step = 1, suffix, onChange }: NumberFieldProps) {
+export function NumberField({ label, value, min, max, step = 1, suffix, onChange, inline = false }: NumberFieldProps & { inline?: boolean }) {
   const [draft, setDraft] = useState(String(round(value)))
   const focused = useRef(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const scrub = useRef<{ pointerId: number; startX: number; startValue: number; moved: boolean } | null>(null)
 
   // While the field is not focused it follows the document, so an undo or a nudge updates it.
   useEffect(() => {
     if (!focused.current) setDraft(String(round(value)))
   }, [value])
 
+  const clamp = (next: number): number => {
+    let result = next
+    if (min !== undefined) result = Math.max(min, result)
+    if (max !== undefined) result = Math.min(max, result)
+    return result
+  }
+
+  const apply = (next: number): void => {
+    const clamped = clamp(next)
+    setDraft(String(round(clamped)))
+    markLiveChanged()
+    onChange(clamped)
+  }
+
+  /** Commit what is typed: plain numbers and small arithmetic, as Illustrator's fields accept. */
+  const commit = (): void => {
+    const parsed = evaluateExpression(draft)
+    if (parsed !== null) apply(parsed)
+    else setDraft(String(round(value)))
+  }
+
+  const input = (
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode="decimal"
+      aria-label={label}
+      role="spinbutton"
+      aria-valuenow={round(value)}
+      min={min}
+      max={max}
+      step={step}
+      value={draft}
+      className={inline ? 'h-6 w-12 shrink-0 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent' : `${FIELD} text-right tabular-nums`}
+      onFocus={() => {
+        focused.current = true
+        beginLiveEdit(label)
+      }}
+      onBlur={() => {
+        focused.current = false
+        commit()
+        endLiveEdit()
+      }}
+      onPointerDown={(event) => {
+        // A drag on the value scrubs it; a plain click focuses and selects, so typing replaces.
+        if (event.button !== 0) return
+        inputRef.current?.focus()
+        inputRef.current?.select()
+        event.preventDefault()
+        scrub.current = { pointerId: event.pointerId, startX: event.clientX, startValue: value, moved: false }
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId)
+        } catch {
+          // A synthetic pointer has nothing to capture; the drag still works through React's events.
+        }
+      }}
+      onPointerMove={(event) => {
+        const state = scrub.current
+        if (state === null) return
+        const delta = event.clientX - state.startX
+        if (!state.moved && Math.abs(delta) < 3) return
+        state.moved = true
+        apply(scrubValue(state.startValue, delta, step, event.shiftKey, min, max))
+      }}
+      onPointerUp={(event) => {
+        if (scrub.current === null) return
+        scrub.current = null
+        try {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        } catch {
+          // Nothing was captured.
+        }
+      }}
+      onKeyDown={(event) => {
+        const fine = event.shiftKey
+        const bump = event.key === 'ArrowUp' || event.key === 'ArrowDown' ? (fine ? step * 10 : step) : event.key === 'PageUp' || event.key === 'PageDown' ? step * 10 : 0
+        if (bump !== 0) {
+          event.preventDefault()
+          const direction = event.key === 'ArrowUp' || event.key === 'PageUp' ? 1 : -1
+          apply(value + direction * bump)
+          return
+        }
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          commit()
+          return
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          setDraft(String(round(value)))
+        }
+      }}
+      onChange={(event) => {
+        const next = event.currentTarget.value
+        setDraft(next)
+        if (next.trim() === '') return
+        const parsed = Number(next)
+        if (!Number.isFinite(parsed)) return
+        markLiveChanged()
+        onChange(clamp(parsed))
+      }}
+    />
+  )
+
+  if (inline) {
+    return (
+      <span className="flex min-w-0 items-center gap-1">
+        {input}
+        {suffix !== undefined && <span className="shrink-0 text-ui-xs text-ink-faint">{suffix}</span>}
+      </span>
+    )
+  }
+
   return (
     <Field label={label}>
-      <input
-        type="number"
-        aria-label={label}
-        min={min}
-        max={max}
-        step={step}
-        value={draft}
-        className={`${FIELD} text-right tabular-nums`}
-        onFocus={() => {
-          focused.current = true
-          beginLiveEdit(label)
-        }}
-        onBlur={() => {
-          focused.current = false
-          endLiveEdit()
-          setDraft(String(round(value)))
-        }}
-        onChange={(event) => {
-          const next = event.currentTarget.value
-          setDraft(next)
-          if (next.trim() === '') return
-          const parsed = Number(next)
-          if (!Number.isFinite(parsed)) return
-          markLiveChanged()
-          onChange(parsed)
-        }}
-      />
+      {input}
       {suffix !== undefined && <span className="shrink-0 text-ui-xs text-ink-faint">{suffix}</span>}
     </Field>
   )

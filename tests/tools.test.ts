@@ -32,6 +32,7 @@ function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]
       else selected.push(id)
     },
     beginMove: () => calls.push("beginMove"),
+    duplicateSelection: () => calls.push("duplicate"),
     moveBy: (dx, dy, shift) => calls.push("moveBy:" + dx + "," + dy + (shift ? ":shift" : "")),
     endMove: () => calls.push("endMove"),
     cancelMove: () => calls.push("cancelMove"),
@@ -110,6 +111,15 @@ test("Escape during a move rolls the move back and leaves no marquee", () => {
   tool.onPointerDown(host, point(5, 5), noModifiers)
   tool.cancel(host)
   assert.deepEqual(calls.slice(-2), ["cancelMove", "marquee:null"])
+})
+
+test("Alt-drag duplicates before the move starts", () => {
+  const tool = createSelectTool({ id: "select", deep: false, cursor: "default" })
+  const { host, calls } = fakeHost({ hits: { "4,4": "node-4" } })
+  tool.onPointerDown(host, point(4, 4), { ...noModifiers, alt: true })
+  assert.deepEqual(calls, ["hitTest:4,4", "select:node-4", "duplicate", "beginMove"])
+  tool.onPointerUp(host, point(4, 4), { ...noModifiers, alt: true })
+  assert.deepEqual(calls.slice(4), ["endMove"])
 })
 
 test("the hand pans by screen pixels from the pan it started at", () => {

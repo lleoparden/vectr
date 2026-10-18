@@ -2208,3 +2208,19 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   reading the code. Building it again would have been the expensive way to correct a comment. Corrected in the
   panel, the catalog note, and `docs/AUDIT.md`.
 
+## 2026-10-18 - One number field, scrubbed and arithmetic; a transaction owns only its own commit (Phase 4.6)
+
+- **Scrub sensitivity is two pixels per step, ten times finer with Shift.** Shift is the owner's "more accurate"
+  modifier, so it slows the drag rather than speeding it; both the value and the clamp are computed from the
+  gesture's start, so a drag cannot compound rounding error.
+- **Expressions are evaluated only on commit, never per keystroke.** Typing "120+" must not momentarily commit
+  120. The evaluator is a small recursive-descent parser over numbers and the four operators - no identifiers, no
+  units, no access to anything else.
+- **`NumberField` is the only numeric input.** The inline variant exists so the gradient stop and CMYK fields can
+  share it without the label column; a second raw `type="number"` in a panel is now a review finding, not a style
+  choice.
+- **Alt-drag is one undo entry.** The duplicate joins the move's transaction. Making that true exposed that
+  `runPlan` committed transactions it had only joined, and the fix - commit only when the plan opened it - is
+  recorded with a regression test because the same trap applies to every future batch action.
+- **The palette order follows the owner's request**: Hand directly under the selection tools. Shortcuts are
+  unchanged, so muscle memory for H and Space still works.

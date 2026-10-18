@@ -2,8 +2,6 @@
 
 <img src="./vectr.png" alt="Vectr" width="112" />
 
-# Vectr
-
 **Draw like Illustrator. Ship React.**
 
 A desktop-first vector design tool with Illustrator's conventions and its own compiler: every layer becomes a readable React component styled with Tailwind.
@@ -147,5 +145,3 @@ Read [`AGENTS.md`](AGENTS.md) first. Every change starts on its own branch, ship
 ## License
 
 MIT — see [`LICENSE`](./LICENSE).
-
-Illustrator and Adobe are trademarks of Adobe Inc.; Vectr is not affiliated with Adobe. VectorCraft is a separate project used only as behavioural and architectural reference — none of its source or branding is used here.

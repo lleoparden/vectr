@@ -40,6 +40,7 @@ export function createDocument(name = 'Untitled'): Document {
       children: [],
     },
     assets: [],
+    guides: [],
   }
 }
 

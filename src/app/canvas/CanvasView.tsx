@@ -16,11 +16,12 @@ import { isText, type NodeId, type Transform } from '../../doc/types.ts'
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
-import { placeImage } from '../actions.ts'
+import { addGuide, moveGuide, placeImage, removeGuide } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { ArtboardOverlay } from './ArtboardOverlay.tsx'
+import { RulersOverlay } from './RulersOverlay.tsx'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
@@ -147,6 +148,7 @@ export function CanvasView() {
       fittedOnce.current = true
       documentStore.setViewport(fitRect(artboardRects(state.document)[0] ?? state.document.artboards[0], { width: box.width, height: box.height }))
     }
+    renderer.setGrid({ visible: workspace.showGrid, spacing: 10 })
     const scene = buildScene(state.document)
     renderer.setScene(scene)
     const outlines = scene.shapes
@@ -159,7 +161,7 @@ export function CanvasView() {
       renderedOnce.current = true
       console.log(`[vectr-render] ${JSON.stringify({ ...next, backend: renderer.info.backend })}`)
     }
-  }, [ready, state.document, state.viewport, state.selection])
+  }, [ready, state.document, state.viewport, state.selection, workspace.showGrid])
 
   const toScene = (event: { clientX: number; clientY: number }): Point => {
     const box = canvasRef.current!.getBoundingClientRect()
@@ -670,6 +672,19 @@ export function CanvasView() {
             />
           )
         })()}
+      <RulersOverlay
+        guides={state.document.guides ?? []}
+        showRulers={workspace.showRulers}
+        showGuides={workspace.showGuides}
+        zoom={state.viewport.zoom}
+        panX={state.viewport.panX}
+        panY={state.viewport.panY}
+        width={workspace.canvas.width}
+        height={workspace.canvas.height}
+        onAddGuide={addGuide}
+        onMoveGuide={moveGuide}
+        onRemoveGuide={removeGuide}
+      />
       <ArtboardOverlay
         pages={artboardRects(state.document)}
         activeId={workspace.activeArtboardId}

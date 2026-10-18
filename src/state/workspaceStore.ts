@@ -70,6 +70,10 @@ export type WorkspaceState = {
   activeArtboardId: string | null
   /** The group being edited in isolation mode, or null (session state, issue #71). */
   isolatedGroupId: string | null
+  /** View chrome: rulers, grid, and guides are session state (issue #67). */
+  showRulers: boolean
+  showGrid: boolean
+  showGuides: boolean
   /** Smart Guides: snap drags to page and object edges (session state, issue #68). */
   smartGuides: boolean
 }
@@ -115,6 +119,9 @@ export class WorkspaceStore {
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
       activeArtboardId: null,
       isolatedGroupId: null,
+      showRulers: true,
+      showGrid: false,
+      showGuides: true,
       smartGuides: true,
     }
   }
@@ -214,6 +221,11 @@ export class WorkspaceStore {
   setIsolatedGroup(isolatedGroupId: string | null) {
     if (this.state.isolatedGroupId === isolatedGroupId) return
     this.update({ isolatedGroupId })
+  }
+
+  /** Toggles one piece of view chrome; never persisted, like the rest of the view. */
+  setViewChrome(patch: Partial<Pick<WorkspaceState, 'showRulers' | 'showGrid' | 'showGuides'>>) {
+    this.update(patch)
   }
 
   /** Turns snapping on or off for the session; never persisted. */

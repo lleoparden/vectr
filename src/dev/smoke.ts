@@ -20,7 +20,7 @@ import { deepHitWithin, groupToIsolate } from '../app/editing/isolation.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
-import { nudgeSelection, placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
+import { addGuide, nudgeSelection, placeImage, runEditorAction, setSelectionCornerRadius } from '../app/actions.ts'
 import {
   newDocument,
   openDocument,
@@ -1161,6 +1161,32 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     labels.length === documentStore.getState().document.artboards.length,
     labels.length + ' label(s) for ' + documentStore.getState().document.artboards.length + ' page(s)',
   )
+  // Guides and rulers (issue #67): a guide is document data, drawn as view chrome.
+  const guideId = addGuide('x', 400)
+  await settle(80)
+  const guideEl = document.querySelector('[data-guide]')
+  const rulerEl = document.querySelector('[data-ruler="top"]')
+  record(
+    'a guide is drawn on the canvas next to the rulers',
+    guideId !== null && guideEl !== null && rulerEl !== null,
+    'guide ' + (guideEl === null ? 'missing' : 'drawn') + ', rulers ' + (rulerEl === null ? 'hidden' : 'shown'),
+  )
+  documentStore.dispatch({ type: 'removeGuide', guideId: guideId ?? '' }, 'cleanup guide')
+  await settle(60)
+  record(
+    'removing the guide takes it off the canvas',
+    document.querySelector('[data-guide]') === null,
+    'guides on screen: ' + document.querySelectorAll('[data-guide]').length,
+  )
+  runEditorAction('view.grid')
+  await settle(60)
+  record(
+    'the grid toggles as view chrome',
+    workspaceStore.getState().showGrid == true,
+    'showGrid ' + workspaceStore.getState().showGrid,
+  )
+  runEditorAction('view.grid')
+  await settle(60)
   // Canvas input goes through hit testing, not through the canvas element directly. This is the
   // regression test for the bug where an overlay covered the canvas and ate every wheel and drag.
   const canvasEl = document.querySelector('canvas')

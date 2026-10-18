@@ -88,6 +88,9 @@ export class EditorRenderer {
   private readonly substituted = new Set<string>()
   private typeface: Typeface | null = null
   /** Decoded images, one per asset id, disposed with the renderer. */
+  /** Grid chrome: drawn on the page, under the artwork, and never recorded. */
+  private grid: { visible: boolean; spacing: number } = { visible: false, spacing: 10 }
+
   /** Artboard pages from the last scene, drawn under the artwork. */
   private artboards: ArtboardRect[] = []
 
@@ -191,6 +194,11 @@ export class EditorRenderer {
    * signature covers everything that affects pixels, so an unchanged bucket keeps
    * its picture and its paths.
    */
+  /** Shows or hides the page grid; spacing is in scene units. */
+  setGrid(grid: { visible: boolean; spacing: number }): void {
+    this.grid = grid
+  }
+
   setScene(scene: Scene): number {
     this.artboards = scene.artboards
     const started = performance.now()
@@ -430,6 +438,7 @@ export class EditorRenderer {
         shadow,
       )
       canvas.drawRect(rect, page)
+      if (this.grid.visible) this.drawGrid(canvas, artboard, zoom)
       canvas.drawRect(rect, edge)
     }
   }
@@ -687,6 +696,33 @@ export class EditorRenderer {
       default:
         return this.kit.BlendMode.SrcOver
     }
+  }
+
+  /** Grid lines inside one page: a line every spacing units, a stronger one every ten. */
+  private drawGrid(canvas: Canvas, artboard: ArtboardRect, zoom: number): void {
+    const spacing = this.grid.spacing * zoom
+    if (spacing < 4) return
+    const minor = this.paintFor('stroke', '#e7e8ee', 0, 1)
+    minor.setStrokeWidth(1 / zoom)
+    const major = this.paintFor('stroke', '#cfd2dc', 0, 1)
+    major.setStrokeWidth(1 / zoom)
+    canvas.save()
+    const page = new this.kit.PathBuilder()
+    page.addRect(this.kit.XYWHRect(artboard.x, artboard.y, artboard.width, artboard.height))
+    canvas.clipPath(page.detach(), this.kit.ClipOp.Intersect, true)
+    let index = 1
+    for (let x = artboard.x + this.grid.spacing; x < artboard.x + artboard.width; x += this.grid.spacing) {
+      const paint = index % 10 === 0 ? major : minor
+      canvas.drawLine(x, artboard.y, x, artboard.y + artboard.height, paint)
+      index += 1
+    }
+    index = 1
+    for (let y = artboard.y + this.grid.spacing; y < artboard.y + artboard.height; y += this.grid.spacing) {
+      const paint = index % 10 === 0 ? major : minor
+      canvas.drawLine(artboard.x, y, artboard.x + artboard.width, y, paint)
+      index += 1
+    }
+    canvas.restore()
   }
 
   /** A one-screen-pixel page edge, kept crisp by scaling the width with the zoom. */

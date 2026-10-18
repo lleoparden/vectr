@@ -66,6 +66,11 @@ export function snapTargets(document: Document, exclude: NodeId[], activeArtboar
     }
   }
   walk(document.root.children)
+  // Guide lines are snap targets like a page edge (issue #67).
+  for (const guide of document.guides ?? []) {
+    if (guide.axis === 'x') x.push(guide.position)
+    else y.push(guide.position)
+  }
   return { x, y }
 }
 

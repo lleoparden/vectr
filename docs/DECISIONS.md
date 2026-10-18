@@ -1892,3 +1892,17 @@ Implementation follows the contract above. Three decisions worth naming:
 - **Deliberately not in this pass:** an eyedropper, CMYK/colour books, GHS/HSB sliders, and draggable
   panel widths. Those are colour-management or shell work, not field polish.
 
+## 2026-10-17 — One control set across every panel (UI pass, second half)
+
+- **Appearance is a view of the same actions, not a second appearance model.** It calls the same fill,
+  stroke, opacity, and blend actions Properties does, so the two panels cannot disagree about a value.
+- **Every colour pick goes through one control**, in Properties, Appearance, and Color. The palette and
+  document colours are *suggestions* passed to it, so the popover shows the same wheel and hex everywhere.
+- **The Color panel's swatch grid marks the active colour** with a pressed state and a check, so the panel
+  answers "what colour is this object?" as well as "set it to that".
+- **The status bar's zoom readout is a button.** It prints the same chord hint Illustrator does and runs the
+  same Fit Artboard action, so a readout people already look at is also a way to use it.
+- **Restored: the isolation chip.** A merge-conflict resolution during Phase 2 dropped it while keeping the
+  unused variable, so isolation mode was invisible in the status bar. It is back, with the key that leaves it
+  in its tooltip — a reminder that a green typecheck can still hide a lost line.
+

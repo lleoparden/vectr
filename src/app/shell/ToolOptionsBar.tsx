@@ -102,7 +102,7 @@ function Control({ control }: { control: ToolOptionControl }) {
       )
     case 'segmented':
       return (
-        <span role="group" className="flex items-center gap-[2px]">
+        <span role="group" className="flex shrink-0 items-center gap-[2px] rounded-ui bg-chrome-sunken p-[2px]">
           {control.options.map((option) => (
             <button
               key={option.value}
@@ -131,7 +131,7 @@ function Control({ control }: { control: ToolOptionControl }) {
             max={control.max}
             step={control.step}
             value={control.value}
-            className="w-14 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs text-ink"
+            className="h-6 w-14 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent hover:border-chrome-active"
             onChange={(event) => onShapeNumber(control.id, Number(event.currentTarget.value))}
           />
         </label>

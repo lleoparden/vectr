@@ -1135,6 +1135,44 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     `flyout listed ${members.length} member(s), tool now ${documentStore.getState().tool}`,
   )
 
+  // UI pass, second half: the Color and Appearance panels are the same live controls.
+  const tab = (name: string) =>
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find(
+      (button) => button.textContent?.trim() === name,
+    )
+  tab('Color')?.click()
+  await settle(120)
+  const paletteSwatch = document.querySelector<HTMLButtonElement>('[aria-label^="Apply Violet"]')
+  const paletteCount = document.querySelectorAll('[aria-label^="Apply "]').length
+  paletteSwatch?.click()
+  await settle(80)
+  const afterSwatch = selectedId === undefined ? null : findNode(documentStore.getState().document, selectedId)
+  record(
+    'the Color panel lists its palette and applies a swatch',
+    paletteCount >= 9 && afterSwatch !== null && afterSwatch.type !== 'group' && afterSwatch.style.fill === '#7c6cf5',
+    paletteCount + ' swatches, fill ' + (afterSwatch !== null && afterSwatch.type !== 'group' ? afterSwatch.style.fill : 'none'),
+  )
+
+  tab('Appearance')?.click()
+  await settle(120)
+  const opacitySlider = document.querySelector<HTMLInputElement>('[data-panel-body="appearance"] input[aria-label="Opacity"]') ?? document.querySelector<HTMLInputElement>('input[aria-label="Opacity"]')
+  if (opacitySlider !== null && opacitySlider !== undefined) {
+    opacitySlider.focus()
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(opacitySlider, '40')
+    opacitySlider.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  await settle(80)
+  const opacityNode = selectedId === undefined ? null : findNode(documentStore.getState().document, selectedId)
+  record(
+    'the Appearance panel edits opacity live',
+    opacityNode !== null && opacityNode.type !== 'group' && Math.abs(opacityNode.style.opacity - 0.4) < 1e-6,
+    opacityNode !== null && opacityNode.type !== 'group' ? 'opacity ' + opacityNode.style.opacity : 'no node',
+  )
+  opacitySlider?.blur()
+  await settle(60)
+
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

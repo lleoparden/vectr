@@ -7,7 +7,7 @@ The detailed delivery roadmap is [MASTER_PLAN.md](MASTER_PLAN.md), replanned on 
 
 **4.6 (owner request, 2026-10-18): number fields and Illustrator conventions.** Scrub-able number fields with
 Shift for a finer drag, arithmetic on commit, arrow keys and Escape, one standardised component, the Hand under
-the selection tools, Alt-drag duplicate, and Shift+wheel horizontal pan. Shipped as #131; it also fixed a
+the selection tools, Alt-drag duplicate, and Shift+wheel horizontal pan. Shipped as PR #130; it also fixed a
 transaction-ownership bug in `runPlan` that the packaged run exposed.
 
 **Phase 3 shipped in five slices:** 3.1 layer rule and `src/geom/` (#114), 3.2 Selection, Direct Selection, and

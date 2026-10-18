@@ -197,7 +197,6 @@ export function PropertiesPanel() {
             onChange={(radius) => setSelectionCornerRadius(radius)}
           />
         )}
-        <Readout label="Rotation" value={`${round(node.transform.rotation)}°`} />
         <Readout label="Scale" value={`${round(node.transform.scaleX)} × ${round(node.transform.scaleY)}`} />
       </Section>
 

@@ -17,9 +17,9 @@ import {
   handlePoints,
   scaleFactors,
   scaledTransform,
-  unionBounds,
   type Rect,
-} from '../src/app/editing/transform.ts'
+} from '../src/geom/transform.ts'
+import { unionBounds } from '../src/doc/transform.ts'
 import { documentStore } from '../src/state/documentStore.ts'
 import { nudgeSelection } from '../src/app/actions.ts'
 import type { Document, GroupNode, LayerNode, NodeId } from '../src/doc/types.ts'

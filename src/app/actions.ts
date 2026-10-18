@@ -25,7 +25,8 @@ import {
   type PlanStep,
 } from './editing/arrange.ts'
 import { planDrop } from './editing/layerDrag.ts'
-import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
+import { unionBounds } from '../doc/transform.ts'
+import { nudgedTransform, scaledTransform } from '../geom/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
 import type { BlendMode, FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import { ACTION_IDS, type EditorActionId } from './commands/registry.ts'

@@ -7,7 +7,7 @@
  * leaves, which is what `unionBounds` returns for every selection id.
  */
 
-import { handlePoints, type HandleId, type Rect } from '../editing/transform.ts'
+import { handlePoints, type HandleId, type Rect } from '../../geom/transform.ts'
 
 export type SelectionOverlayProps = {
   /** The selection's world box. */

@@ -13,7 +13,8 @@
 
 import { findNode, worldBounds } from '../../doc/document.ts'
 import type { Document, NodeId, Transform } from '../../doc/types.ts'
-import { unionBounds, type Rect } from './transform.ts'
+import { unionBounds } from '../../doc/transform.ts'
+import { type Rect } from '../../geom/transform.ts'
 
 export type AlignMode = 'left' | 'horizontalCenter' | 'right' | 'top' | 'verticalCenter' | 'bottom'
 export type DistributeAxis = 'horizontal' | 'vertical'

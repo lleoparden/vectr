@@ -21,7 +21,7 @@ import { deepHitWithin, groupToIsolate } from '../app/editing/isolation.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { buildScene } from '../render/scene.ts'
 import { planGroup } from '../app/editing/arrange.ts'
-import { addCmykSwatch, addGradientStop, addGuide, applySwatch, linearGradientFrom, nudgeSelection, placeImage, removeGradientStop, removeSwatch, runEditorAction, setSelectionBlendMode, setSelectionCornerRadius, setSelectionGradient, setSelectionGradientTarget, setSelectionGradientType, setSelectionStrokeAlign } from '../app/actions.ts'
+import { addCmykSwatch, addGradientStop, addGuide, applySwatch, linearGradientFrom, nudgeSelection, placeImage, removeGradientStop, removeSwatch, runEditorAction, setSelectionBlendMode, setSelectionCornerRadius, setSelectionGradient, setSelectionGradientTarget, setSelectionGradientType, setSelectionRotation, setSelectionStrokeAlign } from '../app/actions.ts'
 import {
   newDocument,
   openDocument,
@@ -337,6 +337,46 @@ export function runEditorSmoke(store: DocumentStore): SmokeReport {
       ? `scale ${scaledNode.transform.scaleX.toFixed(2)} at x ${scaledNode.transform.x}`
       : 'no node',
   )
+
+  // Phase 4.2 (issue #120): rotation reaches the transform, the scene, the hit test, and undo. A
+  // wide, short bar is used because rotation is invisible to a square: 200x40 turned 90 becomes
+  // 40x200, so a point 80 above its centre is outside before and inside after.
+  const rotationTarget = createRect('Smoke Rotation', 800, 900, 200, 40)
+  store.dispatch(
+    { type: 'insertNodes', parentId: store.getState().document.root.id, index: 0, nodes: [rotationTarget] },
+    'smoke rotation prep',
+  )
+  store.setSelection([rotationTarget.id])
+  const rotationBox = unionBounds(store.getState().document, [rotationTarget.id])
+  const centre = { x: (rotationBox?.x ?? 0) + (rotationBox?.width ?? 0) / 2, y: (rotationBox?.y ?? 0) + (rotationBox?.height ?? 0) / 2 }
+  const probe = { x: centre.x, y: centre.y + 80 }
+  const missBefore = hitTest(store.getState().document, probe)
+  const depthBeforeRotate = store.getState().undoDepth
+  setSelectionRotation(90)
+  const rotatedNode = findNode(store.getState().document, rotationTarget.id)
+  const rotatedShape = buildScene(store.getState().document).shapes.find((shape) => shape.id === rotationTarget.id)
+  const hitAfter = hitTest(store.getState().document, probe)
+  record(
+    'numeric rotation turns the object, reaches the scene, and follows the pointer',
+    store.getState().undoDepth === depthBeforeRotate + 1 &&
+      missBefore !== rotationTarget.id &&
+      rotatedNode !== null &&
+      rotatedNode.type !== 'group' &&
+      rotatedNode.transform.rotation === 90 &&
+      rotatedShape?.rotation === 90 &&
+      hitAfter === rotationTarget.id,
+    rotatedNode !== null && rotatedNode.type !== 'group'
+      ? `${rotatedNode.transform.rotation}°, scene ${String(rotatedShape?.rotation)}, before ${String(missBefore)}, after ${hitAfter === rotationTarget.id ? 'hit' : 'missed'}`
+      : 'no node',
+  )
+  store.undo()
+  const unrotated = findNode(store.getState().document, rotationTarget.id)
+  record(
+    'undo puts the rotation back',
+    unrotated !== null && unrotated.type !== 'group' && unrotated.transform.rotation === 0,
+    unrotated !== null && unrotated.type !== 'group' ? unrotated.transform.rotation + '°' : 'no node',
+  )
+  store.setSelection([scaleTarget.id])
 
   const depthBeforeNudge = store.getState().undoDepth
   nudgeSelection(0, 10)

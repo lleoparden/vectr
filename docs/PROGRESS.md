@@ -1,6 +1,37 @@
 # Progress
 
 
+## Phase 4.2 - rotation (2026-10-18, issue #120)
+
+Rotation is real: it renders, it hit-tests, it has a frame, a gesture, a number, and an undo entry.
+
+- **The model**: `Transform.rotation` in degrees about the node's own box centre. It was already a validated
+  field in format v4, so older files open unchanged with rotation 0 - no format bump.
+- **The renderer** turns each shape about its own world centre before the translate and scale, so the same code
+  works at any scale; the record signature includes rotation, so a rotated bucket re-records.
+- **Hit testing** rotates the query point back into the node's frame, so a click lands where the object looks,
+  and a rotated leaf's bounds are the box around its four rotated corners for marquee and lasso.
+- **The frame turns with the object** (`SelectionOverlay` takes a rotation and rotates border and handles about
+  the box centre), and the field is a live number in Properties.
+- **The gesture**: a press just outside a corner (18 screen pixels) turns the selection about its centre,
+  Illustrator's rotation zone; Shift snaps to 15 degree steps; the whole gesture is one undo entry and Escape
+  cancels it.
+- **Scaling is frame-aware**: the scale tool brings the pointer into the frame's own axes, so a rotated selection
+  scales along its own sides rather than along the world axes.
+
+**Recorded limits:** rotation lives on leaves - rotating a group rotates its leaves (rigidly, which is the visual
+result) rather than storing a group-level rotation; a selection whose members disagree on rotation draws its frame
+at 0 degrees; and marquee/lasso use the rotated bounding box, so a rotated click is exact while a rotated marquee
+is conservative.
+
+**Behaviour, measured:** 255/255 tests (5 new in `tests/rotation.test.ts`: turning about a centre, orbiting a
+pivot, normalising angles, hit testing before and after a 90 degree turn, the scene carrying rotation, numeric
+normalisation with one undo entry, and a non-finite rotation refused), layer check on 98 files, clean typecheck
+and build, and the packaged run now **128 steps** with two new rotation steps passing - the object turns, the
+scene agrees, a point that missed before the turn hits after it, and undo puts it back.
+
+
+
 ## Phase 4.1 - the scale gesture is a tool (2026-10-18, issue #119)
 
 The last direct-manipulation path that lived in the canvas moved behind the tool layer.

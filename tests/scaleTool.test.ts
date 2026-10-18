@@ -5,14 +5,21 @@ import { createScaleTool } from "../src/tools/transform.ts"
 import type { ToolHost } from "../src/tools/types.ts"
 import type { NodeId, Transform } from "../src/doc/types.ts"
 
-function fakeHost(options: { box?: { x: number; y: number; width: number; height: number } | null; originals?: Array<[NodeId, Transform]> } = {}) {
+function fakeHost(options: { box?: { x: number; y: number; width: number; height: number } | null; originals?: Array<[NodeId, Transform]>; rotation?: number } = {}) {
   const calls: string[] = []
   const originals = new Map<NodeId, Transform>(options.originals ?? [])
+  const box = options.box === null ? null : (options.box ?? { x: 0, y: 0, width: 100, height: 100 })
   const host = {
     scaleBegin: () => {
       calls.push("begin")
-      if (options.box === null) return null
-      return { box: options.box ?? { x: 0, y: 0, width: 100, height: 100 }, originals: new Map(originals) }
+      if (box === null) return null
+      const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+      return {
+        box,
+        rotation: options.rotation ?? 0,
+        centre,
+        nodes: [...originals].map(([id, transform]) => ({ id, transform, width: 100, height: 100 })),
+      }
     },
     setNodeTransform: (nodeId: NodeId, transform: Transform) => {
       calls.push("set:" + nodeId + ":" + transform.x + "," + transform.y + ":" + transform.scaleX + "," + transform.scaleY)

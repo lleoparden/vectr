@@ -20,6 +20,8 @@ export type SelectionOverlayProps = {
   onScaleStart: (handle: HandleId) => void
   onScaleMove: (handle: HandleId, point: { x: number; y: number }, modifiers: { constrain: boolean; fromCenter: boolean }) => void
   onScaleEnd: () => void
+  /** Degrees; the frame turns about its centre so it can sit on a rotated object (issue #120). */
+  rotation: number
 }
 
 const HANDLE_SIZE = 7
@@ -37,15 +39,23 @@ const CURSORS: Record<HandleId, string> = {
 }
 
 export function SelectionOverlay(props: SelectionOverlayProps) {
-  const { box, zoom, panX, panY, toScene } = props
+  const { box, zoom, panX, panY, toScene, rotation } = props
   const left = box.x * zoom + panX
   const top = box.y * zoom + panY
   const width = Math.max(1, box.width * zoom)
   const height = Math.max(1, box.height * zoom)
   const points = handlePoints(box)
 
+  // The whole frame is one rotated layer: border and handles turn together, about the box centre.
+  const centreX = (box.x + box.width / 2) * zoom + panX
+  const centreY = (box.y + box.height / 2) * zoom + panY
   return (
-    <div className="pointer-events-none absolute inset-0" data-selection-box>
+    <div
+      className="pointer-events-none absolute inset-0"
+      data-selection-box
+      data-selection-rotation={Math.round(rotation)}
+      style={rotation === 0 ? undefined : { transform: `rotate(${rotation}deg)`, transformOrigin: `${centreX}px ${centreY}px` }}
+    >
       <div
         className="absolute border border-accent/80"
         style={{ left, top, width, height }}

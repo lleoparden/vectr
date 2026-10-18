@@ -12,7 +12,7 @@ import type { NodeId } from "../src/doc/types.ts"
 
 type Calls = string[]
 
-function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[] } = {}) {
+function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]; rotation?: boolean } = {}) {
   const calls: Calls = []
   const selected: NodeId[] = options.selection ?? []
   const host: ToolHost = {
@@ -44,6 +44,14 @@ function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]
     setShapePreview: (preview) => calls.push("preview:" + (preview === null ? "null" : preview.kind + "@" + preview.current.x + "," + preview.current.y + (preview.shift ? ":shift" : ""))),
     commitShape: (toolId, start, end, shift) => calls.push("shape:" + toolId + ":" + start.x + "," + start.y + ">" + end.x + "," + end.y + (shift ? ":shift" : "")),
     placeText: (scene) => calls.push("text:" + scene.x + "," + scene.y),
+    scaleBegin: () => null,
+    setNodeTransform: (id) => calls.push("set:" + id),
+    scaleEnd: () => calls.push("scaleEnd"),
+    scaleCancel: () => calls.push("scaleCancel"),
+    rotationBegin: () => (options.rotation === true ? { centre: { x: 0, y: 0 }, startAngle: 0, nodes: [] } : null),
+    rotateBy: (scene, shift) => calls.push("rotate:" + scene.x + "," + scene.y + (shift ? ":shift" : "")),
+    rotateEnd: () => calls.push("rotateEnd"),
+    rotateCancel: () => calls.push("rotateCancel"),
   }
   return { host, calls, selected }
 }

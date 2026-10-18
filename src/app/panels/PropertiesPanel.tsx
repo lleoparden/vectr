@@ -28,6 +28,7 @@ import {
   setImageMaskFromDialog,
   setSelectionBlendMode,
   setSelectionBounds,
+  setSelectionRotation,
   setSelectionCornerRadius,
   setSelectionFill,
   addGradientStop,
@@ -60,6 +61,18 @@ const BLENDS: readonly BlendMode[] = ['normal', 'multiply', 'screen', 'overlay',
 
 const BODY = 'min-h-0 flex-1 overflow-y-auto overflow-x-hidden'
 
+/** The rotation shown in the field: the selection's common rotation, else zero. */
+function selectionRotation(state: { document: Parameters<typeof findNode>[0]; selection: string[] }): number {
+  const rotations: number[] = []
+  for (const id of state.selection) {
+    const node = findNode(state.document, id)
+    if (node === null || node.type === 'group') continue
+    rotations.push(((node.transform.rotation % 360) + 360) % 360)
+  }
+  if (rotations.length === 0) return 0
+  return rotations.every((value) => value === rotations[0]) ? rotations[0] : 0
+}
+
 function round(value: number): number {
   return Number.isInteger(value) ? value : Math.round(value * 100) / 100
 }
@@ -85,6 +98,7 @@ export function PropertiesPanel() {
   const state = useEditorState()
   const id = state.selection[0]
   const node = id === undefined ? null : findNode(state.document, id)
+  const rotation = selectionRotation(state)
   const bounds = id === undefined ? null : worldBounds(state.document, id)
 
   if (node === null || id === undefined) {
@@ -186,6 +200,15 @@ export function PropertiesPanel() {
             <NumberField label="Y" value={bounds.y} onChange={(y) => setSelectionBounds({ y })} />
             <NumberField label="W" value={bounds.width} min={1} onChange={(width) => setSelectionBounds({ width })} />
             <NumberField label="H" value={bounds.height} min={1} onChange={(height) => setSelectionBounds({ height })} />
+          <NumberField
+            label="Rotation"
+            value={Math.round(rotation)}
+            min={-360}
+            max={360}
+            step={15}
+            suffix="°"
+            onChange={(degrees) => setSelectionRotation(degrees)}
+          />
           </div>
         )}
         {node.type === 'rect' && (

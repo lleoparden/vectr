@@ -118,3 +118,51 @@ export function scaledTransform(
 export function nudgedTransform(transform: Transform, dx: number, dy: number): Transform {
   return { ...transform, x: transform.x + dx, y: transform.y + dy }
 }
+
+/** Rotates a point about a centre; degrees turn clockwise on screen (issue #120). */
+export function rotatePoint(point: Point, centre: Point, degrees: number): Point {
+  if (degrees === 0) return { x: point.x, y: point.y }
+  const radians = (degrees * Math.PI) / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const dx = point.x - centre.x
+  const dy = point.y - centre.y
+  return { x: centre.x + dx * cos - dy * sin, y: centre.y + dx * sin + dy * cos }
+}
+
+/** The degrees from `centre` to `point`, measured from twelve o'clock like a rotation handle. */
+export function angleFromCentre(centre: Point, point: Point): number {
+  return (Math.atan2(point.x - centre.x, -(point.y - centre.y)) * 180) / Math.PI
+}
+
+/** Snaps an angle to the nearest 15 degrees, Illustrator's Shift step. */
+export function snapAngle(degrees: number): number {
+  return Math.round(degrees / 15) * 15
+}
+
+/** Normalises any angle into 0..360. */
+export function normaliseAngle(degrees: number): number {
+  return ((degrees % 360) + 360) % 360
+}
+
+/**
+ * Rotates a node about a pivot (issue #120). The node turns about its own centre and its centre
+ * orbits the pivot, which is what rigid rotation of a selection means.
+ */
+export function rotatedTransform(
+  original: Transform,
+  size: { width: number; height: number },
+  pivot: Point,
+  degrees: number,
+): Transform {
+  const extentX = size.width * Math.abs(original.scaleX)
+  const extentY = size.height * Math.abs(original.scaleY)
+  const centre = { x: original.x + extentX / 2, y: original.y + extentY / 2 }
+  const next = rotatePoint(centre, pivot, degrees)
+  return {
+    ...original,
+    rotation: normaliseAngle(original.rotation + degrees),
+    x: next.x - extentX / 2,
+    y: next.y - extentY / 2,
+  }
+}

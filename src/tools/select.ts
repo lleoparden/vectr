@@ -14,6 +14,7 @@ type State =
   | { kind: 'idle' }
   | { kind: 'marquee'; start: Point }
   | { kind: 'move'; start: Point }
+  | { kind: 'rotate' }
 
 export type SelectToolOptions = { id: string; deep: boolean; cursor: string }
 
@@ -24,6 +25,12 @@ export function createSelectTool({ id, deep, cursor }: SelectToolOptions): Tool 
     id,
     cursor,
     onPointerDown(host: ToolHost, point: ToolPoint, modifiers: ToolModifiers) {
+      // Just outside a corner, a drag rotates the selection - Illustrator's own rotation zone, so a
+      // rotated object can be turned again without reaching for the Properties field (issue #120).
+      if (host.rotationBegin(point.scene) !== null) {
+        state = { kind: 'rotate' }
+        return
+      }
       const hit = host.hitTest(point.scene, deep)
       if (hit === null) {
         state = { kind: 'marquee', start: point.scene }
@@ -43,7 +50,9 @@ export function createSelectTool({ id, deep, cursor }: SelectToolOptions): Tool 
       }
       if (state.kind === 'move') {
         host.moveBy(point.scene.x - state.start.x, point.scene.y - state.start.y, modifiers.shift)
+        return
       }
+      if (state.kind === 'rotate') host.rotateBy(point.scene, modifiers.shift)
     },
 
     onPointerUp(host: ToolHost, point: ToolPoint) {
@@ -52,12 +61,15 @@ export function createSelectTool({ id, deep, cursor }: SelectToolOptions): Tool 
         host.setMarquee(null)
       } else if (state.kind === 'move') {
         host.endMove()
+      } else if (state.kind === 'rotate') {
+        host.rotateEnd()
       }
       state = { kind: 'idle' }
     },
 
     cancel(host: ToolHost) {
       if (state.kind === 'move') host.cancelMove()
+      if (state.kind === 'rotate') host.rotateCancel()
       host.setMarquee(null)
       state = { kind: 'idle' }
     },

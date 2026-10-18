@@ -27,7 +27,7 @@ import {
   outlinePoints,
   polygonPoints,
   starPoints,
-} from '../src/doc/shapeGeometry.ts'
+} from '../src/geom/shapeGeometry.ts'
 import { boxFor, constrainEnd, dragIsBigEnough, lineFrom, snapTo45 } from '../src/app/canvas/shapeDrag.ts'
 import { validateDocument } from '../src/doc/validate.ts'
 import { buildScene, sceneRootIds } from '../src/render/scene.ts'

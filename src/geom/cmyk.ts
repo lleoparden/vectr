@@ -7,7 +7,7 @@
  * exported code use to show the ink.
  */
 
-import type { Cmyk } from '../../doc/types.ts'
+import type { Cmyk } from './types.ts'
 
 /** CMYK percentages (0–100) to a `#rrggbb` string. */
 export function cmykToHex(cmyk: Cmyk): string {

@@ -7,7 +7,7 @@
  */
 
 import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
-import { clipPolygon } from '../doc/shapeGeometry.ts'
+import { clipPolygon } from '../geom/shapeGeometry.ts'
 import type { BlendMode, FillGradient } from '../doc/types.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 

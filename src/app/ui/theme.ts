@@ -24,14 +24,11 @@ export const TOOL_BUTTON_SIZE = 28
 export const ROW_TOGGLE_SIZE = 18
 
 /** The zoom steps the View menu and Ctrl+= / Ctrl+- walk through. */
-export const ZOOM_STEPS = [0.05, 0.125, 0.25, 0.5, 0.75, 1, 1.5, 2, 4, 8, 16, 32] as const
+export { ZOOM_STEPS, ZOOM_MIN, ZOOM_MAX, FIT_PADDING } from '../../geom/viewport.ts'
 
 /** Interactive zoom bounds, shared with the wheel handler. */
-export const ZOOM_MIN = 0.05
-export const ZOOM_MAX = 32
 
 /** Margin left around the artboard when fitting it in the window. */
-export const FIT_PADDING = 32
 
 /** Document-window chrome heights, so the canvas can fill what is left. */
 export const MENU_BAR_HEIGHT = 26

@@ -15,6 +15,7 @@ import { applyCommand, type Command, type CommandResult } from '../doc/commands.
 import { History } from '../doc/history.ts'
 import { createDocument, paintOrder } from '../doc/document.ts'
 import { isGroup, type Document, type NodeId } from '../doc/types.ts'
+import type { Viewport } from '../geom/viewport.ts'
 
 export type Tool =
   | 'select'
@@ -29,7 +30,7 @@ export type Tool =
   | 'arc'
   | 'hand'
   | 'text'
-export type Viewport = { zoom: number; panX: number; panY: number }
+export type { Viewport } from '../geom/viewport.ts'
 export type CommandError = { code: string; message: string; command: Command }
 
 export type EditorState = {

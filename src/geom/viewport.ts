@@ -8,9 +8,17 @@
  * code already use.
  */
 
-import type { Artboard } from '../../doc/types.ts'
-import type { Viewport } from '../../state/documentStore.ts'
-import { FIT_PADDING, ZOOM_MAX, ZOOM_MIN, ZOOM_STEPS } from '../ui/theme.ts'
+import type { Artboard } from '../doc/types.ts'
+
+/** The viewport is zoom and pan; it lives here so the math needs no engine layer. */
+export type Viewport = { zoom: number; panX: number; panY: number }
+
+/** Zoom stops the menu steps through, and the bounds every zoom is clamped to. */
+export const ZOOM_STEPS = [0.05, 0.125, 0.25, 0.5, 0.75, 1, 1.5, 2, 4, 8, 16, 32] as const
+export const ZOOM_MIN = 0.05
+export const ZOOM_MAX = 32
+/** Margin left around the artboard when fitting it in the window. */
+export const FIT_PADDING = 32
 
 export type Anchor = { x: number; y: number }
 export type CanvasSize = { width: number; height: number }

@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createShape, createText, estimateTextSize, findNode, shapeLabel, worldTransform } from '../../doc/document.ts'
 import type { ShapeKind } from '../../doc/document.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
-import { clampCornerRadius, outlinePoints } from '../../doc/shapeGeometry.ts'
+import { clampCornerRadius, outlinePoints } from '../../geom/shapeGeometry.ts'
 import { boxFor, constrainEnd, dragIsBigEnough, lineFrom } from './shapeDrag.ts'
 import { isText, type NodeId, type Transform } from '../../doc/types.ts'
 import { mimeTypeForName } from '../../doc/assets.ts'
@@ -34,7 +34,7 @@ import { documentStore, type Tool, type Viewport } from '../../state/documentSto
 import { useEditorState } from '../../state/useEditorState.ts'
 import { workspaceStore } from '../../state/workspaceStore.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
-import { fitRect, zoomAtPoint } from './viewportOps.ts'
+import { fitRect, zoomAtPoint } from '../../geom/viewport.ts'
 
 type Gesture =
   | { kind: 'none' }

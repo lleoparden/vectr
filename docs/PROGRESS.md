@@ -1,6 +1,29 @@
 # Progress
 
 
+## Phase 3.1 - the layer rule, enforced (2026-10-18, issue #107)
+
+The first slice of the realignment: the architecture stops being a document and becomes a check.
+
+- **`scripts/check-layers.mjs`** assigns every source file one of the eight layers (L0 `src/geom/`, L1 `src/doc/`,
+  L2 `src/ops/`, L3 `src/render/` and `src/file/`, L4 `src/tools/`, L5 `src/state/` and the engine-ish parts of
+  `src/app/`, L6 the rest of the interface, L7 shells and harnesses) and fails when a runtime import points
+  upward. **Type-only imports may cross layers**, because they vanish at compile time and exist precisely so a
+  lower layer can name a shape it does not own.
+- **`src/geom/` exists**: `shapeGeometry`, `color`, `cmyk`, and `viewport` (with `Viewport`, `ZOOM_STEPS`,
+  `ZOOM_MIN`, `ZOOM_MAX`, and `FIT_PADDING` - the viewport's parameters belong with its math, not with the
+  theme). `Cmyk` moved to `geom/types.ts` so L0 no longer depends on L1; `doc/types` re-exports it.
+- **It found real violations on its first run** - `actions.ts` importing `ui/cmyk` and `canvas/viewportOps`, both
+  interface-layer modules used by the engine layer - which is exactly why the check exists.
+- **`npm test` runs it first**, so an upward import fails the suite before a single test runs.
+
+**Behaviour frozen, as the phase requires:** 228/228 unit tests pass, typecheck and build are clean, and the
+packaged run reports the **same 126 steps across seven reports** as before the refactor (smoke 39, file 20,
+text 12, ui 27, path 9, memory 11, stress 8). The layer check reports 88 source files respecting the direction.
+No document-format change; no user-visible change.
+
+
+
 ## Project replanned around the reference architecture (2026-10-18, owner-approved)
 
 The owner judged the build "not good enough" in feel and proposed using VectorCraft as a guideline. Reading that

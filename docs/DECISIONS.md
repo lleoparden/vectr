@@ -2270,3 +2270,20 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **The standards test only names converted files.** Widening it early would have kept the suite red for work not
   yet done; it grows with each pass, and the inventory of what remains lives in issue #133 rather than in a
   permanently failing assertion.
+
+## 2026-10-18 - Menus, palette slots, and the backdrop complete the kit (issue #133, final pass)
+
+- **A menu row is a component with behavioural props, not a styled div.** `MenuItem` takes the keyboard handler, the
+  ref, the tab index, and the popup state as props; that is what let the menu bar, the flyouts, and the context
+  menu share one row without moving their focus logic.
+- **The palette's slot is not a Button.** It has a fixed square shape, an active fill, and a flyout corner; making
+  it a variant of Button would have pushed palette-specific paint into every other button, so it is its own small
+  component with three exports (slot, corner, member row).
+- **The dialog backdrop is a control, and it is in the kit.** A full-screen click-away is a button semantically but
+  not visually; `Backdrop` keeps it consistent (label, tab index, z-order) instead of leaving it hand-written.
+- **The standard is absolute now**: no raw `<button>` or `type="number"` outside `src/app/ui/components/`. The
+  harnesses under `src/bench` and `src/dev` are excluded because they are not the interface - a rule that would
+  otherwise force a test harness to adopt product components it deliberately avoids.
+- **When a shared control changes, the harness must adapt, not the product.** The options bar's switch to
+  `NumberField` broke six packaged steps on a stale selector; the fix was in the smoke helper, and the product
+  behaviour was already correct.

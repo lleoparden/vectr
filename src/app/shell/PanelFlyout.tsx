@@ -7,6 +7,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '../ui/components/Button.tsx'
+import { MenuItem as MenuRow, MenuSurface } from '../ui/components/Menu.tsx'
 import { ACTION_LABELS, canRunAction, runEditorAction, type EditorActionId } from '../actions.ts'
 import { IconFlyout } from '../ui/icons.tsx'
 import { shortcutLabel } from '../menus/shortcuts.ts'
@@ -37,47 +39,32 @@ export function PanelFlyout({ label, items }: { label: string; items: EditorActi
 
   return (
     <div ref={containerRef} className="relative flex items-center">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`${label} panel menu`}
-        title={`${label} panel menu`}
-        className="px-1 text-ink-faint hover:text-ink"
+      <Button
+        variant="icon"
+        label={`${label} panel menu`}
+        icon={<IconFlyout size={12} />}
         onClick={() => setOpen((visible) => !visible)}
-      >
-        <IconFlyout size={12} />
-      </button>
+      />
       {open && (
-        <div
-          role="menu"
-          aria-label={`${label} panel menu`}
-          className="absolute right-0 top-full z-40 mt-[2px] min-w-[196px] rounded-ui border border-hairline bg-chrome-raised py-1 shadow-lg shadow-black/40"
-        >
+        <MenuSurface label={`${label} panel menu`} className="right-0 top-full mt-[2px] min-w-[196px]">
           {items.map((id) => {
             const enabled = canRunAction(id, state)
             const chord = shortcutLabel(id)
             return (
-              <button
+              <MenuRow
                 key={id}
-                type="button"
-                role="menuitem"
-                aria-disabled={!enabled}
-                className={`flex w-full items-center justify-between gap-4 px-3 py-[3px] text-left text-ui-xs ${
-                  enabled ? 'text-ink hover:bg-accent-soft' : 'cursor-default text-ink-faint'
-                }`}
-                onClick={() => {
+                label={ACTION_LABELS[id]}
+                chord={chord}
+                disabled={!enabled}
+                onSelect={() => {
                   if (!enabled) return
                   runEditorAction(id)
                   setOpen(false)
                 }}
-              >
-                <span>{ACTION_LABELS[id]}</span>
-                {chord !== null && <span className="text-ink-faint">{chord}</span>}
-              </button>
+              />
             )
           })}
-        </div>
+        </MenuSurface>
       )}
     </div>
   )

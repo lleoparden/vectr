@@ -16,7 +16,11 @@ function files(dir: string, into: string[] = []): string[] {
   return into
 }
 
-const sources = files(SRC)
+// The benchmark and smoke harnesses build their own minimal DOM; they are not the product interface.
+const sources = files(SRC).filter((file) => {
+  const rel = path.relative(ROOT, file).split(path.sep).join('/')
+  return !rel.startsWith('src/bench/') && !rel.startsWith('src/dev/')
+})
 const relative = (file: string) => path.relative(ROOT, file).split(path.sep).join('/')
 
 test("no module imports the retired field module", () => {
@@ -38,22 +42,19 @@ test("a panel does not spell out the shared button or empty-state classes", () =
   }
 })
 
-test("converted panels and shell files do not hand-write a <button>", () => {
-  const converted = [
-    'app/panels/PropertiesPanel.tsx',
-    'app/panels/AlignPanel.tsx',
-    'app/panels/TransformPanel.tsx',
-    'app/panels/AppearancePanel.tsx',
-    'app/panels/LayersPanel.tsx',
-    'app/panels/ColorPanel.tsx',
-    'app/panels/PanelDock.tsx',
-    'app/shell/StatusBar.tsx',
-    'app/shell/AboutDialog.tsx',
-    'app/shell/PreferencesDialog.tsx',
-  ]
-  for (const relativePath of converted) {
-    const text = fs.readFileSync(path.join(SRC, relativePath), 'utf8')
-    assert.equal(text.includes('<button'), false, relativePath + " contains a raw <button>; use the shared component")
+test("no module outside the kit hand-writes a <button>", () => {
+  for (const file of sources) {
+    if (relative(file).includes('/ui/components/')) continue
+    const text = fs.readFileSync(file, 'utf8')
+    assert.equal(text.includes('<button'), false, relative(file) + " contains a raw <button>; use the shared component")
+  }
+})
+
+test("no module outside the kit hand-writes a numeric input", () => {
+  for (const file of sources) {
+    if (relative(file).includes('/ui/components/')) continue
+    const text = fs.readFileSync(file, 'utf8')
+    assert.equal(/type="number"/.test(text), false, relative(file) + " contains a raw number input; use NumberField")
   }
 })
 

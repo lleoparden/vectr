@@ -10,6 +10,7 @@
 
 import { useEffect, useRef } from 'react'
 import { Button } from '../ui/components/Button.tsx'
+import { Backdrop } from '../ui/components/Menu.tsx'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { dismissCrashPrompt, resolveCrashPrompt } from '../files/fileActions.ts'
 import { crashRecoveryCopy } from '../files/recoveryPrompt.ts'
@@ -73,13 +74,7 @@ export function CrashRecoveryDialog() {
         </div>
         <p className="mt-3 text-ui-xs text-ink-faint">Escape keeps the copy; it stays under File ▸ Recover Unsaved Work.</p>
       </div>
-      <button
-        type="button"
-        aria-label="Dismiss"
-        tabIndex={-1}
-        className="absolute inset-0 -z-10 cursor-default"
-        onClick={() => dismissCrashPrompt()}
-      />
+      <Backdrop onClick={() => dismissCrashPrompt()} />
     </div>
   )
 }

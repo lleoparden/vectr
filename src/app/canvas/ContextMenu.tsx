@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { MenuItem as MenuRow, MenuSeparator, MenuSurface } from '../ui/components/Menu.tsx'
 import { ACTION_LABELS, canRunAction, runEditorAction, type EditorActionId } from '../actions.ts'
 import { shortcutLabel } from '../menus/shortcuts.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
@@ -77,7 +78,7 @@ export function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose
   const top = Math.max(4, Math.min(menu.y, window.innerHeight - height - 4))
 
   return (
-    <div role="menu" aria-label="Context menu" className={PANEL_CLASS} style={{ left, top }}>
+    <MenuSurface label="Context menu" style={{ left, top }}>
       {menu.items.map((item, index) => {
         if (item.kind === 'separator') {
           return <div key={`separator-${index}`} role="separator" className="my-1 h-px bg-hairline" />
@@ -87,17 +88,16 @@ export function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose
         const label = item.kind === 'command' ? ACTION_LABELS[item.id] : item.label
         const slot = runnable.indexOf(item)
         return (
-          <button
+          <MenuRow
             key={item.kind === 'command' ? item.id : `custom-${item.label}`}
-            ref={(element) => {
+            label={label}
+            chord={chord}
+            disabled={!enabled}
+            itemRef={(element) => {
               itemRefs.current[slot] = element
             }}
-            type="button"
-            role="menuitem"
-            aria-disabled={!enabled}
             tabIndex={slot === focusIndex ? 0 : -1}
-            className={`${ITEM_CLASS} ${enabled ? 'text-ink hover:bg-accent-soft' : 'cursor-default text-ink-faint'}`}
-            onClick={() => runOf(item)}
+            onSelect={() => runOf(item)}
             onKeyDown={(event) => {
               if (event.key === 'ArrowDown') {
                 event.preventDefault()
@@ -114,12 +114,9 @@ export function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose
                 runOf(item)
               }
             }}
-          >
-            <span>{label}</span>
-            {chord !== null && <span className="text-ui-xs text-ink-faint">{chord}</span>}
-          </button>
+          />
         )
       })}
-    </div>
+    </MenuSurface>
   )
 }

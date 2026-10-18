@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { MenuItem as MenuRow, MenuSeparator, MenuSurface, MenuTitle } from '../ui/components/Menu.tsx'
 import { canRunAction, runEditorAction } from '../actions.ts'
 import { MENU_BAR, menuForMnemonic, type CommandItem, type MenuItem, type MenuSpec } from '../menus/menuModel.ts'
 import { shortcutLabel } from '../menus/shortcuts.ts'
@@ -211,32 +212,20 @@ export function MenuBar() {
         let slot = -1
         return (
           <div key={menu.id} className="relative">
-            <button
-              type="button"
-              data-menu-title
-              role="menuitem"
-              aria-haspopup="true"
-              aria-expanded={openIndex === index}
-              className={TITLE_CLASS}
+            <MenuTitle
+              label={menu.label}
+              open={openIndex === index}
               onClick={() => (openIndex === index ? closeAll() : openAt(index, false))}
               onPointerEnter={() => {
                 if (openIndex !== null && openIndex !== index) openAt(index, false)
               }}
               onKeyDown={(event) => onTitleKeyDown(event, index)}
-            >
-              {/* The mnemonic letter is underlined, the way Illustrator marks Alt access keys. */}
-              <span className="underline decoration-1 underline-offset-2">{menu.label.slice(0, 1)}</span>
-              {menu.label.slice(1)}
-            </button>
+            />
             {openIndex === index && (
-              <div
-                role="menu"
-                aria-label={menu.label}
-                className={`${PANEL_CLASS} left-0 top-full mt-[2px] min-w-[236px]`}
-              >
+              <MenuSurface label={menu.label} className="left-0 top-full mt-[2px] min-w-[236px]">
                 {menu.items.map((item, itemIndex) => {
                   if (item.kind === 'separator') {
-                    return <div key={`separator-${itemIndex}`} role="separator" className="my-1 h-px bg-hairline" />
+                    return <MenuSeparator key={`separator-${itemIndex}`} />
                   }
                   slot += 1
                   const mySlot = slot
@@ -251,58 +240,42 @@ export function MenuBar() {
                           setChildFocus(0)
                         }}
                       >
-                        <button
-                          ref={(element) => {
+                        <MenuRow
+                          label={item.label}
+                          hasPopup
+                          expanded={openSubmenu === mySlot}
+                          trailing={<span aria-hidden="true" className="text-ink-faint">▸</span>}
+                          itemRef={(element) => {
                             itemRefs.current[mySlot] = element
                           }}
-                          type="button"
-                          role="menuitem"
-                          aria-haspopup="true"
-                          aria-expanded={openSubmenu === mySlot}
                           tabIndex={mySlot === focusIndex ? 0 : -1}
-                          className={`${ITEM_CLASS} text-ink hover:bg-accent-soft`}
-                          onClick={() => {
+                          onSelect={() => {
                             setOpenSubmenu(mySlot)
                             setChildFocus(0)
                           }}
                           onKeyDown={(event) => onItemKeyDown(event, item, mySlot)}
-                        >
-                          <span>{item.label}</span>
-                          <span aria-hidden="true" className="text-ink-faint">
-                            ▸
-                          </span>
-                        </button>
+                        />
                         {openSubmenu === mySlot && (
-                          <div
-                            role="menu"
-                            aria-label={item.label}
-                            className={`${PANEL_CLASS} left-full top-0 -mt-1 ml-[2px] min-w-[212px]`}
-                          >
+                          <MenuSurface label={item.label} className="left-full top-0 -mt-1 ml-[2px] min-w-[212px]">
                             {children.map((child, childIndex) => {
                               const enabled = canRunAction(child.id, state)
                               const chord = shortcutLabel(child.id)
                               return (
-                                <button
+                                <MenuRow
                                   key={child.id}
-                                  ref={(element) => {
+                                  label={child.label}
+                                  chord={chord}
+                                  disabled={!enabled}
+                                  itemRef={(element) => {
                                     childRefs.current[childIndex] = element
                                   }}
-                                  type="button"
-                                  role="menuitem"
-                                  aria-disabled={!enabled}
                                   tabIndex={childIndex === childFocus ? 0 : -1}
-                                  className={`${ITEM_CLASS} ${
-                                    enabled ? 'text-ink hover:bg-accent-soft' : 'cursor-default text-ink-faint'
-                                  }`}
-                                  onClick={() => run(child)}
+                                  onSelect={() => run(child)}
                                   onKeyDown={(event) => onChildKeyDown(event, child, children.length)}
-                                >
-                                  <span>{child.label}</span>
-                                  {chord !== null && <span className="text-ui-xs text-ink-faint">{chord}</span>}
-                                </button>
+                                />
                               )
                             })}
-                          </div>
+                          </MenuSurface>
                         )}
                       </div>
                     )
@@ -310,28 +283,22 @@ export function MenuBar() {
                   const enabled = canRunAction(item.id, state)
                   const chord = shortcutLabel(item.id)
                   return (
-                    <button
+                    <MenuRow
                       key={item.id}
-                      ref={(element) => {
+                      label={item.label}
+                      chord={chord}
+                      disabled={!enabled}
+                      title={enabled ? undefined : `${item.label} is not available right now`}
+                      itemRef={(element) => {
                         itemRefs.current[mySlot] = element
                       }}
-                      type="button"
-                      role="menuitem"
-                      aria-disabled={!enabled}
-                      title={enabled ? undefined : `${item.label} is not available right now`}
                       tabIndex={mySlot === focusIndex ? 0 : -1}
-                      className={`${ITEM_CLASS} ${
-                        enabled ? 'text-ink hover:bg-accent-soft' : 'cursor-default text-ink-faint'
-                      }`}
-                      onClick={() => run(item)}
+                      onSelect={() => run(item)}
                       onKeyDown={(event) => onItemKeyDown(event, item, mySlot)}
-                    >
-                      <span>{item.label}</span>
-                      {chord !== null && <span className="text-ui-xs text-ink-faint">{chord}</span>}
-                    </button>
+                    />
                   )
                 })}
-              </div>
+              </MenuSurface>
             )}
           </div>
         )

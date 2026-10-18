@@ -47,11 +47,54 @@ export type Stroke = {
 
 /** A linear gradient in the node's own box, normalised 0..1 (issue #70). */
 export type GradientStop = { offset: number; color: string }
-export type FillGradient = { type: 'linear'; stops: GradientStop[]; from: { x: number; y: number }; to: { x: number; y: number } }
+/**
+ * A gradient in the node's own box, normalised 0..1. `linear` runs from → to; `radial` uses `from` as
+ * the centre and the distance to `to` as the radius.
+ */
+export type FillGradient = {
+  type: 'linear' | 'radial'
+  stops: GradientStop[]
+  from: { x: number; y: number }
+  to: { x: number; y: number }
+}
 
 /** The blend modes Vectr supports deliberately (issue #71/APP-01); not Illustrator's full set. */
-export type BlendMode = 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten'
-export const BLEND_MODES: BlendMode[] = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten']
+/** Illustrator's standard blend modes, all of which Skia can composite. */
+export type BlendMode =
+  | 'normal'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion'
+  | 'hue'
+  | 'saturation'
+  | 'color'
+  | 'luminosity'
+export const BLEND_MODES: BlendMode[] = [
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'hard-light',
+  'soft-light',
+  'difference',
+  'exclusion',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
+]
 
 export type Style = {
   /** CSS hex color, for example `#4f7cff`. */
@@ -59,6 +102,8 @@ export type Style = {
   stroke: Stroke | null
   /** When set, it paints the fill and `fill` is the fallback colour (issue #70). */
   gradient?: FillGradient | null
+  /** Which part of the object the gradient paints; absent means the fill (issue #70). */
+  gradientTarget?: 'fill' | 'stroke' | 'both'
   /** How the fill composites with what is beneath it; absent means normal (issue #71). */
   blendMode?: BlendMode
   /** 0..1, applied to the node and its subtree. */

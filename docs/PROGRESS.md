@@ -1,6 +1,26 @@
 # Progress
 
 
+## Issue #70 — radial gradients, stop editing, gradient strokes, full blend set (2026-10-18)
+
+- **Radial gradients** on the same definition as linear ones (centre + radius), switchable without losing
+  stops.
+- **A stop editor**: colour and position per stop, add up to eight, remove down to two, always ordered by
+  offset.
+- **Gradient on fill, stroke, or both** — a gradient stroke keeps its dashes, caps, joins, and alignment.
+- **All sixteen standard blend modes**, including hue, saturation, colour, and luminosity, applied to fills
+  **and strokes**.
+- **Recorded as unsupported:** freeform gradients, patterns, mesh, and recolour, because they need vector
+  geometry or a pattern/mesh model the document does not have.
+
+**Evidence:** `npm run typecheck` and `npm run build` clean; `npm test` **228/228** (4 new in
+`tests/gradients2.test.ts`: radial needs a radius, unknown types and targets refused, stop add/move/remove
+keeping two, the scene carrying the target, and all sixteen blend modes accepted with an unknown one
+refused); packaged run **126 steps across seven reports**, `[vectr-ui]` **27/27** with a new step creating a
+radial gradient with three stops, painting the stroke, and compositing with a non-separable blend mode.
+
+
+
 ## Issue #69 — stroke alignment and the colour system (2026-10-18)
 
 - **Stroke alignment**: centre (default), inside, or outside, in the Properties stroke section. Inside and

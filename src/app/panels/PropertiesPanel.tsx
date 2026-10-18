@@ -30,7 +30,12 @@ import {
   setSelectionBounds,
   setSelectionCornerRadius,
   setSelectionFill,
+  addGradientStop,
+  removeGradientStop,
+  setGradientStop,
   setSelectionGradient,
+  setSelectionGradientTarget,
+  setSelectionGradientType,
   setSelectionOpacity,
   setSelectionStroke,
   setSelectionStrokeAlign,
@@ -212,19 +217,77 @@ export function PropertiesPanel() {
             }
           />
           {gradient !== null && (
-            <NumberField
-              label="Angle"
-              value={gradientAngle(gradient)}
-              min={-360}
-              max={360}
-              step={15}
-              suffix="°"
-              onChange={(angle) =>
-                setSelectionGradient(
-                  linearGradientFrom(angle, gradient.stops[0]?.color ?? node.style.fill, gradient.stops[1]?.color ?? '#ffffff'),
-                )
-              }
-            />
+            <>
+              <SelectField
+                label="Type"
+                value={gradient.type}
+                options={['linear' as const, 'radial' as const]}
+                onChange={(type) => setSelectionGradientType(type)}
+              />
+              <SelectField
+                label="On"
+                value={node.style.gradientTarget ?? 'fill'}
+                options={['fill' as const, 'stroke' as const, 'both' as const]}
+                onChange={(target) => setSelectionGradientTarget(target)}
+              />
+              {gradient.type === 'linear' && (
+                <NumberField
+                  label="Angle"
+                  value={gradientAngle(gradient)}
+                  min={-360}
+                  max={360}
+                  step={15}
+                  suffix="°"
+                  onChange={(angle) =>
+                    setSelectionGradient(
+                      linearGradientFrom(angle, gradient.stops[0]?.color ?? node.style.fill, gradient.stops[gradient.stops.length - 1]?.color ?? '#ffffff'),
+                    )
+                  }
+                />
+              )}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wide text-ink-faint">Stops</span>
+                {gradient.stops.map((stop, index) => (
+                  <div key={index} className="flex min-w-0 items-center gap-1">
+                    <input
+                      type="color"
+                      aria-label={'Gradient stop ' + (index + 1) + ' colour'}
+                      value={stop.color}
+                      onChange={(event) => setGradientStop(index, { color: event.currentTarget.value })}
+                      className="h-5 w-7 shrink-0 rounded-[2px] border border-hairline"
+                    />
+                    <input
+                      type="number"
+                      aria-label={'Gradient stop ' + (index + 1) + ' position'}
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={Math.round(stop.offset * 100)}
+                      onChange={(event) => setGradientStop(index, { offset: Number(event.currentTarget.value) / 100 })}
+                      className="h-6 w-12 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent"
+                    />
+                    <span className="shrink-0 text-[10px] text-ink-faint">%</span>
+                    <button
+                      type="button"
+                      aria-label={'Remove gradient stop ' + (index + 1)}
+                      disabled={gradient.stops.length <= 2}
+                      onClick={() => removeGradientStop(index)}
+                      className="ml-auto shrink-0 rounded-ui px-1 text-[11px] text-ink-faint hover:bg-chrome-hover hover:text-danger disabled:opacity-30"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  disabled={gradient.stops.length >= 8}
+                  onClick={() => addGradientStop(0.5, '#ffffff')}
+                  className="h-6 rounded-ui border border-hairline text-ui-xs text-ink-muted hover:bg-chrome-hover hover:text-ink disabled:opacity-40"
+                >
+                  Add stop
+                </button>
+              </div>
+            </>
           )}
           <PercentField label="Opacity" value={node.style.opacity} onChange={(percent) => setSelectionOpacity(percent / 100)} />
           <SelectField label="Blend" value={node.style.blendMode ?? 'normal'} options={BLENDS} onChange={(mode) => setSelectionBlendMode(mode)} />

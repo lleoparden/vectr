@@ -849,6 +849,53 @@ export function setSelectionBlendMode(mode: BlendMode): void {
   applySelectionStyle((node) => ({ ...node.style, blendMode: mode }), 'blend mode')
 }
 
+/** Chooses whether the gradient paints the fill, the stroke, or both (issue #70). */
+export function setSelectionGradientTarget(target: 'fill' | 'stroke' | 'both'): void {
+  applySelectionStyle((node) => ({ ...node.style, gradientTarget: target }), 'gradient target')
+}
+
+/** Switches a gradient between linear and radial, keeping its stops and endpoints. */
+export function setSelectionGradientType(type: 'linear' | 'radial'): void {
+  applySelectionStyle((node) => {
+    const gradient = node.style.gradient ?? null
+    if (gradient === null) return node.style
+    return { ...node.style, gradient: { ...gradient, type } }
+  }, 'gradient type')
+}
+
+/** Appends a stop at an offset; validation refuses more than eight. */
+export function addGradientStop(offset: number, color: string): void {
+  applySelectionStyle((node) => {
+    const gradient = node.style.gradient ?? null
+    if (gradient === null) return node.style
+    const stops = [...gradient.stops, { offset: Math.max(0, Math.min(1, offset)), color }].sort((left, right) => left.offset - right.offset)
+    return { ...node.style, gradient: { ...gradient, stops } }
+  }, 'add gradient stop')
+}
+
+/** Removes a stop; the last two are kept, because one stop is not a gradient. */
+export function removeGradientStop(index: number): void {
+  applySelectionStyle((node) => {
+    const gradient = node.style.gradient ?? null
+    if (gradient === null || gradient.stops.length <= 2) return node.style
+    return { ...node.style, gradient: { ...gradient, stops: gradient.stops.filter((_, at) => at !== index) } }
+  }, 'remove gradient stop')
+}
+
+/** Edits one stop's colour or offset. */
+export function setGradientStop(index: number, patch: { offset?: number; color?: string }): void {
+  applySelectionStyle((node) => {
+    const gradient = node.style.gradient ?? null
+    if (gradient === null) return node.style
+    const stops = gradient.stops.map((stop, at) => {
+      if (at !== index) return stop
+      const offset = patch.offset === undefined ? stop.offset : Math.max(0, Math.min(1, patch.offset))
+      return { offset, color: patch.color ?? stop.color }
+    })
+    return { ...node.style, gradient: { ...gradient, stops: stops.sort((left, right) => left.offset - right.offset) } }
+  }, 'gradient stop')
+}
+
 /** Sets the selection's opacity (0–1) as one undo entry; the renderer already applies it. */
 export function setSelectionOpacity(opacity: number): void {
   if (!Number.isFinite(opacity)) return

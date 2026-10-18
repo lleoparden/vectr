@@ -68,9 +68,13 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
     if (mode !== undefined && !BLEND_MODES.includes(mode)) {
       return fail('invalid-index', `Node ${node.id} has an unsupported blend mode.`, node.id)
     }
+    const target = node.style.gradientTarget
+    if (target !== undefined && target !== 'fill' && target !== 'stroke' && target !== 'both') {
+      return fail('invalid-index', `Node ${node.id} has an unsupported gradient target.`, node.id)
+    }
     const gradient = node.style.gradient ?? null
     if (gradient !== null) {
-      if (gradient.type !== 'linear') {
+      if (gradient.type !== 'linear' && gradient.type !== 'radial') {
         return fail('invalid-index', `Node ${node.id} has an unsupported gradient type.`, node.id)
       }
       if (gradient.stops.length < 2 || gradient.stops.length > 8) {
@@ -89,6 +93,10 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
       }
       if (gradient.from.x === gradient.to.x && gradient.from.y === gradient.to.y) {
         return fail('invalid-index', `Gradient ${node.id} has identical endpoints.`, node.id)
+      }
+      if (gradient.type === 'radial') {
+        const radius = Math.hypot(gradient.to.x - gradient.from.x, gradient.to.y - gradient.from.y)
+        if (!(radius > 0)) return fail('invalid-index', `Radial gradient ${node.id} has no radius.`, node.id)
       }
     }
   }

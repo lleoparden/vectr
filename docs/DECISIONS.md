@@ -2007,3 +2007,19 @@ owner asked for originally.
   (a real vector operation), not a paint setting; shipping a slider that changed nothing would be the
   lie the UI rule forbids.
 
+## 2026-10-18 — Radial gradients, stop editing, gradient strokes, and the full blend set (#70)
+
+- **A radial gradient is the same definition as a linear one**, with `from` as the centre and the distance
+  to `to` as the radius. No second paint type, no second UI, and a gradient can be switched between the two
+  without losing its stops.
+- **Stops are edit ord: colour and position in the panel, add up to eight, remove down to two.** The model
+  already allowed eight; the panel now does too, and validation refuses one stop because one stop is not a
+  gradient.
+- **A gradient can paint the fill, the stroke, or both.** The stroke reuses the fill's shader, so dashes,
+  caps, joins, and stroke alignment all still work on a gradient stroke.
+- **All sixteen blend modes ship**, including the four non-separable ones (hue, saturation, colour,
+  luminosity), and they now apply to **strokes as well as fills** — the earlier fill-only limit is closed.
+- **Recorded as unsupported:** freeform gradients, patterns, mesh, and recolour. Each needs geometry or a
+  pattern/mesh model the document does not have; the catalog says so rather than shipping a control that
+  changes nothing.
+

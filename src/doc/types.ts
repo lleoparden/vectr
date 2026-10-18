@@ -1,3 +1,7 @@
+import type { Cmyk } from '../geom/types.ts'
+
+export type { Cmyk }
+
 /**
  * Vectr document model (Phase 1 slice 2, issue #18).
  *
@@ -29,8 +33,6 @@ export type StrokeJoin = 'miter' | 'round' | 'bevel'
 
 /** Where a stroke sits relative to the outline (Illustrator's Stroke panel). */
 export type StrokeAlign = 'center' | 'inside' | 'outside'
-/** A CMYK ink definition; `color` is the converted RGB used for display and export. */
-export type Cmyk = { c: number; m: number; y: number; k: number }
 /** A named colour in the document, optionally defined in CMYK or flagged as a spot ink. */
 export type Swatch = { id: string; name: string; color: string; cmyk?: Cmyk; spot?: boolean }
 

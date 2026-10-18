@@ -56,6 +56,20 @@ The parity catalog (`docs/PARITY_CATALOG.md`) is the source of truth. Every item
 
 **Gate quality.** Every slice ships with typecheck, unit tests, a production build, packaged evidence for its user-visible path, and - where the user can see or press it - an assertion that reaches the control the way a user does (hit testing, real chords), not a synthetic event on a hidden element. Interaction fidelity is measured by the packaged run and by the catalog's UI rows, not by opinion.
 
+## Phase tracking
+
+Epics are created up front, one per phase, per the workflow in `.agents/workflows/issue-ready.md`.
+
+| Phase | Epic | Phase | Epic |
+|---|---|---|---|
+| 0 Reference and platform | #2 (closed) | 7 Appearance, effects, advanced paint | #113 |
+| 1 Document and editor foundation | #3 (closed) | 8 Files and interoperability | #11 |
+| 2 Core vector illustration | #5 (closed) | 9 Core parity gate | #13 |
+| 3 Architecture realignment | #106 | 10 React and Tailwind compiler | #14 |
+| 4 Interaction fidelity | #112 | 11 MCP server | #4 |
+| 5 Path model and booleans | #6 | 12 Cloud and collaboration | #7 |
+| 6 Type | #9 | 13 Further expansion | #10 |
+
 ---
 
 ## Phase 0 - Reference catalog and platform decision (complete)

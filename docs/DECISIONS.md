@@ -2048,3 +2048,17 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **What does not change:** the format stays v4 through the retrofit, every slice still ships with typecheck,
   tests, build, packaged evidence, and self-review, and no control ships that does not do what it says.
 
+## 2026-10-18 - The layer rule is enforced by a script, and L0 was extracted (Phase 3.1)
+
+- **The rule is a test, not a paragraph.** `scripts/check-layers.mjs` maps every source file to a layer and fails
+  the suite when a runtime import points upward. It runs before the unit tests in `npm test`, so a violation
+  cannot hide behind a green test run.
+- **Type-only imports may cross layers.** A lower layer needs to name a shape the higher layer owns (the
+  viewport math names `Artboard`), and those imports disappear at build time. Allowing them keeps the model
+  honest without forcing every type into one file.
+- **`src/geom/` is the new L0**: shape geometry, colour, CMYK conversion, and the viewport's own math and
+  parameters. The zoom limits and fit padding moved out of the theme because they are viewport behaviour, not
+  styling; the theme re-exports them so the interface keeps one import surface.
+- **The check's first run found two real violations** - the engine layer importing the interface layer for CMYK
+  conversion and viewport helpers - which is the strongest argument for having it.
+

@@ -9,7 +9,7 @@
 import { findNode, findParent, findWithin } from './document.ts'
 import { MAX_TEXT_LENGTH } from './document.ts'
 import { BLEND_MODES, isGroup, isImage, isText, SUPPORTED_FORMAT_VERSION_LIST, type Document, type GroupNode, type LayerNode, type NodeId } from './types.ts'
-import { clampCornerRadius } from './shapeGeometry.ts'
+import { clampCornerRadius } from '../geom/shapeGeometry.ts'
 
 export type ValidationCode =
   | 'duplicate-id'

@@ -14,7 +14,7 @@
 
 import { findNode, findParent, worldTransform } from './document.ts'
 import { isGroup, type Document, type LayerNode, type NodeId } from './types.ts'
-import { clipPolygon } from './shapeGeometry.ts'
+import { clipPolygon } from '../geom/shapeGeometry.ts'
 
 export type Point = { x: number; y: number }
 

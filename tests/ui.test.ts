@@ -13,7 +13,7 @@ import { ACTION_IDS, canRunAction, panelActionId, runEditorAction } from '../src
 import { MENU_BAR, OMITTED_MENUS, menuCommands, menuForMnemonic, menuMnemonic, separatorsAreSane } from '../src/app/menus/menuModel.ts'
 import { needsUnsavedPrompt, promptChoiceFor, unsavedCopy } from '../src/app/files/unsavedPrompt.ts'
 import { chordFromEvent, chordLabel, chordKeys, matchShortcut, SHORTCUTS, shortcutLabel } from '../src/app/menus/shortcuts.ts'
-import { actualSize, clampZoom, fitArtboard, nextZoomStep, zoomAtPoint, zoomByStep } from '../src/app/canvas/viewportOps.ts'
+import { actualSize, clampZoom, fitArtboard, nextZoomStep, zoomAtPoint, zoomByStep } from '../src/geom/viewport.ts'
 import { expandedGroupIds, layerRows, rowDescription } from '../src/app/panels/layerRows.ts'
 import { DOCK_WIDTH, LAYER_INDENT, PALETTE_WIDTH, ZOOM_MAX, ZOOM_MIN, ZOOM_STEPS } from '../src/app/ui/theme.ts'
 import { INITIAL_CREATION_DEFAULTS, PANEL_IDS, WorkspaceStore, workspaceStore } from '../src/state/workspaceStore.ts'

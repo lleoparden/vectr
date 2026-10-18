@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { isLightColor, normalizeHex, PANEL_SWATCHES } from './color.ts'
+import { isLightColor, normalizeHex, PANEL_SWATCHES } from '../../geom/color.ts'
 import { beginLiveEdit, endLiveEdit, markLiveChanged } from './liveEdit.ts'
 
 const FIELD =

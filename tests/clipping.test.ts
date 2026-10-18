@@ -6,7 +6,7 @@ import { createDocument, createGroup, createRect, findNode } from "../src/doc/do
 import { buildScene } from "../src/render/scene.ts"
 import { hitTest } from "../src/doc/hitTest.ts"
 import { validateDocument } from "../src/doc/validate.ts"
-import { clipPolygon } from "../src/doc/shapeGeometry.ts"
+import { clipPolygon } from "../src/geom/shapeGeometry.ts"
 import type { Document, GroupNode, LayerNode } from "../src/doc/types.ts"
 
 function inserted(document: Document, parentId: string, nodes: LayerNode[]): Document {

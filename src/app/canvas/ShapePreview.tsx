@@ -7,7 +7,7 @@
  */
 
 import type { ShapeParams } from '../../doc/document.ts'
-import { clampCornerRadius, lineEndpoints, outlinePoints } from '../../doc/shapeGeometry.ts'
+import { clampCornerRadius, lineEndpoints, outlinePoints } from '../../geom/shapeGeometry.ts'
 import type { Point } from '../../doc/hitTest.ts'
 import type { ShapeKind } from '../../doc/document.ts'
 import { boxFor, constrainEnd, lineFrom as lineFromCorner } from './shapeDrag.ts'

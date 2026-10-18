@@ -38,7 +38,7 @@ import wasmUrl from 'canvaskit-wasm/bin/canvaskit.wasm?url'
 import fontUrl from '../assets/fonts/Inter-Variable.ttf?url'
 import type { NodeId } from '../doc/types.ts'
 import { DEFAULT_FONT_FAMILY } from '../doc/document.ts'
-import { clampCornerRadius, outlinePoints } from '../doc/shapeGeometry.ts'
+import { clampCornerRadius, outlinePoints } from '../geom/shapeGeometry.ts'
 import type { Scene, SceneClip, SceneShape } from './scene.ts'
 
 export type EditorRendererInfo = {

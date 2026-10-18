@@ -6,7 +6,7 @@
  * own, because while it is on, "what you are editing" is the most important fact on screen.
  */
 
-import { zoomPercent } from '../canvas/viewportOps.ts'
+import { zoomPercent } from '../../geom/viewport.ts'
 import { artboardRect } from '../../doc/artboards.ts'
 import { isolationLabel } from '../editing/isolation.ts'
 import { useEditorState } from '../../state/useEditorState.ts'

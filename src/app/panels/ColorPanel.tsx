@@ -10,7 +10,7 @@ import { findNode, paintOrder } from '../../doc/document.ts'
 import { isLeaf, isText, supportsFill, type Document } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
 import { addCmykSwatch, addSwatchFromSelection, applySwatch, removeSwatch, setSelectionFill } from '../actions.ts'
-import { isLightColor, normalizeHex } from '../ui/color.ts'
+import { isLightColor, normalizeHex } from '../../geom/color.ts'
 import { ColorField, Section } from '../ui/fields.tsx'
 import { useState } from 'react'
 

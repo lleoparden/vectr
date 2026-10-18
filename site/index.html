@@ -1,5 +1,6 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+<<<<<<< Updated upstream
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -26,55 +27,202 @@
         <a href="https://github.com/lleoparden/vectr/blob/main/docs/PROGRESS.md">Progress</a>
       </nav>
     </header>
+=======
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vectr: Draw like Illustrator. Ship React.</title>
+<meta name="description" content="A desktop-first vector design tool with Illustrator's conventions and its own compiler: every layer becomes a readable React component styled with Tailwind.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+>>>>>>> Stashed changes
 
-    <main>
-      <section>
-        <h2>What it is</h2>
-        <p>
-          A drawing application built the way a design tool should be: a document model with exact inverses,
-          one validated command for every action, tools as state machines, and an interface that follows
-          Illustrator where muscle memory matters.
-        </p>
-        <ul class="grid">
-          <li><strong>Twelve tools</strong> as state machines: selection, direct selection, lasso, seven shapes, type, hand, zoom.</li>
-          <li><strong>Real transforms</strong>: move, scale in the object's own frame, rotate with Shift snapping, Alt-drag to duplicate.</li>
-          <li><strong>Paint</strong>: fills, strokes with caps, joins, dashes and alignment, linear and radial gradients with eight stops, all sixteen blend modes, named CMYK and spot swatches.</li>
-          <li><strong>Pages</strong>: artboards with presets, rulers, a grid, and guides that snap and save with the document.</li>
-          <li><strong>Documents</strong>: a versioned native format, autosave, crash recovery, and byte-stable saves.</li>
-          <li><strong>An honest interface</strong>: no dead controls, and a packaged run of 145 steps as evidence.</li>
-        </ul>
-      </section>
+<header class="top">
+  <a class="brand" href="#" aria-label="Vectr home">
+    <svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#A94A4A"/><path d="M17 17 L32 43 L47 17" fill="none" stroke="#F3EEE8" stroke-width="8"/><rect x="26.5" y="38" width="11" height="11" fill="#1B1B1F"/></svg>
+    Vectr
+  </a>
+  <nav aria-label="Main">
+    <a href="#compiler">Compiler</a><a href="#features">Features</a><a href="#status">Status</a><a href="#roadmap">Roadmap</a><a class="btn small" href="#start">Get started</a>
+  </nav>
+</header>
 
-      <section>
-        <h2>Where it is going</h2>
-        <p>
-          The differentiator is the compiler: a layered Vectr document becomes a component tree a developer would
-          keep. Before it, the remaining Illustrator parity work is scheduled in public - Bezier paths and
-          booleans, full type, appearance and effects, file interchange, and the core parity gate.
-        </p>
-        <ol class="phases">
-          <li><span>Phase 5</span> Path model, pen, booleans, width profiles</li>
-          <li><span>Phase 6</span> Type: area, path, threading, styles</li>
-          <li><span>Phase 7</span> Appearance stacks, effects, brushes and symbols</li>
-          <li><span>Phase 8</span> SVG, PDF, and Illustrator interchange</li>
-          <li><span>Phase 9</span> Core parity gate: platforms, performance, accessibility</li>
-          <li><span>Phase 10</span> The React and Tailwind compiler</li>
-        </ol>
-      </section>
+<main>
+<section class="hero">
+  <h1>Draw like Illustrator.<br>Ship React.</h1>
+  <p class="lede">Vectr is a desktop-first vector design tool with Illustrator's conventions and its own compiler. Every layer becomes a readable React component styled with Tailwind.</p>
+  <p class="actions"><a class="btn" href="#start">Get started</a><a class="btn ghost" href="#compiler">See the compiler</a></p>
+  <svg class="curve" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
+    <path id="draw" d="M20 120 C 220 120, 260 30, 480 40 S 800 140, 1000 60 S 1130 30, 1180 40" fill="none" stroke="#E07C7B" stroke-width="4"/>
+    <g stroke="#E07C7B" stroke-width="1.5"><line x1="480" y1="40" x2="620" y2="48"/><line x1="480" y1="40" x2="340" y2="34"/><line x1="1000" y1="60" x2="1090" y2="90"/><line x1="1000" y1="60" x2="910" y2="28"/></g>
+    <g fill="#1B1B1F" stroke="#E07C7B" stroke-width="2"><circle cx="620" cy="48" r="6"/><circle cx="340" cy="34" r="6"/><circle cx="1090" cy="90" r="6"/><circle cx="910" cy="28" r="6"/></g>
+    <g fill="#E07C7B"><rect x="12" y="112" width="16" height="16"/><rect x="472" y="32" width="16" height="16"/><rect x="992" y="52" width="16" height="16"/><rect x="1172" y="32" width="16" height="16"/></g>
+  </svg>
+  <figure class="shot">
+    <img src="screenshot.png" width="1424" height="889" alt="The Vectr editor: tool palette on the left, an empty 1200 by 800 artboard, and Layers, Properties, and Align panels on the right.">
+    <figcaption>Vectr today: Selection tool, artboards, and the Layers, Properties, and Align panels.</figcaption>
+  </figure>
+</section>
 
-      <section>
-        <h2>Built in the open</h2>
-        <p>
-          Every slice ships with typecheck, the full unit suite, a production build, packaged evidence, and a
-          self-review on its pull request. The decisions record says why things are the way they are, including
-          what is deliberately not built yet.
-        </p>
-      </section>
-    </main>
+<section id="compiler" class="dark">
+  <div class="wrap split">
+    <div>
+      <h2>Every layer becomes a component.</h2>
+      <p>Each layer gets a stable, readable name. Groups compose their children. Styling lands in Tailwind, with the smallest honest CSS or SVG adjunct where Tailwind can't express something. Pick a layer to see how it compiles.</p>
+      <p class="note">Illustrative output. The compiler arrives in Phase 10.</p>
+    </div>
+    <div class="demo">
+      <div class="layers" role="group" aria-label="Layers">
+        <button class="on" aria-pressed="true" data-k="Card">Card</button>
+        <button aria-pressed="false" data-k="Badge" class="child">Badge</button>
+        <button aria-pressed="false" data-k="Title" class="child">Title</button>
+        <button aria-pressed="false" data-k="Underline" class="child">Underline</button>
+      </div>
+      <pre aria-live="polite"><code id="code"></code></pre>
+    </div>
+  </div>
+</section>
 
-    <footer>
-      <span>Vectr - MIT licensed.</span>
-      <span>Illustrator is a trademark of Adobe Inc.; Vectr is not affiliated with Adobe.</span>
-    </footer>
-  </body>
+<section id="features" class="light">
+  <div class="wrap">
+    <h2>Built the way a drawing tool has to be built.</h2>
+    <p class="intro">A versioned document with exact undo inverses, one validated command for every action, and tools as state machines. Vectr is a vector illustration application, not a whiteboard.</p>
+    <dl class="feat">
+      <div><dt>Twelve tools</dt><dd>Selection and Direct Selection with their flyout, Lasso, seven shape tools, Type, Hand, and Zoom. All state machines.</dd></div>
+      <div><dt>Real transforms</dt><dd>Move, eight-handle scale in the object's own frame, rotation with a 15° Shift snap, Alt-drag to duplicate, and arrow-key nudging.</dd></div>
+      <div><dt>Precision canvas</dt><dd>Multiple artboards with size presets, rulers, a grid under the artwork, and guides that snap and live in the file.</dd></div>
+      <div><dt>Paint that behaves</dt><dd>Strokes with caps, joins, dashes, and alignment. Linear and radial gradients, sixteen blend modes, and CMYK or spot swatches.</dd></div>
+      <div><dt>Composition</dt><dd>Vector clipping masks, isolation mode, nested groups, Arrange, Align and distribute, and cut, copy, paste.</dd></div>
+      <div><dt>Type and images</dt><dd>Point text with in-place editing and missing-font reporting. Embedded and linked images, relink, crop, and raster alpha masks.</dd></div>
+      <div><dt>Layers you can work in</dt><dd>Reorder, rename, nest, lock and hide with inheritance, live thumbnails, and drag-into-group.</dd></div>
+      <div><dt>A live interface</dt><dd>Hover outlines from the same hit test the tools use, per-tool cursors, and number fields that accept arithmetic like 120+30.</dd></div>
+      <div><dt>Documents that hold</dt><dd>A versioned native format with byte-stable saves, autosave, crash recovery of the whole project folder, and a close guard.</dd></div>
+      <div><dt>No dead controls</dt><dd>A capability that isn't built isn't displayed. Every shipped limitation is written down.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="status" class="dark">
+  <div class="wrap">
+    <h2>Phase 4 is complete. Phase 5, the Bézier path model, is next.</h2>
+    <table>
+      <thead><tr><th scope="col">Area</th><th scope="col">State</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Document, undo/redo, autosave, recovery</th><td>Shipped, 272 tests</td></tr>
+        <tr><th scope="row">Tools, transforms, rotation, zoom</th><td>Shipped, all twelve as state machines</td></tr>
+        <tr><th scope="row">Paint</th><td>Shipped. No mesh, patterns, or width profiles yet</td></tr>
+        <tr><th scope="row">Artboards, rulers, grid, guides</th><td>Shipped. No page reordering</td></tr>
+        <tr><th scope="row">Text</th><td>Point text only. Area, path, and threaded text are Phase 6</td></tr>
+        <tr><th scope="row">File interchange</th><td>Native format only. SVG, PDF, and .ai are Phase 8</td></tr>
+        <tr><th scope="row">React + Tailwind compiler</th><td>Phase 10</td></tr>
+        <tr><th scope="row">macOS and Linux</th><td>Phase 9</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="stack" class="light">
+  <div class="wrap split">
+    <div>
+      <h2>Strict layers, enforced on every test run.</h2>
+      <p>A module may only import from a lower layer. <code>scripts/check-layers.mjs</code> fails the build otherwise. The interface is one component kit: one button, one numeric field, one menu row. A test fails on any hand-written <code>&lt;button&gt;</code> outside it.</p>
+      <p class="stack-line">Electron 35, React 19, Tailwind CSS 4, Vite 6, TypeScript 5.7, CanvasKit (Skia), and <code>node:test</code>. Files are content-addressed project folders with canonical JSON manifests and atomic writes.</p>
+    </div>
+    <ol class="tiers" reversed>
+      <li><b>L7</b> electron/, dev, bench, scripts</li>
+      <li><b>L6</b> app: shell, canvas host, panels</li>
+      <li><b>L5</b> state, commands, editing rules</li>
+      <li><b>L4</b> tools as state machines</li>
+      <li><b>L3</b> render, file format, recovery</li>
+      <li><b>L2</b> ops: path operations (Phase 5)</li>
+      <li><b>L1</b> doc: model, commands, history</li>
+      <li><b>L0</b> geom: curves, transforms, colour</li>
+    </ol>
+  </div>
+</section>
+
+<section id="roadmap" class="dark">
+  <div class="wrap">
+    <h2>The road to the compiler.</h2>
+    <ol class="road">
+      <li><b>5</b><span>Bézier paths, the Pen, anchor editing, Pathfinder, Shape Builder, width profiles, compound paths</span></li>
+      <li><b>6</b><span>Type: area, on a path, threaded, character and paragraph styles</span></li>
+      <li><b>7</b><span>Appearance stacks, transparency groups, effects, brushes, patterns, symbols</span></li>
+      <li><b>8</b><span>SVG, PDF, and Illustrator file interchange with a published fidelity matrix</span></li>
+      <li><b>9</b><span>Core parity gate: hardening, macOS and Linux, performance budgets, accessibility</span></li>
+      <li class="goal"><b>10</b><span>The React + Tailwind compiler</span></li>
+      <li><b>11–13</b><span>MCP for account-scoped agents, cloud and collaboration, further expansion</span></li>
+    </ol>
+  </div>
+</section>
+
+<section id="start" class="rose">
+  <div class="wrap split">
+    <div>
+      <h2>Get started.</h2>
+      <p>Needs Node.js 22+ and npm. Windows is the reference platform today.</p>
+      <p>If <code>npm run smoke</code> fails with <code>reading 'whenReady'</code>, your shell has <code>ELECTRON_RUN_AS_NODE=1</code> set. Clear it for the run. That is not a Vectr bug.</p>
+    </div>
+    <pre class="term"><code>npm install
+npm start          # build and launch the editor
+
+# verify it
+npm run typecheck  # tsc --noEmit
+npm test           # 272 tests + layer rule + UI standards
+npm run build      # vite build
+npm run smoke      # 143 packaged steps, seven reports</code></pre>
+  </div>
+</section>
+</main>
+
+<footer class="light">
+  <div class="wrap">
+    <p><strong>Contributing.</strong> Read AGENTS.md first. Every change starts on its own branch and ships with typecheck, the full suite, a build, and packaged evidence. Each pull request states which layer it touches, what it leaves out, and its residual doubt.</p>
+    <p>Docs: PLAN, PROGRESS, AUDIT, DECISIONS, PARITY_CATALOG, PARITY_ROADMAP, and MASTER_PLAN.</p>
+    <p class="fine">MIT licensed. Illustrator and Adobe are trademarks of Adobe Inc.; Vectr is not affiliated with Adobe. VectorCraft is a separate project used only as behavioural and architectural reference.</p>
+  </div>
+</footer>
+
+<script>
+const code = {
+Card:`export function Card() {
+  return (
+    <div className="relative h-64 w-96 rounded-2xl bg-[#A94A4A]">
+      <Badge />
+      <Title />
+      <Underline />
+    </div>
+  );
+}`,
+Badge:`export function Badge() {
+  return (
+    <div className="absolute left-6 top-6 h-8 w-8 rounded-full bg-[#F3EEE8]" />
+  );
+}`,
+Title:`export function Title() {
+  return (
+    <p className="absolute left-6 top-20 text-3xl font-bold text-[#F3EEE8]">
+      Hello
+    </p>
+  );
+}`,
+Underline:`export function Underline() {
+  return (
+    <svg className="absolute left-6 top-32 h-3 w-40" viewBox="0 0 160 12" fill="none">
+      <path d="M2 8 C 40 0, 80 12, 158 4"
+        stroke="#F3EEE8" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}`};
+const out = document.getElementById('code');
+const btns = document.querySelectorAll('.layers button');
+const show = k => { out.textContent = code[k]; btns.forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); };
+btns.forEach(b => b.addEventListener('click', () => show(b.dataset.k)));
+show('Card');
+</script>
+</body>
 </html>

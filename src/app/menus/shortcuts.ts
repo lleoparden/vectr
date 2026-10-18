@@ -47,8 +47,6 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'tool.text', chord: { key: 't' }, illustratorDefault: true },
   // H is Illustrator's own chord for the Hand tool; Space reaches it temporarily.
   { id: 'tool.hand', chord: { key: 'h' }, illustratorDefault: true },
-  // Shift+O is Illustrator's own chord for the Artboard tool.
-  { id: 'tool.artboard', chord: { key: 'o', shift: true }, illustratorDefault: true },
 
   // File (Illustrator's document chords, then Place).
   { id: 'file.new', chord: { key: 'n', ctrl: true }, illustratorDefault: true },

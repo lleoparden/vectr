@@ -16,13 +16,11 @@ import { isText, type NodeId, type Transform } from '../../doc/types.ts'
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
-import { createArtboardFromRect, placeImage, resizeArtboard } from '../actions.ts'
+import { placeImage } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { ArtboardOverlay } from './ArtboardOverlay.tsx'
-import { artboardFromDrag, dragIsAPage, resizedPage, type ResizeEdge } from '../editing/artboardDrag.ts'
-import { beginLiveEdit, endLiveEdit } from '../ui/liveEdit.ts'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { scaleFactors, scaledTransform, unionBounds, type HandleId, type Rect } from '../editing/transform.ts'
@@ -43,7 +41,6 @@ type Gesture =
   | { kind: 'move'; start: Point; current: Point; originals: Map<string, Transform>; box: Rect | null }
   | { kind: 'marquee'; start: Point; current: Point; deep: boolean }
   | { kind: 'lasso'; points: Point[] }
-  | { kind: 'artboardCreate'; start: Point; current: Point }
   | { kind: 'pan'; startClient: Point; panStart: Point }
 
 const MIN_DRAG = 4
@@ -93,9 +90,6 @@ export function CanvasView() {
   const [lassoPath, setLassoPath] = useState<Point[] | null>(null)
   /** Smart-guide lines shown while a snapped drag is in flight (issue #68). */
   const [guides, setGuides] = useState<SnapGuide[]>([])
-  /** The page rectangle being dragged out with the Artboard tool, in scene units. */
-  const [artboardPreview, setArtboardPreview] = useState<Rect | null>(null)
-  const artboardResizeRef = useRef<{ edge: ResizeEdge; id: string; startSize: { width: number; height: number }; start: Point } | null>(null)
   /** The scale gesture's starting box and transforms, captured once so every move is absolute. */
   const scaleRef = useRef<{ handle: HandleId; box: Rect; originals: Map<string, Transform> } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -293,28 +287,6 @@ export function CanvasView() {
     documentStore.commitTransaction()
   }
 
-  /** The Artboard tool's resize drag: one live session, so the whole drag is one undo entry. */
-  function startArtboardResize(edge: ResizeEdge, point: Point) {
-    const document = documentStore.getState().document
-    const page = artboardRect(document, workspaceStore.getState().activeArtboardId)
-    if (page === null) return
-    beginLiveEdit('resize artboard')
-    artboardResizeRef.current = { edge, id: page.id, startSize: { width: page.width, height: page.height }, start: point }
-  }
-
-  function moveArtboardResize(edge: ResizeEdge, point: Point) {
-    const resize = artboardResizeRef.current
-    if (resize === null) return
-    const size = resizedPage(resize.edge, resize.startSize, { x: point.x - resize.start.x, y: point.y - resize.start.y })
-    resizeArtboard(resize.id, size)
-  }
-
-  function endArtboardResize() {
-    if (artboardResizeRef.current === null) return
-    artboardResizeRef.current = null
-    endLiveEdit()
-  }
-
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     canvasRef.current?.setPointerCapture(event.pointerId)
     const start = toScene(event)
@@ -337,19 +309,6 @@ export function CanvasView() {
       return
     }
     if (event.button !== 0) return
-
-    // The Artboard tool: clicking a page makes it active, dragging the pasteboard makes a new page.
-    if (state.tool === 'artboard') {
-      const page = artboardAtPoint(state.document, start)
-      if (page !== null) {
-        workspaceStore.setActiveArtboard(page.id)
-        gestureRef.current = { kind: 'none' }
-        return
-      }
-      gestureRef.current = { kind: 'artboardCreate', start, current: start }
-      setArtboardPreview(artboardFromDrag(start, start))
-      return
-    }
 
     // The Lasso collects a freehand path; what it selects is decided on release.
     if (state.tool === 'lasso') {
@@ -469,12 +428,6 @@ export function CanvasView() {
       setOverlay({ kind: next.tool, start: next.start, current: next.current, shift: next.shift })
       return
     }
-    if (gesture.kind === 'artboardCreate') {
-      const next = { ...gesture, current }
-      gestureRef.current = next
-      setArtboardPreview(artboardFromDrag(next.start, current))
-      return
-    }
     if (gesture.kind === 'lasso') {
       const points = gesture.points.length >= MAX_LASSO_POINTS ? gesture.points : [...gesture.points, current]
       gestureRef.current = { kind: 'lasso', points }
@@ -497,12 +450,6 @@ export function CanvasView() {
     setLassoPath(null)
     canvasRef.current?.releasePointerCapture(event.pointerId)
 
-    if (gesture.kind === 'artboardCreate') {
-      const rect = artboardFromDrag(gesture.start, gesture.current)
-      setArtboardPreview(null)
-      if (dragIsAPage(rect)) createArtboardFromRect(rect)
-      return
-    }
     if (gesture.kind === 'move') {
       documentStore.commitTransaction()
       return
@@ -723,31 +670,12 @@ export function CanvasView() {
             />
           )
         })()}
-      {artboardPreview !== null && (() => {
-        const screen = toScreen(artboardPreview)
-        return (
-          <div
-            data-artboard-preview
-            className="pointer-events-none absolute border border-dashed border-accent/80 bg-accent/5"
-            style={{ left: screen.x, top: screen.y, width: screen.width, height: screen.height }}
-          >
-            <span className="absolute -top-[17px] left-0 text-[10px] text-accent-ink">
-              {Math.round(artboardPreview.width)}×{Math.round(artboardPreview.height)}
-            </span>
-          </div>
-        )
-      })()}
       <ArtboardOverlay
         pages={artboardRects(state.document)}
         activeId={workspace.activeArtboardId}
         zoom={state.viewport.zoom}
         panX={state.viewport.panX}
         panY={state.viewport.panY}
-        resizing={state.tool === 'artboard'}
-        toScene={toScene}
-        onResizeStart={startArtboardResize}
-        onResizeMove={moveArtboardResize}
-        onResizeEnd={endArtboardResize}
       />
       {selectionBox !== null && (
         <SelectionOverlay

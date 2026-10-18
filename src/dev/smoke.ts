@@ -982,12 +982,11 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 6 &&
+    slots.length === 5 &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
       lassoSlot?.title === 'Lasso Tool (Q)' &&
-      document.querySelector('[data-tool-slot="artboard"]') !== null &&
       document.querySelector('[data-tool-slot="hand"]') !== null,
     `${slots.length} slots, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
   )
@@ -1162,58 +1161,50 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     labels.length === documentStore.getState().document.artboards.length,
     labels.length + ' label(s) for ' + documentStore.getState().document.artboards.length + ' page(s)',
   )
-  // Artboard tool (issue #67 follow-up): Shift+O, then drag on the pasteboard to make a page.
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'O', shiftKey: true, bubbles: true }))
-  await settle(80)
-  record(
-    'Shift+O activates the Artboard tool',
-    documentStore.getState().tool === 'artboard',
-    'tool ' + documentStore.getState().tool,
-  )
+  // Canvas input goes through hit testing, not through the canvas element directly. This is the
+  // regression test for the bug where an overlay covered the canvas and ate every wheel and drag.
   const canvasEl = document.querySelector('canvas')
-  if (canvasEl !== null) {
-    const box = canvasEl.getBoundingClientRect()
-    const viewport = documentStore.getState().viewport
-    const at = (x: number, y: number) => ({ clientX: box.left + x * viewport.zoom + viewport.panX, clientY: box.top + y * viewport.zoom + viewport.panY })
-    const from = at(2600, 1400)
-    const to = at(2900, 1600)
-    const pagesBefore = documentStore.getState().document.artboards.length
-    canvasEl.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, ...from }))
-    canvasEl.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, ...to }))
-    await settle(60)
-    const preview = document.querySelector('[data-artboard-preview]')
-    canvasEl.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, ...to }))
-    await settle(120)
-    const pagesAfter = documentStore.getState().document.artboards
-    const created = pagesAfter[pagesAfter.length - 1]
-    record(
-      'dragging with the Artboard tool creates a page where it was dragged',
-      preview !== null && pagesAfter.length === pagesBefore + 1 && created.width === 300 && created.height === 200,
-      'preview ' + (preview !== null) + ', pages ' + pagesBefore + ' -> ' + pagesAfter.length + ', ' + created.width + 'x' + created.height,
+  const box = canvasEl === null ? null : canvasEl.getBoundingClientRect()
+  const centre = box === null ? null : { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+  const topmost = centre === null ? null : document.elementFromPoint(centre.x, centre.y)
+  record(
+    'nothing covers the canvas, so real input reaches it',
+    topmost !== null && (topmost === canvasEl || topmost.tagName === 'CANVAS'),
+    topmost === null ? 'nothing at the centre' : 'topmost element is ' + (topmost === canvasEl ? 'the canvas' : topmost.tagName),
+  )
+
+  const zoomBefore = documentStore.getState().viewport.zoom
+  if (centre !== null && topmost !== null) {
+    topmost.dispatchEvent(
+      new WheelEvent('wheel', { deltaY: -240, clientX: centre.x, clientY: centre.y, bubbles: true, cancelable: true }),
     )
   }
-  documentStore.setTool('select')
-  await settle(60)
-  // Hand tool: H, drag to move the camera, and Space borrows the hand in any tool.
+  await settle(80)
+  const zoomAfter = documentStore.getState().viewport.zoom
+  record(
+    'the scroll wheel zooms the view',
+    zoomAfter > zoomBefore,
+    'zoom ' + zoomBefore.toFixed(2) + ' -> ' + zoomAfter.toFixed(2),
+  )
+
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', bubbles: true }))
   await settle(60)
-  const handCanvas = document.querySelector('canvas')
   const panBefore = { ...documentStore.getState().viewport }
-  if (handCanvas !== null) {
-    const box = handCanvas.getBoundingClientRect()
-    const start = { clientX: box.left + 400, clientY: box.top + 300 }
-    const end = { clientX: box.left + 250, clientY: box.top + 200 }
-    handCanvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, ...start }))
-    handCanvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, ...end }))
-    handCanvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, ...end }))
+  if (centre !== null && topmost !== null) {
+    topmost.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, clientX: centre.x, clientY: centre.y }))
+    topmost.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, clientX: centre.x - 120, clientY: centre.y - 80 }))
+    topmost.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, clientX: centre.x - 120, clientY: centre.y - 80 }))
   }
   await settle(80)
   const panAfter = documentStore.getState().viewport
   record(
-    'the Hand tool drags the view',
-    documentStore.getState().tool === 'hand' && Math.round(panAfter.panX - panBefore.panX) === -150,
-    'tool ' + documentStore.getState().tool + ', panX ' + Math.round(panBefore.panX) + ' -> ' + Math.round(panAfter.panX),
+    'the Hand tool drags the view through the real target',
+    documentStore.getState().tool === 'hand' &&
+      Math.round(panAfter.panX - panBefore.panX) === -120 &&
+      Math.round(panAfter.panY - panBefore.panY) === -80,
+    'tool ' + documentStore.getState().tool + ', pan ' + Math.round(panBefore.panX) + ',' + Math.round(panBefore.panY) + ' -> ' + Math.round(panAfter.panX) + ',' + Math.round(panAfter.panY),
   )
+
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true }))
@@ -1226,6 +1217,8 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     borrowed === 'hand' && documentStore.getState().tool === 'select',
     'while held ' + borrowed + ', after release ' + documentStore.getState().tool,
   )
+
+
   // Put the selection back: the panels below are about the selected object, not the page.
   documentStore.setSelection(keptSelection)
   await settle(80)

@@ -23,7 +23,6 @@ import {
   IconSelect,
   IconStar,
   IconType,
-  IconArtboard,
   IconHand,
 } from '../ui/icons.tsx'
 import { shortcutLabel } from '../menus/shortcuts.ts'
@@ -45,7 +44,6 @@ const ICONS: Record<ToolId, typeof IconSelect> = {
   arc: IconArc,
   text: IconType,
   hand: IconHand,
-  artboard: IconArtboard,
 }
 
 export function ToolPalette() {

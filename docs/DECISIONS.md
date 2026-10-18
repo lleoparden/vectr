@@ -2239,3 +2239,20 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   not what shipped.
 - **Pairing Zoom with the Hand in one palette slot** is Illustrator's grouping and also keeps the owner's earlier
   request intact: the slot itself still sits directly under the selection tools.
+
+## 2026-10-18 - The UI component kit: one concept, variants as parameters (issue #133)
+
+- **`Button` carries six variants rather than six components.** `panel`, `primary`, `quiet`, `danger`, `icon`, and
+  `dialog` differ in paint and padding, not in behaviour, so one component with a `variant` parameter is the honest
+  shape; a separate component per variant would have re-created the duplication the rule forbids.
+- **Dialogs keep their data attributes and their ref.** `Button` accepts a `data` map and a `ref`, because the
+  dialog tests and the save-focus behaviour depend on them; dropping either would have made the kit unable to
+  express a real case, which is exactly when the rule says extend the primitive rather than copy it.
+- **The accent button text is now `text-accent-ink` everywhere.** The dialog and the panel had drifted (white in
+  one, ink in the other); one variant means one choice, and the theme's own on-accent token is the better one.
+  Pixels change slightly and the change is deliberate.
+- **The empty state is a component, not a class.** Three panels printed the same sentence with two different
+  colours; a component makes that a prop-free single answer.
+- **The standards test enforces only what has been cleaned.** It checks the four converted panels and the retired
+  import; widening it to the twelve remaining files before converting them would leave the suite red for reasons
+  the pass did not fix. The remaining inventory is in the issue, and the test grows with each conversion.

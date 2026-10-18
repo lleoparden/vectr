@@ -1,6 +1,37 @@
 # Progress
 
 
+## UI component kit, first pass (2026-10-18, issue #133)
+
+The owner's rule is in `AGENTS.md`: one component per concept, in `src/app/ui/components/`, with variants as
+parameters, and a second raw `<button>` in a panel is a review finding.
+
+- **The folder exists** and the field primitives moved into it (`components/fields.tsx`); every importer was
+  updated, and a test fails if anyone imports the retired `ui/fields.tsx` again.
+- **One button** (`components/Button.tsx`): variants `panel`, `primary`, `quiet`, `danger`, `icon`, `dialog`; sizes
+  `xs`/`sm`/`md`; an optional icon, a pressed state, row alignment, a block mode, and pass-through `data` and
+  `ref` so dialogs adopt it without losing the attributes their tests read. `PanelButton` is gone from the codebase.
+- **One empty state** (`components/EmptyState.tsx`): the three duplicated "Nothing selected." paragraphs are one
+  component now.
+- **Converted in this pass**: the Properties panel's artboard buttons, page rows, gradient stop remove and add
+  stop; the Align panel's eight buttons; the image relink/mask buttons; the Layers panel foot's three icon buttons;
+  the Color panel's Add swatch; both dialogs' buttons, data attributes intact.
+- **A standards test** (`tests/uiStandards.test.ts`) enforces the mechanical half: no imports of the old module,
+  no duplicated button styling outside `components/`, no raw `<button>` in the four panels cleaned here, and the
+  required primitives exist in the folder.
+
+**Behaviour is unchanged, measured:** 271/271 tests (4 new standards checks), layer check on 111 files, clean
+typecheck and build, and the packaged run **the same 145 steps across seven reports**.
+
+**What is left, so it is not mistaken for done:** 30 raw `<button>` elements remain in twelve files. Most are
+*different concepts* that need their own kit component rather than `Button`: menu titles and flyout items
+(`MenuButton`), the palette slots (`ToolSlot`), panel tabs (`Tab`), the options bar's segments
+(`SegmentedControl`), layer row controls and colour swatch rows (`ListItem`), eye/lock toggles (`IconToggle`), and
+the dialogs' full-screen dismiss backdrop, which is deliberately not a button-shaped control. Issue #133 stays open
+with that list as the next pass.
+
+
+
 ## The Zoom tool (2026-10-18, issue #131)
 
 The sweep in the previous slice found Illustrator's Zoom tool missing entirely; it exists now.

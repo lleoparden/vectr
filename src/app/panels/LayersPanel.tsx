@@ -29,6 +29,7 @@ import {
 } from '../ui/icons.tsx'
 import { expandedGroupIds, layerRows, rowDescription, type LayerRow } from './layerRows.ts'
 import { placementFor } from '../editing/layerDrag.ts'
+import { Button } from '../ui/components/Button.tsx'
 import { locateRowIds } from '../editing/locate.ts'
 import { LAYER_INDENT, LAYER_ROW_HEIGHT, ROW_TOGGLE_SIZE } from '../ui/theme.ts'
 import { canRunAction, deleteUnlockedSelection, runEditorAction, runLayerDrop } from '../actions.ts'
@@ -262,35 +263,26 @@ export function LayersPanel() {
         </span>
         {/* Illustrator's Layers panel foot: New Layer, Duplicate Selection, Delete Selection. */}
         <span className="flex shrink-0 items-center gap-[2px]">
-          <button
-            type="button"
-            title="New Layer"
-            aria-label="New Layer"
-            className="flex h-5 w-5 items-center justify-center rounded-ui text-ink-muted hover:bg-chrome-active hover:text-ink"
+          <Button
+            variant="icon"
+            label="New Layer"
+            icon={<IconNewLayer size={13} />}
             onClick={() => runEditorAction('layer.new')}
-          >
-            <IconNewLayer size={13} />
-          </button>
-          <button
-            type="button"
-            title="Duplicate Selection"
-            aria-label="Duplicate Selection"
+          />
+          <Button
+            variant="icon"
+            label="Duplicate Selection"
+            icon={<IconDuplicate size={13} />}
             disabled={!canRunAction('object.duplicate', state)}
-            className="flex h-5 w-5 items-center justify-center rounded-ui text-ink-muted hover:bg-chrome-active hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
             onClick={() => runEditorAction('object.duplicate')}
-          >
-            <IconDuplicate size={13} />
-          </button>
-          <button
-            type="button"
-            title="Delete Selection"
-            aria-label="Delete Selection"
+          />
+          <Button
+            variant="icon"
+            label="Delete Selection"
+            icon={<IconDelete size={13} />}
             disabled={state.selection.length === 0}
-            className="flex h-5 w-5 items-center justify-center rounded-ui text-ink-muted hover:bg-chrome-active hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
             onClick={() => deleteUnlockedSelection()}
-          >
-            <IconDelete size={13} />
-          </button>
+          />
         </span>
       </div>
 

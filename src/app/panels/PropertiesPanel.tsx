@@ -46,14 +46,15 @@ import {
   ButtonRow,
   ColorField,
   NumberField,
-  PanelButton,
   PercentField,
   Readout,
   Section,
   SelectField,
   TextField,
   ToggleField,
-} from '../ui/fields.tsx'
+} from '../ui/components/fields.tsx'
+import { Button } from '../ui/components/Button.tsx'
+import { EmptyState } from '../ui/components/EmptyState.tsx'
 
 const CAPS = ['butt', 'round', 'square'] as const
 const JOINS = ['miter', 'round', 'bevel'] as const
@@ -109,29 +110,26 @@ export function PropertiesPanel() {
     return (
       <div className={BODY} data-panel-body="properties">
         <Section title="Document">
-          <p className="text-ui-xs text-ink-muted">Nothing selected.</p>
+          <EmptyState>Nothing selected.</EmptyState>
           <p className="text-ui-xs text-ink-faint">Click an object, or a layer in the Layers panel.</p>
         </Section>
         <Section title="Artboards">
           <div className="flex flex-col gap-0.5">
             {pages.map((page) => (
-              <button
+              <Button
                 key={page.id}
-                type="button"
-                aria-pressed={page.active}
+                variant="quiet"
+                align="between"
+                block
+                active={page.active}
                 onClick={() => setActiveArtboard(page.id)}
-                className={
-                  'flex min-w-0 items-center justify-between gap-2 rounded-ui px-1.5 py-1 text-left text-ui-xs transition-colors ' +
-                  (page.active
-                    ? 'bg-accent-soft text-ink shadow-[inset_2px_0_0_var(--color-accent)]'
-                    : 'text-ink-muted hover:bg-chrome-hover hover:text-ink')
-                }
+                className="px-1.5 py-1 text-left"
               >
-                <span className="min-w-0 flex-1 truncate">{page.name}</span>
+                <span className="min-w-0 truncate">{page.name}</span>
                 <span className="shrink-0 tabular-nums text-[10px] text-ink-faint">
-                  {page.width}×{page.height}
+                  {page.width} × {page.height}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
           {active !== undefined && (
@@ -162,12 +160,12 @@ export function PropertiesPanel() {
             </div>
           )}
           <ButtonRow>
-            <PanelButton tone="accent" onClick={() => runEditorAction('artboard.new')}>
+            <Button variant="panel" tone="accent" onClick={() => runEditorAction('artboard.new')}>
               New artboard
-            </PanelButton>
-            <PanelButton disabled={pages.length <= 1} onClick={() => runEditorAction('artboard.delete')}>
+            </Button>
+            <Button disabled={pages.length <= 1} onClick={() => runEditorAction('artboard.delete')}>
               Delete
-            </PanelButton>
+            </Button>
           </ButtonRow>
         </Section>
       </div>
@@ -288,25 +286,20 @@ export function PropertiesPanel() {
                       value={Math.round(stop.offset * 100)}
                       onChange={(percent) => setGradientStop(index, { offset: percent / 100 })}
                     />
-                    <button
-                      type="button"
-                      aria-label={'Remove gradient stop ' + (index + 1)}
+                    <Button
+                      variant="danger"
+                      label={'Remove gradient stop ' + (index + 1)}
                       disabled={gradient.stops.length <= 2}
                       onClick={() => removeGradientStop(index)}
-                      className="ml-auto shrink-0 rounded-ui px-1 text-[11px] text-ink-faint hover:bg-chrome-hover hover:text-danger disabled:opacity-30"
+                      className="ml-auto px-1"
                     >
                       ×
-                    </button>
+                    </Button>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  disabled={gradient.stops.length >= 8}
-                  onClick={() => addGradientStop(0.5, '#ffffff')}
-                  className="h-6 rounded-ui border border-hairline text-ui-xs text-ink-muted hover:bg-chrome-hover hover:text-ink disabled:opacity-40"
-                >
+                <Button disabled={gradient.stops.length >= 8} onClick={() => addGradientStop(0.5, '#ffffff')}>
                   Add stop
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -426,18 +419,18 @@ export function PropertiesPanel() {
                   </p>
                 )}
                 <ButtonRow>
-                  <PanelButton onClick={() => void relinkImageFromDialog(node.id)}>Relink…</PanelButton>
-                  <PanelButton onClick={() => void setImageMaskFromDialog(node.id)}>
+                  <Button onClick={() => void relinkImageFromDialog(node.id)}>Relink…</Button>
+                  <Button onClick={() => void setImageMaskFromDialog(node.id)}>
                     {node.maskAssetId === null ? 'Add mask…' : 'Replace mask…'}
-                  </PanelButton>
+                  </Button>
                   {node.maskAssetId !== null && (
-                    <PanelButton
+                    <Button
                       onClick={() =>
                         documentStore.dispatch({ type: 'setImageMask', nodeId: node.id, maskAssetId: null }, 'remove image mask')
                       }
                     >
                       Remove mask
-                    </PanelButton>
+                    </Button>
                   )}
                 </ButtonRow>
                 <div className="grid grid-cols-2 gap-1.5 pt-1">

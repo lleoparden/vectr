@@ -13,9 +13,9 @@
  */
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { isLightColor, normalizeHex, PANEL_SWATCHES } from '../../geom/color.ts'
-import { beginLiveEdit, endLiveEdit, markLiveChanged } from './liveEdit.ts'
-import { evaluateExpression, scrubValue } from './number.ts'
+import { isLightColor, normalizeHex, PANEL_SWATCHES } from '../../../geom/color.ts'
+import { beginLiveEdit, endLiveEdit, markLiveChanged } from '../liveEdit.ts'
+import { evaluateExpression, scrubValue } from '../number.ts'
 
 const FIELD =
   'h-6 w-full min-w-0 rounded-ui border border-hairline bg-chrome-sunken px-1.5 text-ui-xs text-ink ' +
@@ -457,37 +457,7 @@ export function ButtonRow({ children }: { children: React.ReactNode }) {
   return <div className="flex min-w-0 flex-wrap gap-1.5">{children}</div>
 }
 
-export function PanelButton({
-  children,
-  onClick,
-  disabled,
-  tone = 'quiet',
-  'aria-label': ariaLabel,
-}: {
-  children: React.ReactNode
-  onClick: () => void
-  disabled?: boolean
-  tone?: 'quiet' | 'accent'
-  /** The accessible name; panel buttons carry icon-like short text, so the name is explicit. */
-  'aria-label'?: string
-}) {
-  const base = 'min-w-0 rounded-ui border px-2 py-1 text-ui-xs transition-colors disabled:opacity-40'
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-label={ariaLabel}
-      onClick={onClick}
-      className={
-        tone === 'accent'
-          ? `${base} border-accent bg-accent text-white hover:brightness-110 disabled:hover:brightness-100`
-          : `${base} border-hairline text-ink-muted hover:bg-chrome-hover hover:text-ink`
-      }
-    >
-      {children}
-    </button>
-  )
-}
+// PanelButton lived here until the shared Button replaced it (issue #133).
 
 function round(value: number): number {
   return Number.isInteger(value) ? value : Math.round(value * 100) / 100

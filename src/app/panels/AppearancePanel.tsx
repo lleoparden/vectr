@@ -19,7 +19,8 @@ import {
   setSelectionOpacity,
   setSelectionStroke,
 } from '../actions.ts'
-import { ColorField, NumberField, PercentField, Readout, Section, SelectField, ToggleField } from '../ui/fields.tsx'
+import { ColorField, NumberField, PercentField, Readout, Section, SelectField, ToggleField } from '../ui/components/fields.tsx'
+import { EmptyState } from '../ui/components/EmptyState.tsx'
 
 const BLENDS: readonly BlendMode[] = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten']
 
@@ -30,10 +31,7 @@ export function AppearancePanel() {
 
   if (node === null || !isLeaf(node)) {
     return (
-      <p className="px-3 py-4 text-ui-xs leading-relaxed text-ink-faint">
-        Select a shape or text object. Groups carry appearance through their children, and an image&apos;s
-        appearance is its pixels.
-      </p>
+      <EmptyState>{"\n        Select a shape or text object. Groups carry appearance through their children, and an image&apos;s\n        appearance is its pixels.\n      "}</EmptyState>
     )
   }
 

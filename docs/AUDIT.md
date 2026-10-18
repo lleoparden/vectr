@@ -100,6 +100,7 @@ catalog claims were stale and are corrected.
 | 60 | Context menus (canvas and layer rows) | ✅ | `ContextMenu`, layers panel | |
 | 61 | Layer panel polish: locate column, nested thumbnails, drag into a group | ⚠️ | catalog DOC-02 | Phase 4.5 |
 | 62 | Eyedropper | ❌ | - | Phase 7 |
+| 62b | Hover outlines and per-tool cursors | ✅ | `cursor.ts`, `HoverOverlay.tsx`, 3 packaged steps | shipped in 4.3 |
 
 ## Phase 3 - architecture realignment
 

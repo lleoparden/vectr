@@ -20,7 +20,8 @@ Gap 1 in the reference gap list, and the owner's central complaint. The first th
 2. **Rotation** - DONE in #126: degrees about the node's centre, rendered, hit-tested, framed, gesture-driven
    (18px corner zone, Shift 15 degrees), numeric in Properties, frame-aware scaling. 5 new tests, 2 packaged steps. - rotate from outside the corners, with the rotation stored in the transform, the inverse applied
    in hit testing, and the packaged run asserting a rotated object can be selected and moved where it looks.
-3. **Hover and previews** - hover outlines, tool-specific cursors over objects and handles, and a live preview for
+3. **Hover and previews** - DONE in #127: cursor vocabulary as data, hover outline using the tool hit test,
+   live rotation readout, and the inside-corner scale rule. 2 new tests, 3 packaged steps. - hover outlines, tool-specific cursors over objects and handles, and a live preview for
    every gesture that currently only shows its result after release.
 
 4. **Align and Transform panels** - the commands and fields exist (audit rows 50-51) but Illustrator users look for

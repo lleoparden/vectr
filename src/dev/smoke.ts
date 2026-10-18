@@ -14,7 +14,7 @@ import { createEllipse, createGroup, createRect, createText, findNode, worldBoun
 import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
 import { unionBounds } from '../doc/transform.ts'
-import { scaleFactors, scaledTransform } from '../geom/transform.ts'
+import { rotatePoint, scaleFactors, scaledTransform } from '../geom/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
 import { SNAP_PIXELS, snapBox, snapTargets } from '../app/editing/snapping.ts'
 import { deepHitWithin, groupToIsolate } from '../app/editing/isolation.ts'
@@ -1318,9 +1318,9 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   await settle(60)
   const panBefore = { ...documentStore.getState().viewport }
   if (centre !== null && topmost !== null) {
-    topmost.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, clientX: centre.x, clientY: centre.y }))
-    topmost.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, clientX: centre.x - 120, clientY: centre.y - 80 }))
-    topmost.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, clientX: centre.x - 120, clientY: centre.y - 80 }))
+    topmost?.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0, buttons: 1, bubbles: true, clientX: centre.x, clientY: centre.y }))
+    topmost?.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 1, bubbles: true, clientX: centre.x - 120, clientY: centre.y - 80 }))
+    topmost?.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, button: 0, buttons: 0, bubbles: true, clientX: centre.x - 120, clientY: centre.y - 80 }))
   }
   await settle(80)
   const panAfter = documentStore.getState().viewport
@@ -1345,6 +1345,88 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
     'while held ' + borrowed + ', after release ' + documentStore.getState().tool,
   )
 
+  // Cursors, hover, and the rotation preview (issue #121). Each step drives the element that is
+  // actually on top of the canvas, so a covered canvas cannot pass by accident.
+  runEditorAction('tool.rect')
+  await settle(60)
+  const canvasNode = canvasEl as HTMLCanvasElement
+  const rectCursor = getComputedStyle(canvasNode).cursor
+  runEditorAction('tool.text')
+  await settle(60)
+  const textCursor = getComputedStyle(canvasNode).cursor
+  runEditorAction('tool.hand')
+  await settle(60)
+  const handCursor = getComputedStyle(canvasNode).cursor
+  runEditorAction('tool.select')
+  await settle(60)
+  const selectCursor = getComputedStyle(canvasNode).cursor
+  record(
+    'each tool sets the cursor that says what it does',
+    rectCursor === 'crosshair' && textCursor === 'text' && handCursor === 'grab' && selectCursor === 'default',
+    'rect ' + rectCursor + ', text ' + textCursor + ', hand ' + handCursor + ', select ' + selectCursor,
+  )
+
+  const hoverNode = documentStore.getState().document.root.children[0]
+  const canvasBox = canvasNode.getBoundingClientRect()
+  const viewportNow = documentStore.getState().viewport
+  const toClient = (x: number, y: number) => ({
+    x: canvasBox.left + x * viewportNow.zoom + viewportNow.panX,
+    y: canvasBox.top + y * viewportNow.zoom + viewportNow.panY,
+  })
+  const hoverBox = hoverNode === undefined ? null : unionBounds(documentStore.getState().document, [hoverNode.id])
+  if (hoverNode !== undefined) documentStore.setSelection([hoverNode.id])
+  await settle(60)
+  const hoverTarget = hoverBox === null ? null : toClient(hoverBox.x + hoverBox.width / 2, hoverBox.y + hoverBox.height / 2)
+  if (hoverTarget !== null) {
+    topmost?.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 0, clientX: hoverTarget.x, clientY: hoverTarget.y }))
+  }
+  await settle(80)
+  const hovered = document.querySelector('[data-hover-outline]') !== null
+  const emptySpot = toClient(-100000, -100000)
+  topmost?.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 0, clientX: emptySpot.x, clientY: emptySpot.y }))
+  await settle(80)
+  record(
+    'hovering an object outlines it and moving away clears the outline',
+    hovered && document.querySelector('[data-hover-outline]') === null,
+    'outline on hover ' + (hovered ? 'drawn' : 'missing') + ', after leaving ' + (document.querySelector('[data-hover-outline]') === null ? 'cleared' : 'still there'),
+  )
+
+  // A real rotation drag shows its angle while it lasts and clears it afterwards. The viewport is
+  // pinned and the object placed, so the corner press is deterministic rather than dependent on
+  // whatever the earlier steps left on screen.
+  const rotationDrag = createRect('Smoke Rotate Drag', 40, 40, 100, 100)
+  documentStore.dispatch(
+    { type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [rotationDrag] },
+    'smoke rotate drag prep',
+  )
+  documentStore.setSelection([rotationDrag.id])
+  documentStore.setViewport({ zoom: 1, panX: 0, panY: 0 })
+  await settle(80)
+  const dragBox = unionBounds(documentStore.getState().document, [rotationDrag.id])
+  if (dragBox !== null) {
+    const pivot = { x: dragBox.x + dragBox.width / 2, y: dragBox.y + dragBox.height / 2 }
+    const cornerScene = { x: dragBox.x + dragBox.width, y: dragBox.y }
+    // The viewport was just pinned, so convert with it rather than with the closure's older copy.
+    const fresh = documentStore.getState().viewport
+    const cornerPoint = { x: canvasBox.left + cornerScene.x * fresh.zoom + fresh.panX, y: canvasBox.top + cornerScene.y * fresh.zoom + fresh.panY }
+    const destScene = rotatePoint(cornerScene, pivot, 90)
+    const destPoint = { x: canvasBox.left + destScene.x * fresh.zoom + fresh.panX, y: canvasBox.top + destScene.y * fresh.zoom + fresh.panY }
+    topmost?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1, pointerId: 1, clientX: cornerPoint.x + 9, clientY: cornerPoint.y - 9 }))
+    topmost?.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, buttons: 1, pointerId: 1, clientX: destPoint.x, clientY: destPoint.y }))
+    await settle(80)
+    const badge = document.querySelector('[data-rotation-badge]')?.textContent ?? ''
+    topmost?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, buttons: 0, pointerId: 1, clientX: destPoint.x, clientY: destPoint.y }))
+    await settle(80)
+    const badgeCleared = document.querySelector('[data-rotation-badge]') === null
+    const turnedNode = findNode(documentStore.getState().document, rotationDrag.id)
+    record(
+      'the rotation shows its angle while dragging, clears after, and turns the object',
+      /\d+/.test(badge) && badgeCleared && turnedNode !== null && turnedNode.type !== 'group' && Math.abs(turnedNode.transform.rotation) > 0.5,
+      'badge "' + badge + '", after ' + (badgeCleared ? 'cleared' : 'still there') + ', rotation ' + (turnedNode !== null && turnedNode.type !== 'group' ? turnedNode.transform.rotation.toFixed(1) : '?') + '°',
+    )
+    documentStore.undo()
+    await settle(60)
+  }
 
   // Put the selection back: the panels below are about the selected object, not the page.
   documentStore.setSelection(keptSelection)

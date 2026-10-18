@@ -60,6 +60,10 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
     }
   }
   if (!isGroup(node)) {
+    const align = node.style.stroke?.align
+    if (align !== undefined && align !== 'center' && align !== 'inside' && align !== 'outside') {
+      return fail('invalid-index', `Node ${node.id} has an unsupported stroke alignment.`, node.id)
+    }
     const mode = node.style.blendMode
     if (mode !== undefined && !BLEND_MODES.includes(mode)) {
       return fail('invalid-index', `Node ${node.id} has an unsupported blend mode.`, node.id)
@@ -158,6 +162,19 @@ export function validateDocument(document: Document): ValidationResult {
     guideIds.add(guide.id)
     if (guide.axis !== 'x' && guide.axis !== 'y') return fail('invalid-index', `Guide ${guide.id} has an unknown axis.`)
     if (!Number.isFinite(guide.position)) return fail('non-finite', `Guide ${guide.id} has a non-finite position.`)
+  }
+  const swatchIds = new Set<string>()
+  for (const swatch of document.swatches ?? []) {
+    if (swatchIds.has(swatch.id)) return fail('duplicate-id', `Duplicate swatch id ${swatch.id}.`)
+    swatchIds.add(swatch.id)
+    if (swatch.name.trim().length === 0) return fail('invalid-index', `Swatch ${swatch.id} has no name.`)
+    if (!/^#[0-9a-fA-F]{6}$/.test(swatch.color)) return fail('invalid-index', `Swatch ${swatch.id} has an unusable colour.`)
+    if (swatch.cmyk !== undefined) {
+      const { c, m, y, k } = swatch.cmyk
+      if (![c, m, y, k].every((value) => Number.isFinite(value) && value >= 0 && value <= 100)) {
+        return fail('non-finite', `Swatch ${swatch.id} has CMYK components outside 0..100.`)
+      }
+    }
   }
   const seen = new Set<NodeId>()
   const walk = (node: LayerNode, ancestry: Set<NodeId>): ValidationResult => {

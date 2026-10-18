@@ -9,9 +9,10 @@
 import { findNode, paintOrder } from '../../doc/document.ts'
 import { isLeaf, isText, supportsFill, type Document } from '../../doc/types.ts'
 import { useEditorState } from '../../state/useEditorState.ts'
-import { setSelectionFill } from '../actions.ts'
+import { addCmykSwatch, addSwatchFromSelection, applySwatch, removeSwatch, setSelectionFill } from '../actions.ts'
 import { isLightColor, normalizeHex } from '../ui/color.ts'
 import { ColorField, Section } from '../ui/fields.tsx'
+import { useState } from 'react'
 
 /** The palette Vectr ships with, named so swatches stay readable in tests and docs. */
 export const VECTR_PALETTE: Array<{ name: string; color: string }> = [
@@ -100,6 +101,8 @@ export function ColorPanel() {
         />
       </Section>
 
+      <SwatchesSection swatches={state.document.swatches ?? []} />
+
       <Section title="Vectr palette">
         <SwatchGrid
           entries={VECTR_PALETTE}
@@ -126,5 +129,115 @@ export function ColorPanel() {
           : 'Select a shape or text object, then click a swatch to fill it.'}
       </p>
     </div>
+  )
+}
+
+/**
+ * Named swatches (issue #69): the document's own colours, each with a name, the CMYK values a person
+ * entered (or the conversion of the RGB), and an optional spot flag. Applying one sets the fill; the
+ * colours already on objects are untouched by deleting a swatch, which is what deleting a *name* should
+ * mean.
+ */
+function SwatchesSection({ swatches }: { swatches: Array<{ id: string; name: string; color: string; cmyk?: { c: number; m: number; y: number; k: number }; spot?: boolean }> }) {
+  const [name, setName] = useState('')
+  const [mode, setMode] = useState<'fill' | 'cmyk'>('fill')
+  const [spot, setSpot] = useState(false)
+  const [cmyk, setCmyk] = useState({ c: 0, m: 60, y: 100, k: 0 })
+
+  const add = () => {
+    if (name.trim().length === 0) return
+    if (mode === 'fill') addSwatchFromSelection(name)
+    else addCmykSwatch(name, cmyk, spot)
+    setName('')
+  }
+
+  return (
+    <Section title={swatches.length > 0 ? 'Swatches · ' + swatches.length : 'Swatches'}>
+      {swatches.length > 0 && (
+        <div className="flex flex-col gap-0.5" role="list" aria-label="Named swatches">
+          {swatches.map((swatch) => (
+            <div key={swatch.id} role="listitem" className="flex min-w-0 items-center gap-1">
+              <button
+                type="button"
+                aria-label={'Apply swatch ' + swatch.name}
+                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-ui px-1 py-[3px] text-left text-ui-xs text-ink-muted hover:bg-chrome-hover hover:text-ink"
+                onClick={() => applySwatch(swatch.id)}
+              >
+                <span aria-hidden="true" className="h-4 w-4 shrink-0 rounded-[2px] border border-black/40" style={{ background: swatch.color }} />
+                <span className="min-w-0 flex-1 truncate">{swatch.name}</span>
+                {swatch.spot === true && <span className="shrink-0 rounded-full bg-accent-soft px-1 text-[9px] text-accent-ink">spot</span>}
+                {swatch.cmyk !== undefined && (
+                  <span className="shrink-0 tabular-nums text-[9px] text-ink-faint">
+                    {swatch.cmyk.c}/{swatch.cmyk.m}/{swatch.cmyk.y}/{swatch.cmyk.k}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                aria-label={'Remove swatch ' + swatch.name}
+                title="Remove swatch (objects keep their colour)"
+                className="shrink-0 rounded-ui px-1 text-[11px] text-ink-faint hover:bg-chrome-hover hover:text-danger"
+                onClick={() => removeSwatch(swatch.id)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1 pt-1">
+        <div className="flex min-w-0 items-center gap-1">
+          <input
+            type="text"
+            aria-label="Swatch name"
+            placeholder="New swatch name"
+            value={name}
+            onChange={(event) => setName(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') add()
+            }}
+            className="h-6 min-w-0 flex-1 rounded-ui border border-hairline bg-chrome-sunken px-1.5 text-ui-xs text-ink outline-none focus:border-accent"
+          />
+          <select
+            aria-label="Swatch colour model"
+            value={mode}
+            onChange={(event) => setMode(event.currentTarget.value === 'cmyk' ? 'cmyk' : 'fill')}
+            className="h-6 shrink-0 rounded-ui border border-hairline bg-chrome-sunken px-1 text-ui-xs text-ink outline-none focus:border-accent"
+          >
+            <option value="fill">From fill</option>
+            <option value="cmyk">CMYK</option>
+          </select>
+        </div>
+        {mode === 'cmyk' && (
+          <div className="flex items-center gap-1">
+            {(['c', 'm', 'y', 'k'] as const).map((key) => (
+              <input
+                key={key}
+                type="number"
+                min={0}
+                max={100}
+                aria-label={'Swatch ' + key.toUpperCase()}
+                value={cmyk[key]}
+                onChange={(event) => setCmyk({ ...cmyk, [key]: Number(event.currentTarget.value) })}
+                className="h-6 min-w-0 flex-1 rounded-ui border border-hairline bg-chrome-sunken px-1 text-right text-ui-xs tabular-nums text-ink outline-none focus:border-accent"
+              />
+            ))}
+            <label className="flex shrink-0 items-center gap-1 text-[10px] text-ink-faint">
+              <input type="checkbox" checked={spot} onChange={(event) => setSpot(event.currentTarget.checked)} />
+              spot
+            </label>
+          </div>
+        )}
+        <button
+          type="button"
+          className="h-6 rounded-ui border border-accent bg-accent text-ui-xs text-white hover:brightness-110 disabled:opacity-40"
+          disabled={name.trim().length === 0}
+          onClick={add}
+        >
+          Add swatch
+        </button>
+      </div>
+    </Section>
   )
 }

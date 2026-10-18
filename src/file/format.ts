@@ -17,7 +17,7 @@
  */
 
 import type { Artboard, AssetRef, Document, GroupNode } from '../doc/types.ts'
-import type { Guide } from '../doc/types.ts'
+import type { Guide, Swatch } from '../doc/types.ts'
 
 export const PROJECT_EXTENSION = '.vectr'
 export const MANIFEST_NAME = 'manifest.json'
@@ -37,6 +37,8 @@ export type Manifest = {
   assets: AssetRef[]
   /** Guide lines (issue #67); absent in manifests written before guides existed. */
   guides?: Guide[]
+  /** Named colours (issue #69); absent in older manifests. */
+  swatches?: Swatch[]
   root: GroupNode
 }
 
@@ -99,6 +101,7 @@ export function manifestFor(document: Document): Manifest {
     name: document.name,
     artboards: document.artboards,
     guides: document.guides ?? [],
+    swatches: document.swatches ?? [],
     // Sorted by key so the manifest does not depend on placement order.
     assets: [...document.assets].sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
     root: document.root,

@@ -41,6 +41,7 @@ export function createDocument(name = 'Untitled'): Document {
     },
     assets: [],
     guides: [],
+    swatches: [],
   }
 }
 

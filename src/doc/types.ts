@@ -27,6 +27,13 @@ export type Transform = {
 export type StrokeCap = 'butt' | 'round' | 'square'
 export type StrokeJoin = 'miter' | 'round' | 'bevel'
 
+/** Where a stroke sits relative to the outline (Illustrator's Stroke panel). */
+export type StrokeAlign = 'center' | 'inside' | 'outside'
+/** A CMYK ink definition; `color` is the converted RGB used for display and export. */
+export type Cmyk = { c: number; m: number; y: number; k: number }
+/** A named colour in the document, optionally defined in CMYK or flagged as a spot ink. */
+export type Swatch = { id: string; name: string; color: string; cmyk?: Cmyk; spot?: boolean }
+
 export type Stroke = {
   color: string
   width: number
@@ -34,6 +41,8 @@ export type Stroke = {
   join?: StrokeJoin
   /** Dash pattern in scene units, on/off alternating; absent or empty means a solid stroke. */
   dash?: number[]
+  /** Centre by default; inside/outside clip the stroke to the outline. */
+  align?: StrokeAlign
 }
 
 /** A linear gradient in the node's own box, normalised 0..1 (issue #70). */
@@ -216,6 +225,8 @@ export type Document = {
   assets: AssetRef[]
   /** Guide lines; absent in files written before guides existed. */
   guides?: Guide[]
+  /** Named colours; absent in files written before swatches existed. */
+  swatches?: Swatch[]
 }
 
 export function createTransform(x = 0, y = 0): Transform {

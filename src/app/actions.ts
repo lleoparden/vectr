@@ -28,6 +28,7 @@ import { planDrop } from './editing/layerDrag.ts'
 import { nudgedTransform, scaledTransform, unionBounds } from './editing/transform.ts'
 import { artboardRect, artboardRects } from '../doc/artboards.ts'
 import type { BlendMode, FillGradient, StrokeCap, StrokeJoin } from '../doc/types.ts'
+import { cmykToHex, hexToCmyk } from './ui/cmyk.ts'
 import { groupToIsolate } from './editing/isolation.ts'
 import { planAlign, planDistribute, type AlignMode, type AlignMove, type DistributeAxis } from './editing/align.ts'
 import { clipboardHasContent, copyToClipboard, pastedNodes } from './editing/clipboard.ts'
@@ -906,6 +907,63 @@ export function artboardList(): Array<{ id: string; name: string; width: number;
     height: rect.height,
     active: rect.id === active?.id,
   }))
+}
+
+/** Sets the stroke alignment of the selection (issue #69), one undo entry. */
+export function setSelectionStrokeAlign(align: 'center' | 'inside' | 'outside'): void {
+  applySelectionStyle((node) => {
+    const current = node.style.stroke ?? { color: node.style.fill, width: 1 }
+    return { ...node.style, stroke: { ...current, align } }
+  }, 'stroke alignment')
+}
+
+/** Saves the selection's fill as a named swatch, with its CMYK equivalent recorded (issue #69). */
+export function addSwatchFromSelection(name: string): string | null {
+  const { document, selection } = documentStore.getState()
+  const node = selection.length === 0 ? null : findNode(document, selection[0])
+  const color = node !== null && node.type !== 'group' ? node.style.fill : '#7c6cf5'
+  return addSwatch(name, color)
+}
+
+/** Adds a named swatch from an explicit colour, converting it to CMYK for the record. */
+export function addSwatch(name: string, color: string): string | null {
+  const trimmed = name.trim()
+  if (trimmed.length === 0) return null
+  const swatch = {
+    id: 'swatch-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    name: trimmed,
+    color,
+    cmyk: hexToCmyk(color) ?? undefined,
+  }
+  const result = documentStore.dispatch({ type: 'addSwatch', swatch }, 'add swatch')
+  return result.ok ? swatch.id : null
+}
+
+/** Adds a swatch defined in CMYK; the stored colour is the naive conversion used for display. */
+export function addCmykSwatch(name: string, cmyk: { c: number; m: number; y: number; k: number }, spot = false): string | null {
+  const trimmed = name.trim()
+  if (trimmed.length === 0) return null
+  const swatch = {
+    id: 'swatch-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    name: trimmed,
+    color: cmykToHex(cmyk),
+    cmyk,
+    spot,
+  }
+  const result = documentStore.dispatch({ type: 'addSwatch', swatch }, 'add swatch')
+  return result.ok ? swatch.id : null
+}
+
+/** Applies a named swatch's colour to the selection as its fill, one undo entry. */
+export function applySwatch(swatchId: string): void {
+  const swatch = (documentStore.getState().document.swatches ?? []).find((candidate) => candidate.id === swatchId)
+  if (swatch === undefined) return
+  applySelectionStyle((node) => ({ ...node.style, fill: swatch.color }), 'apply swatch')
+}
+
+/** Removes a named swatch; nodes already filled with it keep their colour. */
+export function removeSwatch(swatchId: string): void {
+  documentStore.dispatch({ type: 'removeSwatch', swatchId }, 'remove swatch')
 }
 
 /** Places a guide at a scene position (issue #67). Dragging from a ruler calls this. */

@@ -1,6 +1,31 @@
 # Progress
 
 
+## Phase 3.4 - one command registry (2026-10-18, issue #110)
+
+A command's identity, its label, and its chord lived in three files; they live in one now.
+
+- **`src/app/commands/registry.ts`** (L5) owns `ACTION_IDS`, `ACTION_LABELS`, and the `SHORTCUTS` table, and
+  exposes `COMMANDS` (id, label, chord, whether it is Illustrator's default, and why when it is not),
+  `labelFor`, and `chordFor`. It is data only - no React, no document - which is what lets it sit at the engine
+  layer where both the interface and the action hub may read it.
+- **`actions.ts`** keeps the implementation (`runEditorAction`) and now *re-exports* the ids and labels instead of
+  defining them; `shortcuts.ts` keeps key handling and re-exports the chord table. Neither owns a copy.
+- **The menus read their labels from the registry.** All 57 command items in `menuModel.ts` are built by a
+  `command(id)` helper that calls `labelFor`, so a menu can no longer rename a command and disagree with the
+  palette. Menu *placement* - which menu, which order, which separators - deliberately stays in `menuModel.ts`:
+  it is layout, not identity, and Phase 3 freezes behaviour.
+- **Five new tests** (`tests/commands.test.ts`) hold the table together: every id has a non-empty label and a
+  `COMMANDS` record; every chord belongs to a real command and no chord is claimed by two commands; every
+  divergence from Illustrator carries a note; every menu item's label equals the registry's and each command
+  appears in the menus once; and Illustrator's tool wording is pinned.
+
+**Behaviour frozen:** 246/246 unit tests, layer check on 96 files, clean typecheck and build, and the packaged run
+reports the **same 126 steps across seven reports** - which is the check that matters here, because the menus now
+print registry labels and the UI suite asserts those exact names.
+
+
+
 ## Phase 3.3 - every tool is a state machine (2026-10-18, issue #109)
 
 The canvas now contains no gesture logic at all: it routes pointer input to a machine and supplies the host.

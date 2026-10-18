@@ -2098,3 +2098,19 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   on pointer up; that double clear is deliberate during the retrofit so a forgotten tool cannot leave a stale
   preview on screen.
 
+## 2026-10-18 - The registry owns identity, label, and chord; the menu owns placement (Phase 3.4)
+
+- **Data lives at L5, layout at L6.** `src/app/commands/registry.ts` holds ids, labels, and chords and imports
+  nothing; `menuModel.ts` holds which menu, which order, and which separators. The split is deliberate: identity
+  is engine data that the palette, the menus, the shortcut hints, and a future MCP command list all need, while
+  placement is an interface decision that changes when the interface changes. The layer check keeps the
+  dependency direction honest.
+- **Re-exports, not copies.** `actions.ts` and `shortcuts.ts` re-export from the registry so existing importers keep
+  working without a second table existing anywhere. The moment a second copy appears, the tests in
+  `tests/commands.test.ts` fail on a label or a duplicated chord.
+- **Chords may repeat an id.** `Delete` and `Backspace` are two spellings of one command's chord, so the
+  uniqueness test keys on the chord and allows a second entry for the same id; it refuses the same chord for two
+  different commands.
+- **Divergence must pay a note.** A shortcut that is not Illustrator's default must carry a note, enforced by a
+  test rather than by review, because the divergence list is a product promise.
+

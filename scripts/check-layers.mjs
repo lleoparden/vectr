@@ -10,7 +10,7 @@
  *   L2  ops/             operations over the model: booleans, text layout, effects
  *   L3  render/ file/    document to pixels, and every file format read or written
  *   L4  tools/           state machines: pointer and keyboard in, commands and overlays out
- *   L5  state/ app/actions.ts app/editing/ app/files/   sessions, history, command registry
+ *   L5  state/ app/actions.ts app/commands/ app/editing/ app/files/   sessions, history, command registry
  *   L6  app/             the interface: menus, panels, dialogs, canvas host
  *   L7  everything else  application shells, harnesses, scripts
  *
@@ -32,7 +32,7 @@ const LAYER_RULES = [
   { layer: 2, prefixes: ['src/ops/'] },
   { layer: 3, prefixes: ['src/render/', 'src/file/'] },
   { layer: 4, prefixes: ['src/tools/'] },
-  { layer: 5, prefixes: ['src/state/', 'src/app/actions.ts', 'src/app/editing/', 'src/app/files/'] },
+  { layer: 5, prefixes: ['src/state/', 'src/app/actions.ts', 'src/app/commands/', 'src/app/editing/', 'src/app/files/'] },
   { layer: 6, prefixes: ['src/app/'] },
   { layer: 7, prefixes: [] },
 ]

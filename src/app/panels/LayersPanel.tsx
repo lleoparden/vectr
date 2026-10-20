@@ -334,7 +334,6 @@ function LayerRowItem({
   onDragStart,
   onLocate,
 }: RowItemProps) {
-  const toggleClass = 'flex shrink-0 items-center justify-center hover:text-ink'
   const hintClass =
     dropHint === 'before'
       ? 'border-t-2 border-t-accent'

@@ -31,11 +31,6 @@ import type { ShapeKind } from '../../doc/document.ts'
 import { TOOL_OPTIONS_HEIGHT } from '../ui/theme.ts'
 import { IconImage } from '../ui/icons.tsx'
 
-const SEGMENT_CLASS =
-  'rounded-ui border px-2 py-[1px] text-ui-xs transition-colors disabled:opacity-40'
-const ACTION_CLASS =
-  'rounded-ui border border-hairline bg-chrome px-2 py-[1px] text-ui-xs text-ink hover:bg-chrome-active disabled:opacity-40 disabled:hover:bg-chrome'
-
 function onSegmented(id: string, value: string) {
   if (id === 'shape.tool') {
     // Every shape member activates through the same path, so the palette slot, the flyout, and

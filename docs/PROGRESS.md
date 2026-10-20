@@ -1,6 +1,22 @@
 # Progress
 
 
+## Join, and the Object Path menu (issue #139, third part)
+
+- **Join Paths** («joinPaths»): two selected top-level open paths merge at their nearest endpoints, the second
+  path's anchors converted into the first's local box (rotation and scale included), the joining endpoints
+  becoming one anchor. One undo entry restores both paths and the first path's anchors exactly.
+- **Object ▸ Path** now exposes Add Anchor Point, Delete Anchor Point, Convert to Smooth, Convert to Corner, and
+  Join Paths (Ctrl+J), all acting on the anchor the white arrow picked. This closes the "dead verbs" gap: the
+  commands are reachable from the menu, the display, and the keyboard, not only from tests.
+- **Evidence**: 314 unit tests (join merges and inverts; join refuses closed paths; the add/remove/convert
+  inverses from the previous part) and 150 packaged steps, all green.
+
+Still open on #139: **average** (it needs multi-anchor selection, which the editor does not have yet) and a
+packaged step that drives the new menu entries.
+
+
+
 ## Anchor selection and arrow nudging (issue #139, second part)
 
 - **An anchor can be picked.** Direct Selection records the anchor it grabs in «workspaceStore.activeAnchor»;

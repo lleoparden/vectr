@@ -440,6 +440,46 @@ export function nudgeActiveAnchor(dx: number, dy: number): void {
   documentStore.dispatch({ type: 'setPathAnchors', nodeId: node.id, anchors, closed: node.closed, fillRule: node.fillRule }, 'nudge anchor')
 }
 
+/** The selected single path and the anchor the white arrow picked, or null. */
+function activePath(): { node: Extract<ReturnType<typeof findNode>, { type: 'path' }>; index: number } | null {
+  const { selection, document } = documentStore.getState()
+  if (selection.length !== 1) return null
+  const node = findNode(document, selection[0])
+  if (node === null || node.type !== 'path') return null
+  const active = workspaceStore.getState().activeAnchor
+  const index = active !== null && active.nodeId === node.id ? active.index : 0
+  if (index < 0 || index >= node.anchors.length) return null
+  return { node, index }
+}
+
+/** Adds a point on the segment after the active anchor, in one undo entry. */
+export function addAnchorAtActive(): void {
+  const target = activePath()
+  if (target === null || target.node.anchors.length < 2) return
+  documentStore.dispatch({ type: 'addPathAnchor', nodeId: target.node.id, index: Math.min(target.index, target.node.anchors.length - 1), t: 0.5 }, 'add anchor')
+}
+
+/** Removes the active anchor when the path can lose one. */
+export function deleteActiveAnchor(): void {
+  const target = activePath()
+  if (target === null) return
+  documentStore.dispatch({ type: 'removePathAnchor', nodeId: target.node.id, index: target.index }, 'delete anchor')
+}
+
+/** Converts the active anchor to smooth or corner. */
+export function convertActiveAnchor(smooth: boolean): void {
+  const target = activePath()
+  if (target === null) return
+  documentStore.dispatch({ type: 'convertPathAnchor', nodeId: target.node.id, index: target.index, smooth }, smooth ? 'smooth anchor' : 'corner anchor')
+}
+
+/** Joins two selected open paths at their nearest endpoints, in one undo entry. */
+export function joinSelectedPaths(): void {
+  const { selection } = documentStore.getState()
+  if (selection.length !== 2) return
+  documentStore.dispatch({ type: 'joinPaths', firstId: selection[0], secondId: selection[1] }, 'join paths')
+}
+
 export function nudgeSelection(dx: number, dy: number): void {
   if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) return
   const { document, selection } = documentStore.getState()
@@ -960,6 +1000,21 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'tool.text':
       documentStore.setTool('text')
+      return
+    case 'path.addAnchor':
+      addAnchorAtActive()
+      return
+    case 'path.deleteAnchor':
+      deleteActiveAnchor()
+      return
+    case 'path.convertSmooth':
+      convertActiveAnchor(true)
+      return
+    case 'path.convertCorner':
+      convertActiveAnchor(false)
+      return
+    case 'path.join':
+      joinSelectedPaths()
       return
     case 'artboard.new': {
       const document = documentStore.getState().document

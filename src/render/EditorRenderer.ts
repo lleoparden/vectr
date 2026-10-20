@@ -598,6 +598,16 @@ export class EditorRenderer {
       } else {
         builder.addRect(this.kit.XYWHRect(0, 0, shape.width, shape.height))
       }
+    } else if (shape.kind === 'path' && shape.anchors !== null && shape.anchors.length >= 2) {
+      const anchors = shape.anchors
+      builder.moveTo(anchors[0].x, anchors[0].y)
+      const segments = shape.closed ? anchors.length : anchors.length - 1
+      for (let index = 0; index < segments; index += 1) {
+        const a = anchors[index]
+        const b = anchors[(index + 1) % anchors.length]
+        builder.cubicTo(a.x + a.outX, a.y + a.outY, b.x + b.inX, b.y + b.inY, b.x, b.y)
+      }
+      if (shape.closed) builder.close()
     } else {
       const points = outlinePoints(shape)
       if (points !== null && points.length > 0) {
@@ -609,6 +619,7 @@ export class EditorRenderer {
     }
     // Text draws glyphs instead of a path; an empty path keeps the per-shape array aligned.
     const path = builder.detach()
+    if (shape.kind === 'path' && shape.fillRule === 'evenodd') path.setFillType(this.kit.FillType.EvenOdd)
     builder.delete()
     this.ownedPaths.push(path)
     return path

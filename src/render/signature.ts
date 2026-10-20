@@ -23,7 +23,7 @@ function shapeSignature(shape: SceneShape): string {
     `${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.opacity},` +
     `${gradient},${shape.gradientTarget ?? '-'},${shape.blendMode ?? '-'},` +
     `${shape.cornerRadius},${shape.lineFrom},${shape.sides},${shape.innerRadius},` +
-    `${shape.startAngle},${shape.sweepAngle},${shape.pie},${JSON.stringify(shape.stroke)}`
+    `${shape.startAngle},${shape.sweepAngle},${shape.pie},${JSON.stringify(shape.anchors)},${shape.closed},${shape.fillRule ?? '-'},${JSON.stringify(shape.stroke)}`
   if (shape.assetId !== null) signature += `,${shape.assetId},${JSON.stringify(shape.crop)},${shape.maskAssetId ?? '-'}`
   if (shape.clip !== null) signature += `,clip:${shape.clip}`
   // Text content and metrics affect pixels exactly as geometry does.

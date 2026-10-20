@@ -15,6 +15,7 @@
 import { findNode, findParent, worldTransform } from './document.ts'
 import { isGroup, type Document, type LayerNode, type NodeId } from './types.ts'
 import { clipPolygon } from '../geom/shapeGeometry.ts'
+import { distanceToPolyline, flattenPath } from '../geom/path.ts'
 
 export type Point = { x: number; y: number }
 
@@ -119,6 +120,13 @@ export function placedLeaves(document: Document): Placed[] {
 export function containsLocalPoint(node: LayerNode, local: Point): boolean {
   if (isGroup(node)) return false
   // Rectangles, text, and images occupy their box; ellipses are tested against the ellipse.
+  if (node.type === 'path') {
+    const points = flattenPath(node.anchors, node.closed)
+    if (node.closed && polygonContains(points, local)) return true
+    // An open path, or a closed one clicked outside its fill, is hit by its stroke.
+    const width = node.style.stroke?.width ?? 0
+    return width > 0 && distanceToPolyline(points, node.closed, local) <= width / 2 + 3
+  }
   if (node.type === 'rect' || node.type === 'text' || node.type === 'image') {
     return local.x >= 0 && local.x <= node.width && local.y >= 0 && local.y <= node.height
   }

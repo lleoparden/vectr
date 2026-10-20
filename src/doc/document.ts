@@ -20,6 +20,7 @@ import {
   type TextNode,
   type ImageNode,
 } from './types.ts'
+import { pathBounds, type PathAnchor } from '../geom/path.ts'
 
 const defaultArtboard: Artboard = { id: 'artboard-0', name: 'Artboard 1', width: 1200, height: 800 }
 
@@ -93,6 +94,37 @@ export function createEllipse(
     width,
     height,
     style: createStyle(fill),
+    locked: false,
+    hidden: false,
+  }
+}
+
+/**
+ * Bézier path (Phase 5.1, issue #137). Anchors come in the caller's coordinates; the node is
+ * normalised so its local box starts at 0,0, and width/height come from the flattened curve so the
+ * frame includes the handles' reach.
+ */
+export function createPath(
+  name: string,
+  x: number,
+  y: number,
+  anchors: PathAnchor[],
+  options: { closed?: boolean; fillRule?: 'nonzero' | 'evenodd'; fill?: string } = {},
+): import('./types.ts').PathNode {
+  const closed = options.closed ?? false
+  const bounds = pathBounds(anchors, closed)
+  const shifted = anchors.map((anchor) => ({ ...anchor, x: anchor.x - bounds.x, y: anchor.y - bounds.y }))
+  return {
+    id: newId('path'),
+    name,
+    type: 'path',
+    transform: createTransform(x, y),
+    width: Math.max(bounds.width, 0.001),
+    height: Math.max(bounds.height, 0.001),
+    anchors: shifted,
+    closed,
+    fillRule: options.fillRule ?? 'nonzero',
+    style: createStyle(options.fill ?? '#4f7cff'),
     locked: false,
     hidden: false,
   }

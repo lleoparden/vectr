@@ -10,7 +10,8 @@
  * `tests/doc.test.ts` and `tests/editor.test.ts`.
  */
 
-import { createEllipse, createGroup, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
+import { createEllipse, createGroup, createPath, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
+import { cornerAnchor } from '../geom/path.ts'
 import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
 import { unionBounds } from '../doc/transform.ts'
@@ -542,6 +543,15 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
   documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 0, nodes: [rect, group] })
   documentStore.dispatch({ type: 'insertNodes', parentId: group.id, index: 0, nodes: [inner] })
   documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 2, nodes: [text] })
+  // A Bézier curve must survive save and reopen with its anchors and fill rule (Phase 5.1, #137).
+  const curve = createPath(
+    'Curve',
+    320,
+    300,
+    [cornerAnchor(0, 0), { ...cornerAnchor(80, 20), inX: 0, inY: -20, outX: 0, outY: 20, smooth: true }, cornerAnchor(20, 100)],
+    { closed: true, fillRule: 'evenodd' },
+  )
+  documentStore.dispatch({ type: 'insertNodes', parentId: root.id, index: 3, nodes: [curve] })
   // The edited corner radius must survive save/reopen (issue #64).
   const radiusEdit = documentStore.dispatch(
     { type: 'setCornerRadius', nodeId: rect.id, cornerRadius: 24 },
@@ -582,6 +592,16 @@ export async function runFileRoundTrip(): Promise<SmokeReport> {
       reopened.assets.length === 1 &&
       documentStore.getState().document.root.children.some((node) => node.type === 'text'),
     `${reopened.assets.length} assets`,
+  )
+  const reopenedCurve = findNode(reopened, curve.id)
+  record(
+    'reopen restores the Bézier curve\u2019s anchors and fill rule',
+    reopenedCurve !== null &&
+      reopenedCurve.type === 'path' &&
+      reopenedCurve.fillRule === 'evenodd' &&
+      reopenedCurve.closed &&
+      reopenedCurve.anchors.length === 3,
+    reopenedCurve !== null && reopenedCurve.type === 'path' ? `${reopenedCurve.anchors.length} anchors, ${reopenedCurve.fillRule}` : 'missing',
   )
   const reopenedRect = findNode(reopened, rect.id)
   record(

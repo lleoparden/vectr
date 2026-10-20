@@ -8,7 +8,8 @@
 
 import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
 import { clipPolygon } from '../geom/shapeGeometry.ts'
-import type { BlendMode, FillGradient } from '../doc/types.ts'
+import type { PathAnchor } from '../geom/path.ts'
+import type { BlendMode, FillGradient, PathFillRule } from '../doc/types.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
@@ -31,7 +32,7 @@ export type SceneClip = {
 
 export type SceneShape = {
   id: NodeId
-  kind: 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'arc' | 'text' | 'image'
+  kind: 'rect' | 'ellipse' | 'line' | 'polygon' | 'star' | 'arc' | 'path' | 'text' | 'image'
   /** Top-level ancestor, which is the invalidation unit of the renderer. */
   root: NodeId
   x: number
@@ -53,6 +54,10 @@ export type SceneShape = {
   startAngle: number
   sweepAngle: number
   pie: boolean
+  /** Present exactly when `kind` is `path`: the anchors, closure, and fill rule. */
+  anchors: PathAnchor[] | null
+  closed: boolean
+  fillRule: PathFillRule | null
   fill: string
   /** Linear gradient paint for the fill, or null for a solid fill (issue #70). */
   gradient: FillGradient | null
@@ -151,6 +156,9 @@ function walkShapes(
     startAngle: node.type === 'arc' ? node.startAngle : 0,
     sweepAngle: node.type === 'arc' ? node.sweepAngle : 0,
     pie: node.type === 'arc' ? node.pie : false,
+    anchors: node.type === 'path' ? node.anchors.map((anchor) => ({ ...anchor })) : null,
+    closed: node.type === 'path' ? node.closed : false,
+    fillRule: node.type === 'path' ? node.fillRule : null,
     fill: node.style.fill,
     gradient: node.style.gradient ?? null,
     gradientTarget: node.style.gradientTarget ?? null,

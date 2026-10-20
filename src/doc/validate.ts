@@ -119,6 +119,27 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
       return fail('invalid-index', `Node ${node.id} has an unsupported stroke join.`, node.id)
     }
   }
+  if (node.type === 'path') {
+    if (node.fillRule !== 'nonzero' && node.fillRule !== 'evenodd') {
+      return fail('invalid-index', `Path ${node.id} has an unsupported fill rule.`, node.id)
+    }
+    const minimum = node.closed ? 3 : 2
+    if (!Array.isArray(node.anchors) || node.anchors.length < minimum) {
+      return fail('invalid-index', `Path ${node.id} needs at least ${minimum} anchors.`, node.id)
+    }
+    if (node.anchors.length > 10000) {
+      return fail('invalid-index', `Path ${node.id} has too many anchors.`, node.id)
+    }
+    for (const anchor of node.anchors) {
+      const numbers = [anchor.x, anchor.y, anchor.inX, anchor.inY, anchor.outX, anchor.outY]
+      if (!numbers.every((value) => Number.isFinite(value))) {
+        return fail('non-finite', `Path ${node.id} has a non-finite anchor.`, node.id)
+      }
+      if (Math.hypot(anchor.inX, anchor.inY) > 100000 || Math.hypot(anchor.outX, anchor.outY) > 100000) {
+        return fail('invalid-index', `Path ${node.id} has an unusable handle length.`, node.id)
+      }
+    }
+  }
   if (node.type === 'line' && node.from !== 'top-left' && node.from !== 'top-right') {
     return fail('invalid-index', `Line ${node.id} has an unsupported start corner.`, node.id)
   }

@@ -1,6 +1,31 @@
 # Progress
 
 
+## Phase 5.1: the Bézier path node and format v5 (issue #137, 2026-10-20)
+
+The document can now hold a curve, and the file format says so.
+
+- **«PathNode»**: anchors with in/out handles **relative to their point** (so moving an anchor moves its
+  handles), open or closed, and a «nonzero»/«evenodd» fill rule. Anchors live in the node's local box; width and
+  height come from the flattened curve, so the frame includes the handles' reach.
+- **«src/geom/path.ts»**: cubic evaluation, an adaptive De Casteljau flattener with an explicit tolerance
+  (0.25 units), path bounds, and point-to-polyline distance. Pure L0, used by hit testing and by the tests.
+- **Format version 5**, with 1-4 still opening. No migration: an old file simply has no path nodes.
+- **«setPathAnchors»** edits anchors, closure, and fill rule in one validated command with an exact inverse; a
+  locked path is refused with «locked», a malformed anchor with «non-finite».
+- **Hit testing**: a closed path is hit by its fill, any path by its stroke within half its width plus the
+  three-pixel slack the other shapes use.
+- **Renderer**: a path becomes a Skia «Path» with real «cubicTo» segments and the node's fill type.
+- **Evidence**: 15 new tests (flattening within tolerance, bounds including curve reach, fill and stroke hits,
+  normalisation, validation, the command's inverse, and a save/reopen round trip) — **295/295** in the suite —
+  plus a new packaged step: the file report saves a curve, reopens it, and asserts its three anchors and its
+  evenodd rule. The packaged run is now **144 steps** across seven reports, all green.
+
+No UI yet: the Pen tool is 5.2 and anchor editing is 5.3, so the path exists in the model, the file, the
+renderer, and hit testing before anything draws one by pointer.
+
+
+
 ## 0.4.1 ships the fixes (2026-10-20)
 
 The 0.4.0 installer was built before #156 and #143 landed, so it still had the invisible-gradient bug. A patch

@@ -2376,3 +2376,16 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   cause came from logging the actual shader parameters and from a Node probe that painted a white rect. The
   writing in the issue said a fix without a reproduced cause would be a guess, and this is what that looks like
   when it is done properly.
+
+## 2026-10-20 - Path anchors are relative, and the path model lands before its tool
+
+- **Handles are offsets from their anchor, not absolute points.** Translating an anchor then moves its curve
+  with it, and the two mirrored handles of a smooth anchor are one sign away - the shape 5.2 and 5.3 will edit.
+- **The node's box is the flattened curve's bounding box.** Frame, scale, rotation, align, and snapping all read
+  «width»/«height», so the box has to include the handles' reach or a curve would look cropped in the frame.
+- **The flattener has a named tolerance and lives at L0.** Hit testing, bounds, and tests share it; a renderer
+  that sampled differently would let a click miss the stroke it is visually on.
+- **Format 5 only adds a node kind, so there is no migration.** «SUPPORTED_FORMAT_VERSION_LIST» keeps 1-4, a v4
+  file opens unchanged, and a v5 file opened by an older build fails its version check rather than half-loading.
+- **Model first, tool second.** 5.1 ships no pointer interaction on purpose: the pen (5.2) and anchor editing
+  (5.3) are only honest if the document, file, renderer, and hit test already agree about what a path is.

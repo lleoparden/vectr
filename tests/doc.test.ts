@@ -43,7 +43,7 @@ function scene(): { document: Document; rect: LayerNode; rect2: LayerNode; group
 test('a new document is valid, empty, and versioned', () => {
   const document = createDocument()
   assert.equal(document.formatVersion, FORMAT_VERSION)
-  assert.equal(FORMAT_VERSION, 4, 'v4 adds stroke caps and joins')
+  assert.equal(FORMAT_VERSION, 5, 'v5 adds the Bézier path node')
   assert.equal(countNodes(document), 0)
   assert.equal(validateDocument(document).ok, true)
 })

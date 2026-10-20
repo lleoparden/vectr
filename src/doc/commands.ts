@@ -34,6 +34,8 @@ import {
   type ImageCrop,
   type LayerNode,
   type NodeId,
+  type PathAnchor,
+  type PathFillRule,
   type Style,
   type TextAlign,
   type Transform,
@@ -58,6 +60,8 @@ export type Command =
   | { type: 'setSwatch'; swatchId: string; name?: string; color?: string; cmyk?: Cmyk | null; spot?: boolean }
   | { type: 'removeGuide'; guideId: string }
   | { type: 'setGuide'; guideId: string; position: number }
+  /** Edits a path's anchors, closure, or fill rule in one undoable step (Phase 5.1). */
+  | { type: 'setPathAnchors'; nodeId: NodeId; anchors: PathAnchor[]; closed: boolean; fillRule: PathFillRule }
   /** Artboards are document data (Phase 2.4, issue #67); positions are derived, never stored. */
   | { type: 'addArtboard'; artboard: Artboard; index: number }
   | { type: 'removeArtboard'; artboardId: string }
@@ -457,6 +461,38 @@ export function applyCommand(document: Document, command: Command): CommandResul
           ),
         ),
         inverse: { type: 'setClip', groupId: group.id, clipChildId: previous },
+      }
+    }
+
+    case 'setPathAnchors': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      const minimum = command.closed ? 3 : 2
+      if (!Array.isArray(command.anchors) || command.anchors.length < minimum) {
+        return rejected('invalid-index', `Path ${command.nodeId} needs at least ${minimum} anchors.`)
+      }
+      for (const anchor of command.anchors) {
+        if (![anchor.x, anchor.y, anchor.inX, anchor.inY, anchor.outX, anchor.outY].every((value) => Number.isFinite(value))) {
+          return rejected('non-finite', `Path ${command.nodeId} has a non-finite anchor.`)
+        }
+      }
+      if (command.fillRule !== 'nonzero' && command.fillRule !== 'evenodd') {
+        return rejected('invalid-index', `Path ${command.nodeId} has an unsupported fill rule.`)
+      }
+      const previous = { anchors: node.anchors.map((anchor) => ({ ...anchor })), closed: node.closed, fillRule: node.fillRule }
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) => ({
+            ...current,
+            anchors: command.anchors.map((anchor) => ({ ...anchor })),
+            closed: command.closed,
+            fillRule: command.fillRule,
+          })),
+        ),
+        inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
       }
     }
 

@@ -1,6 +1,8 @@
+import type { PathAnchor } from '../geom/path.ts'
 import type { Cmyk } from '../geom/types.ts'
 
 export type { Cmyk }
+export type { PathAnchor }
 
 /**
  * Vectr document model (Phase 1 slice 2, issue #18).
@@ -12,9 +14,9 @@ export type { Cmyk }
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 4
-/** Versions this build still opens. v3 adds non-destructive image crop and mask state. */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4]
+export const FORMAT_VERSION = 5
+/** Versions this build still opens. v5 adds the Bézier path node (Phase 5.1). */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5]
 
 export type NodeId = string
 
@@ -182,6 +184,24 @@ export type ArcNode = BaseNode & {
   style: Style
 }
 
+/** How a closed path decides which regions are inside it (SVG's fill-rule). */
+export type PathFillRule = 'nonzero' | 'evenodd'
+
+/**
+ * Bézier path (Phase 5.1, issue #137). Anchors live in the node's local box; each anchor's handles
+ * are offsets relative to its point. The node's width/height are the anchor bounding box, so the
+ * frame, scaling, and rotation work like every other leaf.
+ */
+export type PathNode = BaseNode & {
+  type: 'path'
+  width: number
+  height: number
+  anchors: PathAnchor[]
+  closed: boolean
+  fillRule: PathFillRule
+  style: Style
+}
+
 export type TextAlign = 'left' | 'center' | 'right'
 
 /** Plain text (issue #16). Advanced typography stays in Phase 3, as the plan states. */
@@ -233,10 +253,11 @@ export type LayerNode =
   | PolygonNode
   | StarNode
   | ArcNode
+  | PathNode
   | TextNode
   | ImageNode
   | GroupNode
-export type ShapeNode = RectNode | EllipseNode | LineNode | PolygonNode | StarNode | ArcNode
+export type ShapeNode = RectNode | EllipseNode | LineNode | PolygonNode | StarNode | ArcNode | PathNode
 /** Anything that occupies a rectangular box in the tree and can be transformed by itself. */
 export type LeafNode = ShapeNode | TextNode | ImageNode
 
@@ -300,7 +321,8 @@ export function isShape(node: LayerNode): node is ShapeNode {
     node.type === 'line' ||
     node.type === 'polygon' ||
     node.type === 'star' ||
-    node.type === 'arc'
+    node.type === 'arc' ||
+    node.type === 'path'
   )
 }
 
@@ -318,6 +340,11 @@ export function isImage(node: LayerNode): node is ImageNode {
  */
 export function supportsFill(node: LayerNode): node is Exclude<ShapeNode, LineNode> | TextNode {
   return isShape(node) && node.type !== 'line' ? true : node.type === 'text'
+}
+
+/** A path is editable as anchors rather than by its corner widget. */
+export function isPath(node: LayerNode): node is PathNode {
+  return node.type === 'path'
 }
 
 /** Local bounds of a node, ignoring its children and transform. */

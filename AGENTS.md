@@ -118,9 +118,14 @@ The interface is repetitive by nature, so repetition in the code is a defect. On
 The product ships **versioned releases**, one per phase, until the compiler lands. Every phase ends with a new
 version and its own release; a tag never moves.
 
-- **The version is `0.<phase>.0`.** `package.json` carries it and it is bumped in the phase's final pull request.
-  The tag is `v<version>`, the installer is named `Vectr-<version>-Setup.exe`, and the release title says the
-  version - one number in three places, and they must agree.
+- **Version rule: a phase closes with a minor bump (`0.5.0`), a slice with a patch bump (`0.4.2`, `0.4.3`).**
+  `package.json` carries the version and it is bumped in that slice's final pull request; the change is the only
+  manual step and it is what triggers the release workflow. The tag is `v<version>`, the Windows installer is
+  `Vectr-<version>-Setup.exe`, the macOS image is `Vectr-<version>.dmg`, and the release title says the version.
+- **Both platforms ship on one release.** The workflow creates a **draft**, builds Windows and macOS in parallel,
+  and publishes only when both assets attached; a failure leaves the draft, never a half-release. The macOS build
+  is unsigned (`identity: null`, `CSC_IDENTITY_AUTO_DISCOVERY=false`), so Gatekeeper needs right-click Open or
+  `xattr -dr com.apple.quarantine`; notarization is impossible without an Apple Developer ID.
 - **A release is a normal release, not a GitHub pre-release.** Only normal releases appear in the repository
   sidebar with their version and the "Latest" badge, which is where a download is found; "alpha" is said in the
   title and the notes, not by hiding the release. "gh release edit ... --prerelease=false --latest" is the

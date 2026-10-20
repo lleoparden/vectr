@@ -2,7 +2,7 @@
   "name": "vectr",
   "license": "MIT",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.4.3",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -65,9 +65,18 @@
       "artifactName": "Vectr-${version}-Setup.exe"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "identity": null
-    }
+    },
+    "afterPack": "scripts/afterPack.cjs"
   },
   "allowScripts": {},
   "description": "A desktop-first vector design tool that exports its layer tree as React components styled with Tailwind.",

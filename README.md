@@ -15,7 +15,7 @@ A desktop-first vector design tool with Illustrator's conventions and its own co
 [![Tailwind](https://img.shields.io/badge/Tailwind-4.3-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Site](https://img.shields.io/badge/site-lleoparden.github.io%2Fvectr-A94A4A)](https://lleoparden.github.io/vectr/)
-[![Release](https://img.shields.io/badge/release-v0.4.0-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.4.0)
+[![Release](https://img.shields.io/badge/release-v0.4.1-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.4.1)
 
 </div>
 

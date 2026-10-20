@@ -41,8 +41,14 @@ jobs:
           TAG="v$VERSION"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG already exists; nothing to publish."
+            if [ "$(gh release view "$TAG" --json isDraft --jq '.isDraft')" = "false" ]; then
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              echo "Release $TAG is already published; nothing to do."
+              exit 0
+            fi
+            # A draft means a previous run did not finish both builds: reuse it and try again.
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Draft $TAG found; rebuilding its assets."
             exit 0
           fi
           git config user.name "vectr-release"
@@ -114,4 +120,5 @@ jobs:
           echo "$ASSETS"
           echo "$ASSETS" | grep -q 'Setup\.exe$' || { echo "Missing the Windows installer"; exit 1; }
           echo "$ASSETS" | grep -q '\.dmg$' || { echo "Missing the macOS image"; exit 1; }
-          gh release edit "$TAG" --draft=false --latest
+          gh release edit "$TAG" --draft=false
+          gh release edit "$TAG" --latest

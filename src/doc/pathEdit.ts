@@ -90,6 +90,11 @@ export function nearestHandle(anchors: PathAnchor[], scenePoint: Point, capture:
   return best
 }
 
+/** Moves one anchor by a local delta; handles travel with it, so the curve keeps its shape. */
+export function nudgedAnchor(anchors: PathAnchor[], index: number, dx: number, dy: number): PathAnchor[] {
+  return anchors.map((anchor, at) => (at === index ? { ...anchor, x: anchor.x + dx, y: anchor.y + dy } : anchor))
+}
+
 /** Moves one anchor to a local point, keeping its handles relative (they travel with it). */
 export function movedAnchor(anchor: PathAnchor, local: Point): PathAnchor {
   return { ...anchor, x: local.x, y: local.y }

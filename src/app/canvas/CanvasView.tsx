@@ -488,6 +488,7 @@ export function CanvasView() {
           transform: { ...node.transform },
         }
       },
+      setActiveAnchor: (nodeId, index) => workspaceStore.setActiveAnchor(index === null ? null : { nodeId, index }),
       beginPathDrag: () => documentStore.beginTransaction('edit anchors'),
       setPathAnchors: (nodeId, anchors) => {
         const node = findNode(documentStore.getState().document, nodeId)
@@ -647,6 +648,16 @@ export function CanvasView() {
   useEffect(() => {
     if (state.tool !== 'pen') setPenDraft(null)
   }, [state.tool])
+
+  // Anchor selection belongs to one path in the white arrow; anything else clears it.
+  useEffect(() => {
+    const anchor = workspaceStore.getState().activeAnchor
+    if (anchor === null) return
+    const node = findNode(documentStore.getState().document, anchor.nodeId)
+    if (state.tool !== 'directSelect' || state.selection.length !== 1 || node === null || node.type !== 'path') {
+      workspaceStore.setActiveAnchor(null)
+    }
+  }, [state.tool, state.selection])
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     canvasRef.current?.setPointerCapture(event.pointerId)
@@ -898,6 +909,7 @@ export function CanvasView() {
           width={selectedPath.width}
           height={selectedPath.height}
           transform={selectedPath.transform}
+          activeIndex={workspace.activeAnchor?.nodeId === selectedPath.id ? workspace.activeAnchor.index : null}
           zoom={state.viewport.zoom}
           panX={state.viewport.panX}
           panY={state.viewport.panY}

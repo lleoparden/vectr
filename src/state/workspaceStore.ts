@@ -70,6 +70,8 @@ export type WorkspaceState = {
   activeArtboardId: string | null
   /** The group being edited in isolation mode, or null (session state, issue #71). */
   isolatedGroupId: string | null
+  /** The anchor Direct Selection last picked; arrow keys nudge it (Phase 5.3). */
+  activeAnchor: { nodeId: string; index: number } | null
   /** View chrome: rulers, grid, and guides are session state (issue #67). */
   showRulers: boolean
   showGrid: boolean
@@ -122,6 +124,7 @@ export class WorkspaceStore {
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
       activeArtboardId: null,
       isolatedGroupId: null,
+  activeAnchor: null,
       showRulers: true,
       showGrid: false,
       showGuides: true,
@@ -221,6 +224,11 @@ export class WorkspaceStore {
   }
 
   /** Enters or leaves isolation mode; it is view state, so it is never persisted. */
+  setActiveAnchor(activeAnchor: { nodeId: string; index: number } | null) {
+    if (this.state.activeAnchor === activeAnchor) return
+    this.update({ activeAnchor })
+  }
+
   setIsolatedGroup(isolatedGroupId: string | null) {
     if (this.state.isolatedGroupId === isolatedGroupId) return
     this.update({ isolatedGroupId })

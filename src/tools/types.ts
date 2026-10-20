@@ -63,6 +63,8 @@ export type ToolHost = {
   setShapePreview(preview: ShapePreview | null): void
   /** The selected single path's geometry for anchor editing, or null (Phase 5.3). */
   pathEditCapture(): PathEditCapture | null
+  /** Records the anchor Direct Selection picked, so arrow keys can nudge it. */
+  setActiveAnchor(nodeId: NodeId, index: number | null): void
   /** Opens the anchor-drag transaction, so the whole drag is one undo entry. */
   beginPathDrag(): void
   /** Applies edited anchors while the drag runs. */

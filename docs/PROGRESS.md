@@ -1,6 +1,32 @@
 # Progress
 
 
+## A gradient no longer hides the shape (issue #156, 2026-10-20)
+
+Reproduced with a driven packaged app (draw a rectangle, open Properties, switch Linear gradient on): the
+rectangle became an empty outline. Two independent defects were behind it.
+
+1. **The bucket signature ignored gradients.** «signatureOf» in the renderer listed geometry and the solid fill
+   but not «gradient», «blendMode», «cornerRadius», the point-based kind parameters, or the text metrics after a
+   kind change. Switching a fill to a gradient therefore never re-recorded the picture, so the canvas kept drawing
+   the stale one.
+2. **Shader colours were passed with an out-of-range alpha.** CanvasKit's «Color(r, g, b, a)» returns RGB divided
+   by 255 but leaves **alpha at 0-255**, while «MakeLinearGradient»/«MakeRadialGradient» want all four channels in
+   0-1. Every stop therefore painted clamped - white on a white page - which reads as an invisible shape. Node
+   probes confirmed it: the same shader painted a solid white rectangle instead of a gradient.
+
+**The fix:** «src/render/shaders.ts» builds normalised «Float32Array» colours, and both gradient paint paths use
+it; the signature moved to the pure «src/render/signature.ts» and now covers every pixel-affecting field. A
+regression test renders nothing but asserts the contract: shader channels are in 0-1, and a gradient, blend mode,
+corner radius, opacity, or text change alters the signature.
+
+**Verified:** the driven packaged run now shows the blue-to-black gradient (before: empty outline); **280/280
+tests**, layer check, build, and **143 packaged steps** across seven reports. The packaged run also exposed a
+strict-float flake in the ellipse Shift assertion («width === height» differing by ~1e-13); it now uses a
+sub-pixel tolerance.
+
+
+
 ## The release page is a download menu (2026-10-18)
 
 - **Releases are normal releases, not GitHub pre-releases.** A pre-release is hidden from the repository sidebar,

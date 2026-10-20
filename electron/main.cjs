@@ -164,11 +164,23 @@ function createWindow() {
     console.error('Renderer became unresponsive during the benchmark.')
   })
 
-  // A development harness: render the editor, capture the window, quit. Used to regenerate the
-  // site's screenshot with the current palette; it never runs in a normal launch.
+  // A development harness: optionally drive the editor with a script, then capture the window and
+  // quit. Used to regenerate the site's screenshot and to reproduce visual bugs; it never runs in a
+  // normal launch.
   if (screenshotArgument !== undefined) {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
+        const scriptArgument = process.argv.find((argument) => argument.startsWith('--exec='))
+        if (scriptArgument !== undefined) {
+          try {
+            const code = fs.readFileSync(scriptArgument.split('=')[1], 'utf8')
+            const result = await mainWindow.webContents.executeJavaScript(code, true)
+            console.log('[exec] done: ' + JSON.stringify(result))
+            await new Promise((resolve) => setTimeout(resolve, 400))
+          } catch (cause) {
+            console.error('[exec] failed: ' + cause)
+          }
+        }
         try {
           const image = await mainWindow.webContents.capturePage()
           fs.writeFileSync(screenshotArgument.split('=')[1], image.toPNG())

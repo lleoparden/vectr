@@ -133,6 +133,8 @@ function createWindow() {
     width: 1440,
     height: 900,
     show: true,
+    // The window and taskbar icon: the Vectr logo, not Electron's default.
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       backgroundThrottling: false,
       contextIsolation: true,

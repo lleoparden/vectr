@@ -19,10 +19,6 @@ export type ContextMenuItem =
 
 export type ContextMenuState = { x: number; y: number; items: ContextMenuItem[] } | null
 
-const PANEL_CLASS =
-  'fixed z-50 min-w-[220px] rounded-ui border border-hairline bg-chrome-raised py-1 shadow-lg shadow-black/40'
-const ITEM_CLASS = 'flex w-full items-center justify-between gap-6 px-3 py-[3px] text-left text-ui-sm'
-
 export function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose: () => void }) {
   const state = useEditorState()
   const [focusIndex, setFocusIndex] = useState(0)

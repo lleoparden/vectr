@@ -1,6 +1,18 @@
 # Progress
 
 
+## The kit's leftover class constants are gone (issue #143, 2026-10-20)
+
+Four files carried class constants that the component-kit conversion left declared but unused:
+`SEGMENT_CLASS` and `ACTION_CLASS` in the tool options bar, `TITLE_CLASS`, `ITEM_CLASS`, and
+`PANEL_CLASS` in the menu bar, `PANEL_CLASS` and `ITEM_CLASS` in the context menu, and `toggleClass`
+in a layer row. They were dead code, not behaviour - but styling that lives in a panel instead of the
+component is what the UI rule exists to stop, and an unread constant is what gets copied next time.
+All are deleted, along with an unused `isLightColor` import in the colour panel. Typecheck, **280/280**
+tests, and the build are clean; no behaviour changed.
+
+
+
 ## A gradient no longer hides the shape (issue #156, 2026-10-20)
 
 Reproduced with a driven packaged app (draw a rectangle, open Properties, switch Linear gradient on): the

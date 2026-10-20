@@ -20,11 +20,6 @@ import { useEditorState } from '../../state/useEditorState.ts'
 
 type Interactive = CommandItem | Extract<MenuItem, { kind: 'submenu' }>
 
-const TITLE_CLASS =
-  'rounded-ui px-2 py-[3px] text-ui-sm text-ink-muted hover:bg-chrome-hover hover:text-ink aria-expanded:bg-chrome-active aria-expanded:text-ink'
-const ITEM_CLASS = 'flex w-full items-center justify-between gap-6 px-3 py-[3px] text-left text-ui-sm'
-const PANEL_CLASS = 'absolute z-40 rounded-ui border border-hairline bg-chrome-raised py-1 shadow-lg shadow-black/40'
-
 function isInteractive(item: MenuItem): item is Interactive {
   return item.kind === 'command' || item.kind === 'submenu'
 }

@@ -12,6 +12,7 @@
 
 import { createEllipse, createGroup, createPath, createRect, createText, findNode, worldBounds } from '../doc/document.ts'
 import { cornerAnchor } from '../geom/path.ts'
+import { localToScene } from '../doc/pathEdit.ts'
 import { nodeSize, type LayerNode } from '../doc/types.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest } from '../doc/hitTest.ts'
 import { unionBounds } from '../doc/transform.ts'
@@ -1986,6 +1987,45 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     afterPen === beforePen + 1 && countNodesNow() === afterPen,
     `${countNodesNow() - afterPen} node(s) added by the abandoned draft`,
   )
+  // 10. Direct Selection edits an anchor, and the overlay mirrors the path's geometry.
+  const penNode = last()
+  if (penNode !== undefined && penNode.type === 'path') {
+    documentStore.setSelection([penNode.id])
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }))
+    await settle(100)
+    const overlay = document.querySelector('[data-anchor-overlay]')
+    record(
+      'selecting a path shows its anchors',
+      overlay !== null && overlay.querySelectorAll('[data-anchor-index]').length === penNode.anchors.length,
+      overlay === null ? 'no overlay' : `${overlay.querySelectorAll('[data-anchor-index]').length} anchors`,
+    )
+    const viewport = documentStore.getState().viewport
+    const rect = canvas.getBoundingClientRect()
+    const capture = { nodeId: penNode.id, anchors: penNode.anchors, width: penNode.width, height: penNode.height, transform: penNode.transform }
+    const anchorScene = localToScene({ x: penNode.anchors[0].x, y: penNode.anchors[0].y }, capture)
+    const beforeAnchor = { ...penNode.anchors[0] }
+    const at = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: rect.left + x * viewport.zoom + viewport.panX, clientY: rect.top + y * viewport.zoom + viewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+    canvas.dispatchEvent(new PointerEvent('pointerdown', at(anchorScene.x, anchorScene.y, 1)))
+    canvas.dispatchEvent(new PointerEvent('pointermove', at(anchorScene.x + 40 / viewport.zoom, anchorScene.y + 30 / viewport.zoom, 1)))
+    canvas.dispatchEvent(new PointerEvent('pointerup', at(anchorScene.x + 40 / viewport.zoom, anchorScene.y + 30 / viewport.zoom, 0)))
+    await settle(150)
+    const edited = documentStore.getState().document.root.children.find((node) => node.id === penNode.id)
+    const moved = edited !== undefined && edited.type === 'path' ? edited.anchors[0] : null
+    record(
+      'dragging an anchor reshapes the path',
+      moved !== null && (Math.abs(moved.x - beforeAnchor.x) > 1 || Math.abs(moved.y - beforeAnchor.y) > 1),
+      moved === null ? 'anchor missing' : `moved to ${Math.round(moved.x)}, ${Math.round(moved.y)}`,
+    )
+    documentStore.undo()
+    await settle(120)
+    const restored = documentStore.getState().document.root.children.find((node) => node.id === penNode.id)
+    const back = restored !== undefined && restored.type === 'path' ? restored.anchors[0] : null
+    record(
+      'undo restores the anchor',
+      back !== null && Math.abs(back.x - beforeAnchor.x) < 1e-6 && Math.abs(back.y - beforeAnchor.y) < 1e-6,
+      back === null ? 'anchor missing' : `restored to ${Math.round(back.x)}, ${Math.round(back.y)}`,
+    )
+  }
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

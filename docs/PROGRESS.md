@@ -1,6 +1,30 @@
 # Progress
 
 
+## Phase 5.3, first part: anchor editing (issue #139, 2026-10-20)
+
+A selected path can now be reshaped by its own points.
+
+- **Anchor overlay** («AnchorOverlay.tsx»): squares for corner anchors, circles for smooth ones, a line
+  with a square at each end for the handles, drawn only for a single selected path. Positions come from
+  «doc/pathEdit.ts», the same local→scene maths the hit test uses.
+- **Direct Selection edits before it selects**: a press within six screen pixels of a handle drags that
+  handle (mirroring the other unless Alt is held), within six of an anchor moves the anchor, and anywhere
+  else keeps the old behaviour. The whole drag is one «setPathAnchors» transaction and one undo entry.
+- **Anchor commands**: «addPathAnchor» (splits a segment at t with De Casteljau, so the curve does not
+  change shape), «removePathAnchor», and «convertPathAnchor» (corner clears handles; smooth derives mirrored
+  handles from the neighbouring anchors). All three return a «setPathAnchors» inverse that restores the
+  previous anchors exactly.
+- **Evidence**: 8 new tests (scene↔local under rotation and scale, anchor and handle picking with tolerance,
+  mirrored and Alt-broken handles, the three commands with their inverses, locked refusal) — **311/311** in
+  the suite — and three packaged steps: selecting a path shows its anchors, dragging one reshapes it, and undo
+  restores it. The packaged run is **149 steps**.
+
+**Still open on #139:** join and average, the menu and shortcut entries for add/delete/convert, and arrow-key
+nudging of a selected anchor. The issue stays open rather than claiming the slice finished.
+
+
+
 ## Phase 5.2: the Pen tool (issue #138, 2026-10-20)
 
 A path can now be drawn by pointer, not only created by code.

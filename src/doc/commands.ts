@@ -18,6 +18,7 @@ import {
   removeNodes,
   replaceNode,
 } from './document.ts'
+import { segmentAt, splitCubicAt } from '../geom/path.ts'
 import { ALLOWED_IMAGE_MIME, MAX_ASSETS } from './assets.ts'
 import { validateDestination, validateRemovable, type ValidationCode } from './validate.ts'
 import {
@@ -60,6 +61,12 @@ export type Command =
   | { type: 'setSwatch'; swatchId: string; name?: string; color?: string; cmyk?: Cmyk | null; spot?: boolean }
   | { type: 'removeGuide'; guideId: string }
   | { type: 'setGuide'; guideId: string; position: number }
+  /** Inserts an anchor on a segment at t (Phase 5.3, issue #139). */
+  | { type: 'addPathAnchor'; nodeId: NodeId; index: number; t: number }
+  /** Removes one anchor, keeping the path above its minimum. */
+  | { type: 'removePathAnchor'; nodeId: NodeId; index: number }
+  /** Converts an anchor between corner and smooth; smooth derives mirrored handles from its neighbours. */
+  | { type: 'convertPathAnchor'; nodeId: NodeId; index: number; smooth: boolean }
   /** Edits a path's anchors, closure, or fill rule in one undoable step (Phase 5.1). */
   | { type: 'setPathAnchors'; nodeId: NodeId; anchors: PathAnchor[]; closed: boolean; fillRule: PathFillRule }
   /** Artboards are document data (Phase 2.4, issue #67); positions are derived, never stored. */
@@ -492,6 +499,103 @@ export function applyCommand(document: Document, command: Command): CommandResul
             fillRule: command.fillRule,
           })),
         ),
+        inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
+      }
+    }
+
+    case 'addPathAnchor': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (!Number.isFinite(command.t) || command.t <= 0 || command.t >= 1) {
+        return rejected('invalid-index', 'An inserted anchor needs a t between 0 and 1.')
+      }
+      const segment = segmentAt(node.anchors, node.closed, command.index)
+      if (segment === null) return rejected('invalid-index', `Path ${command.nodeId} has no segment ${command.index}.`)
+      const split = splitCubicAt(segment.from, segment.to, command.t)
+      const at = command.index
+      const next = (at + 1) % node.anchors.length
+      const anchors = node.anchors.map((anchor, index) => {
+        if (index === at) return { ...anchor, outX: split.leftOut.x, outY: split.leftOut.y }
+        if (index === next) return { ...anchor, inX: split.rightIn.x, inY: split.rightIn.y }
+        return { ...anchor }
+      })
+      anchors.splice(at + 1, 0, split.middle)
+      const previous = { anchors: node.anchors.map((anchor) => ({ ...anchor })), closed: node.closed, fillRule: node.fillRule }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),
+        inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
+      }
+    }
+
+    case 'removePathAnchor': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      const minimum = node.closed ? 3 : 2
+      if (node.anchors.length <= minimum) {
+        return rejected('invalid-index', `Path ${command.nodeId} cannot drop below ${minimum} anchors.`)
+      }
+      if (!Number.isInteger(command.index) || command.index < 0 || command.index >= node.anchors.length) {
+        return rejected('invalid-index', `Path ${command.nodeId} has no anchor ${command.index}.`)
+      }
+      const anchors = node.anchors.filter((_, index) => index !== command.index).map((anchor) => ({ ...anchor }))
+      const previous = { anchors: node.anchors.map((anchor) => ({ ...anchor })), closed: node.closed, fillRule: node.fillRule }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),
+        inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
+      }
+    }
+
+    case 'convertPathAnchor': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (!Number.isInteger(command.index) || command.index < 0 || command.index >= node.anchors.length) {
+        return rejected('invalid-index', `Path ${command.nodeId} has no anchor ${command.index}.`)
+      }
+      const anchors = node.anchors.map((anchor) => ({ ...anchor }))
+      const anchor = anchors[command.index]
+      if (!command.smooth) {
+        anchor.inX = 0
+        anchor.inY = 0
+        anchor.outX = 0
+        anchor.outY = 0
+        anchor.smooth = false
+      } else {
+        const count = anchors.length
+        const previous = anchors[(command.index - 1 + count) % count]
+        const next = anchors[(command.index + 1) % count]
+        const dx = next.x - previous.x
+        const dy = next.y - previous.y
+        const length = Math.hypot(dx, dy)
+        if (length === 0) {
+          anchor.inX = 0
+          anchor.inY = 0
+          anchor.outX = 0
+          anchor.outY = 0
+          anchor.smooth = false
+        } else {
+          // A third of the distance to each neighbour is Illustrator's default handle length.
+          const reach = Math.min(Math.hypot(anchor.x - previous.x, anchor.y - previous.y), Math.hypot(next.x - anchor.x, next.y - anchor.y)) / 3
+          const ux = dx / length
+          const uy = dy / length
+          anchor.outX = ux * reach
+          anchor.outY = uy * reach
+          anchor.inX = -ux * reach
+          anchor.inY = -uy * reach
+          anchor.smooth = true
+        }
+      }
+      const previous = { anchors: node.anchors.map((value) => ({ ...value })), closed: node.closed, fillRule: node.fillRule }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),
         inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
       }
     }

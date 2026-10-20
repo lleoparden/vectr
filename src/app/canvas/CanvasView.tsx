@@ -18,6 +18,7 @@ import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
 import { addGuide, moveGuide, placeImage, removeGuide, runEditorAction } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
+import { AnchorOverlay } from './AnchorOverlay.tsx'
 import { PathPreview } from './PathPreview.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
@@ -103,6 +104,14 @@ export function CanvasView() {
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
   const [penDraft, setPenDraft] = useState<PenDraft | null>(null)
+  // The anchor overlay only exists for one selected path: a multi-selection has no single set of
+  // anchors to edit, which is also why the tool's capture refuses it (Phase 5.3).
+  const selectedPath = (() => {
+    const { selection, document } = documentStore.getState()
+    if (selection.length !== 1) return null
+    const node = findNode(document, selection[0])
+    return node !== null && node.type === 'path' ? node : null
+  })()
   /** The object a click would select, outlined (Phase 4.3). */
   const [hover, setHover] = useState<{ box: { x: number; y: number; width: number; height: number }; rotation: number } | null>(null)
   /** What the pointer is doing, so the cursor can say so (Phase 4.3). */
@@ -466,6 +475,28 @@ export function CanvasView() {
       },
       setShapePreview: (preview) => setOverlay(preview),
       setPenDraft: (draft) => setPenDraft(draft),
+      pathEditCapture: () => {
+        const { selection, document } = documentStore.getState()
+        if (selection.length !== 1) return null
+        const node = findNode(document, selection[0])
+        if (node === null || node.type !== 'path') return null
+        return {
+          nodeId: node.id,
+          anchors: node.anchors.map((anchor) => ({ ...anchor })),
+          width: node.width,
+          height: node.height,
+          transform: { ...node.transform },
+        }
+      },
+      beginPathDrag: () => documentStore.beginTransaction('edit anchors'),
+      setPathAnchors: (nodeId, anchors) => {
+        const node = findNode(documentStore.getState().document, nodeId)
+        if (node === null || node.type !== 'path') return
+        documentStore.dispatch({ type: 'setPathAnchors', nodeId, anchors, closed: node.closed, fillRule: node.fillRule }, 'edit anchors')
+      },
+      endPathDrag: () => documentStore.commitTransaction(),
+      cancelPathDrag: () => documentStore.abortTransaction(),
+      zoomFactor: () => documentStore.getState().viewport.zoom,
       commitPenPath: (anchors, closed) => {
         if (anchors.length < 2) return
         const document = documentStore.getState().document
@@ -855,6 +886,18 @@ export function CanvasView() {
         <ShapePreview
           preview={overlay}
           params={workspaceStore.getState().creationDefaults.shape}
+          zoom={state.viewport.zoom}
+          panX={state.viewport.panX}
+          panY={state.viewport.panY}
+        />
+      )}
+      {selectedPath !== null && (
+        <AnchorOverlay
+          nodeId={selectedPath.id}
+          anchors={selectedPath.anchors}
+          width={selectedPath.width}
+          height={selectedPath.height}
+          transform={selectedPath.transform}
           zoom={state.viewport.zoom}
           panX={state.viewport.panX}
           panY={state.viewport.panY}

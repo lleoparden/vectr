@@ -2,8 +2,17 @@
 
 Windows x64 · per-user install · 95 MB · unsigned, so SmartScreen warns once
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. This release closes
-**Phase 4**: tools as state machines, real rotation, hover and cursors, the component kit, and the rose palette.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. This patch release fixes two reported defects on top of
+**0.4.0**: tools as state machines, real rotation, hover and cursors, the component kit, and the rose palette.
+
+### What changed in this patch
+
+- **Gradient fills paint again.** Switching a fill to a gradient used to leave the shape blank: the bucket
+  cache ignored the gradient, and shader colours carried an out-of-range alpha, so every stop painted white.
+  Both are fixed, with regression tests.
+- **Dead code removed** from the menu bar, options bar, context menu, and a layer row.
+- The ellipse Shift assertion in the packaged run now compares at sub-pixel tolerance instead of demanding
+  bit equality.
 
 ### What is in this build
 

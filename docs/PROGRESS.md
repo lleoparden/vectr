@@ -1,6 +1,15 @@
 # Progress
 
 
+## 0.4.1 ships the fixes (2026-10-20)
+
+The 0.4.0 installer was built before #156 and #143 landed, so it still had the invisible-gradient bug. A patch
+release, **0.4.1**, is the honest fix: same phase, new immutable tag, its own installer built from the commit
+that contains the repairs. «docs/RELEASES.md» now opens with what the patch changed, and the README and site
+name 0.4.1.
+
+
+
 ## The kit's leftover class constants are gone (issue #143, 2026-10-20)
 
 Four files carried class constants that the component-kit conversion left declared but unused:

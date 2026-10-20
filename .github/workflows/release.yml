@@ -121,6 +121,13 @@ jobs:
           ASSETS=$(gh release view "$TAG" --json assets --jq '.assets[].name')
           echo "$ASSETS"
           echo "$ASSETS" | grep -q 'Setup\.exe$' || { echo "Missing the Windows installer"; exit 1; }
-          echo "$ASSETS" | grep -q '\.dmg$' || { echo "Missing the macOS image"; exit 1; }
+          echo "$ASSETS" | grep -q 'arm64\.dmg
+          gh release edit "$TAG" --draft=false
+          gh release edit "$TAG" --latest
+ || { echo "Missing the macOS arm64 image"; exit 1; }
+          echo "$ASSETS" | grep -q 'x64\.dmg
+          gh release edit "$TAG" --draft=false
+          gh release edit "$TAG" --latest
+ || { echo "Missing the macOS x64 image"; exit 1; }
           gh release edit "$TAG" --draft=false
           gh release edit "$TAG" --latest

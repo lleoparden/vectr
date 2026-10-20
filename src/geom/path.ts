@@ -174,3 +174,29 @@ function distanceToSegment(point: PathPoint, a: PathPoint, b: PathPoint): number
   const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared))
   return Math.hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy))
 }
+
+/**
+ * De Casteljau at an arbitrary t, as offsets the document can store: the left anchor's new
+ * out-handle, the middle anchor (point plus both handles), and the right anchor's new in-handle.
+ */
+export function splitCubicAt(from: PathAnchor, to: PathAnchor, t: number): { leftOut: { x: number; y: number }; middle: PathAnchor; rightIn: { x: number; y: number } } {
+  const p0 = { x: from.x, y: from.y }
+  const p1 = { x: from.x + from.outX, y: from.y + from.outY }
+  const p2 = { x: to.x + to.inX, y: to.y + to.inY }
+  const p3 = { x: to.x, y: to.y }
+  const q0 = lerp(p0, p1, t)
+  const q1 = lerp(p1, p2, t)
+  const q2 = lerp(p2, p3, t)
+  const r0 = lerp(q0, q1, t)
+  const r1 = lerp(q1, q2, t)
+  const s = lerp(r0, r1, t)
+  return {
+    leftOut: { x: q0.x - p0.x, y: q0.y - p0.y },
+    middle: { x: s.x, y: s.y, inX: r0.x - s.x, inY: r0.y - s.y, outX: r1.x - s.x, outY: r1.y - s.y, smooth: true },
+    rightIn: { x: q2.x - p3.x, y: q2.y - p3.y },
+  }
+}
+
+function lerp(a: { x: number; y: number }, b: { x: number; y: number }, t: number): { x: number; y: number } {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
+}

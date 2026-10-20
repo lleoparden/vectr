@@ -10,6 +10,7 @@ import type { ShapeKind } from '../doc/document.ts'
 import type { Point, Rect } from '../geom/transform.ts'
 import type { NodeId, Transform } from '../doc/types.ts'
 import type { PathAnchor } from '../geom/path.ts'
+import type { PathEditCapture } from '../doc/pathEdit.ts'
 
 /** A pointer position in both coordinate systems the tools need. */
 export type ToolPoint = {
@@ -60,6 +61,17 @@ export type ToolHost = {
   commitLasso(points: Point[], modifiers: ToolModifiers): void
   /** The shape being dragged out, drawn as the canvas preview. */
   setShapePreview(preview: ShapePreview | null): void
+  /** The selected single path's geometry for anchor editing, or null (Phase 5.3). */
+  pathEditCapture(): PathEditCapture | null
+  /** Opens the anchor-drag transaction, so the whole drag is one undo entry. */
+  beginPathDrag(): void
+  /** Applies edited anchors while the drag runs. */
+  setPathAnchors(nodeId: NodeId, anchors: PathAnchor[]): void
+  endPathDrag(): void
+  cancelPathDrag(): void
+  /** Scene units per screen pixel, for screen-space hit tolerances. */
+  zoomFactor(): number
+
   /** The pen's in-progress path, drawn as handles and a rubber band. */
   setPenDraft(draft: PenDraft | null): void
   /** Commits the pen draft as one path node, selected, in one undo step. */

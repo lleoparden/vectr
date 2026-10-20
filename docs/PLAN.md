@@ -25,7 +25,7 @@ no Bézier path node yet, so the pen, anchors, Pathfinder, width profiles, and c
 | --- | --- | --- |
 | 5.1 Path node and format v5 | #137 | `PathNode` with anchors and in/out handles, open and closed paths, validation, serialization as format v5 with v4 files still opening, rendering, and hit testing |
 | 5.2 Pen tool | #138 | **Done**: click for a corner, drag for a smooth anchor, close on the first anchor, rubber-band preview, Escape to cancel, one undo entry per path |
-| 5.3 Anchor and segment editing | #139 | Direct selection reaches anchors and handles; add, delete, convert, join, average; keyboard nudge; the reshape loop Illustrator users expect |
+| 5.3 Anchor and segment editing | #139 | **Partly done**: anchors and handles select and drag under rotation/scale, an overlay shows them, and add/delete/convert have exact inverses. Remaining: join, average, menu entry, arrow nudge |
 | 5.4 Pathfinder and Shape Builder | #140 | `src/ops/boolean` with unite, subtract, intersect, exclude, divide over flattened curves; commands, panel, and menu; fixtures that compare results |
 | 5.5 Width profiles (#103) | #141 | Stroke-to-outline geometry, width points, and the Width tool; the renderer draws the outline and hit testing follows it |
 | 5.6 Compound paths, offset, and live shapes | #142 | Compound path create and release, offset path, simplify, outline stroke, and live rectangle/ellipse/corner reshaping |

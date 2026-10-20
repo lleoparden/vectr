@@ -83,7 +83,7 @@ catalog claims were stale and are corrected.
 | 43 | Colour control: picker, hex, palette, recents | ✅ | `ColorField` in `ui/fields.tsx`, smoke 78-79 | no eyedropper |
 | 44 | Point text: edit in place, size, align, missing-font notice | ✅ | `TYPE-01` slice, smoke 60-70 | no area/path/threading |
 | 45 | Area text, text on a path, threading, character/paragraph styles | ❌ | - | Phase 6 |
-| 45a | Bézier path node and Pen tool: anchors, curves, format v5, rendering, hit testing, draw by pointer | ✅ (5.1-5.2) | `src/geom/path.ts`, `src/tools/pen.ts`, `tests/path.test.ts`, `tests/pen.test.ts`, path report 11 steps | anchor editing and booleans are 5.3-5.4 |
+| 45a | Bézier paths: node, format v5, Pen, anchor editing (select, drag, add, delete, convert) | ✅ (5.1-5.3 part) | `src/geom/path.ts`, `src/tools/pen.ts`, `src/doc/pathEdit.ts`, `tests/path.test.ts`, `tests/pen.test.ts`, `tests/pathEdit.test.ts` | join/average and booleans remain |
 | 46 | Images: place embedded, link, relink, crop, alpha mask | ✅ | `IMAGE-01` slice, smoke 71 | no trace |
 | 47 | Layers panel: rows, reorder, rename, foot, context menu | ✅ | `LayersPanel.tsx` | see row 61 |
 | 48 | Appearance panel (fill, stroke, opacity live) | ✅ | `AppearancePanel.tsx`, smoke 100 | |

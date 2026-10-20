@@ -9,6 +9,7 @@
 import type { ShapeKind } from '../doc/document.ts'
 import type { Point, Rect } from '../geom/transform.ts'
 import type { NodeId, Transform } from '../doc/types.ts'
+import type { PathAnchor } from '../geom/path.ts'
 
 /** A pointer position in both coordinate systems the tools need. */
 export type ToolPoint = {
@@ -59,6 +60,10 @@ export type ToolHost = {
   commitLasso(points: Point[], modifiers: ToolModifiers): void
   /** The shape being dragged out, drawn as the canvas preview. */
   setShapePreview(preview: ShapePreview | null): void
+  /** The pen's in-progress path, drawn as handles and a rubber band. */
+  setPenDraft(draft: PenDraft | null): void
+  /** Commits the pen draft as one path node, selected, in one undo step. */
+  commitPenPath(anchors: PathAnchor[], closed: boolean): void
   /** Creates the shape the drag describes, or does nothing when the drag is too small. */
   commitShape(toolId: string, start: Point, end: Point, shift: boolean): void
   /** Places a text object at a scene point and opens its editor. */
@@ -89,6 +94,9 @@ export type RotateCapture = { centre: Point; startAngle: number; nodes: Captured
 /** The preview the canvas draws while a shape is being dragged out. */
 export type ShapePreview = { kind: ShapeKind; start: Point; current: Point; shift: boolean }
 
+/** The pen's in-progress path, in scene coordinates; `cursor` draws the rubber band. */
+export type PenDraft = { anchors: PathAnchor[]; cursor: Point | null }
+
 export type Tool = {
   id: string
   /** CSS cursor while this tool is active. */
@@ -98,6 +106,8 @@ export type Tool = {
   onPointerUp(host: ToolHost, point: ToolPoint, modifiers: ToolModifiers): void
   /** Escape or a lost pointer: leave no gesture behind. */
   cancel(host: ToolHost): void
+  /** Enter finishes a multi-step gesture (the pen's open path); absent when a tool has none. */
+  finish?(host: ToolHost): void
 }
 
 /** The rectangle between two scene points, normalised for the marquee preview and hit test. */

@@ -274,9 +274,11 @@ test('Direct Selection and Lasso are reachable the way Illustrator users expect'
   // palette group; the Lasso is its own slot with its own Q chord.
   assert.equal(groupFor('directSelect').id, 'select')
   assert.equal(memberFor('directSelect').action, 'tool.directSelect')
-  assert.equal(TOOL_GROUPS.length, 5, 'arrows, lasso, shapes, type, hand')
+  assert.equal(TOOL_GROUPS.length, 6, 'arrows, lasso, pen, shapes, type, hand')
   assert.equal(groupFor('lasso').id, 'lasso')
   assert.equal(memberFor('lasso').action, 'tool.lasso')
+  assert.equal(groupFor('pen').id, 'pen')
+  assert.equal(matchShortcut({ key: 'p' }), 'tool.pen', 'P is Illustrator\'s Pen chord')
 
   assert.equal(matchShortcut({ key: 'a' }), 'tool.directSelect')
   assert.equal(matchShortcut({ key: 'q' }), 'tool.lasso')

@@ -172,6 +172,7 @@ test("the registry holds every palette tool as a state machine", () => {
     "hand",
     "lasso",
     "line",
+    "pen",
     "polygon",
     "rect",
     "roundedRect",
@@ -184,7 +185,7 @@ test("the registry holds every palette tool as a state machine", () => {
   assert.equal(machines.directSelect.id, "directSelect")
   assert.equal(machines.hand.id, "hand")
   assert.equal(machines.lasso.id, "lasso")
-  for (const id of ["select", "directSelect", "hand", "lasso", "rect", "roundedRect", "ellipse", "polygon", "star", "line", "arc", "text"]) {
+  for (const id of ["select", "directSelect", "hand", "lasso", "pen", "rect", "roundedRect", "ellipse", "polygon", "star", "line", "arc", "text"]) {
     assert.equal(isStateMachineTool(id), true, id + " is a state machine")
   }
   assert.equal(isStateMachineTool("nosuchtool"), false)

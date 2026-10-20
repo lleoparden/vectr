@@ -93,6 +93,16 @@ export function IconLasso(props: IconProps) {
   )
 }
 
+export function IconPen(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 13 L5.2 12.2 L12.4 5 L11 3.6 L3.8 10.8 Z" />
+      <path d="M10.2 4.8 L11.8 6.4" />
+      <circle cx="7" cy="9" r="0.5" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
 export function IconRect(props: IconProps) {
   return (
     <Icon {...props}>

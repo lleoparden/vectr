@@ -920,6 +920,9 @@ export function runEditorAction(id: EditorActionId): void {
     case 'tool.lasso':
       documentStore.setTool('lasso')
       return
+    case 'tool.pen':
+      documentStore.setTool('pen')
+      return
     case 'tool.rect':
     case 'tool.roundedRect':
     case 'tool.ellipse':

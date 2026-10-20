@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { createShape, createText, estimateTextSize, findNode, shapeLabel, worldTransform } from '../../doc/document.ts'
+import { createPath, createShape, createText, estimateTextSize, findNode, shapeLabel, worldTransform } from '../../doc/document.ts'
 import type { ShapeKind } from '../../doc/document.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
 import { clampCornerRadius, outlinePoints } from '../../geom/shapeGeometry.ts'
@@ -18,6 +18,7 @@ import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
 import { addGuide, moveGuide, placeImage, removeGuide, runEditorAction } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
+import { PathPreview } from './PathPreview.tsx'
 import { ShapePreview, type ShapePreviewState } from './ShapePreview.tsx'
 import { SelectionOverlay } from './SelectionOverlay.tsx'
 import { ArtboardOverlay } from './ArtboardOverlay.tsx'
@@ -26,7 +27,8 @@ import { HoverOverlay } from './HoverOverlay.tsx'
 import { cursorForTool, cursorWhileDragging } from './cursor.ts'
 import { createToolStateMachines, isStateMachineTool } from '../../tools/index.ts'
 import { createScaleTool, type ScaleTool } from '../../tools/transform.ts'
-import type { ToolHost, ToolPoint } from '../../tools/types.ts'
+import type { PenDraft, ToolHost, ToolPoint } from '../../tools/types.ts'
+import { pathBounds } from '../../geom/path.ts'
 import { snapBox, snapTargets, SNAP_PIXELS, type SnapGuide } from '../editing/snapping.ts'
 import { deepHitWithin, withinIsolation } from '../editing/isolation.ts'
 import { unionBounds } from '../../doc/transform.ts'
@@ -100,6 +102,7 @@ export function CanvasView() {
   const [ready, setReady] = useState(false)
   const [stats, setStats] = useState<RenderStats | null>(null)
   const [overlay, setOverlay] = useState<DragPreview | null>(null)
+  const [penDraft, setPenDraft] = useState<PenDraft | null>(null)
   /** The object a click would select, outlined (Phase 4.3). */
   const [hover, setHover] = useState<{ box: { x: number; y: number; width: number; height: number }; rotation: number } | null>(null)
   /** What the pointer is doing, so the cursor can say so (Phase 4.3). */
@@ -462,6 +465,23 @@ export function CanvasView() {
         }
       },
       setShapePreview: (preview) => setOverlay(preview),
+      setPenDraft: (draft) => setPenDraft(draft),
+      commitPenPath: (anchors, closed) => {
+        if (anchors.length < 2) return
+        const document = documentStore.getState().document
+        const existing = document.root.children.filter((node) => node.type === 'path').length
+        const bounds = pathBounds(anchors, closed)
+        const defaults = workspaceStore.getState().creationDefaults
+        const node = createPath(`Path ${existing + 1}`, bounds.x, bounds.y, anchors, {
+          closed,
+          fill: defaults.shape.fill,
+        })
+        const result = documentStore.dispatch(
+          { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes: [node] },
+          'add path',
+        )
+        if (result.ok) documentStore.setSelection([node.id])
+      },
       commitShape: (toolId, start, end, shift) => {
         const kind = shapeKindForTool(toolId as Tool)
         if (kind === null) return
@@ -569,6 +589,33 @@ export function CanvasView() {
       },
     }
   }
+
+  // Escape drops a multi-step draft and Enter finishes it, the way the Pen behaves in
+  // Illustrator: the tool owns the gesture, so the keys go to the tool rather than to a store.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isStateMachineTool(state.tool)) return
+      if (event.key !== 'Escape' && event.key !== 'Enter') return
+      const target = event.target
+      if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return
+      const tool = toolsRef.current?.[state.tool]
+      if (tool === undefined) return
+      if (event.key === 'Escape') {
+        tool.cancel(toolHost())
+        setOverlay(null)
+        setLassoPath(null)
+        setPenDraft(null)
+      } else {
+        tool.finish?.(toolHost())
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [state.tool])
+
+  useEffect(() => {
+    if (state.tool !== 'pen') setPenDraft(null)
+  }, [state.tool])
 
   function onPointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     canvasRef.current?.setPointerCapture(event.pointerId)
@@ -812,6 +859,9 @@ export function CanvasView() {
           panX={state.viewport.panX}
           panY={state.viewport.panY}
         />
+      )}
+      {penDraft !== null && (
+        <PathPreview draft={penDraft} zoom={state.viewport.zoom} panX={state.viewport.panX} panY={state.viewport.panY} />
       )}
       {lassoPath !== null && lassoPath.length > 1 && (
         <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" data-lasso-preview>

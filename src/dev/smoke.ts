@@ -1044,13 +1044,14 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 5 &&
+    slots.length === 6 &&
+      document.querySelector('[data-tool-slot="pen"]') !== null &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
       lassoSlot?.title === 'Lasso Tool (Q)' &&
       document.querySelector('[data-tool-slot="hand"]') !== null,
-    `${slots.length} slots, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
+    `${slots.length} slots, pen ${document.querySelector('[data-tool-slot="pen"]') === null ? 'missing' : 'present'}, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
   )
 
   // 2. Clicking the Type tool must change the bar to the Type tool's controls.
@@ -1949,6 +1950,44 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     sweepSet && arc?.type === 'arc' && arc.sweepAngle === 180 && arc.pie === true,
     arc?.type === 'arc' ? `sweep ${arc.sweepAngle}, pie ${String(arc.pie)}` : `created ${arc?.type ?? 'nothing'}`,
   )
+
+  // 9. The Pen tool builds a path from clicks, finishes it with Enter, and Escape abandons one.
+  const countNodesNow = () => documentStore.getState().document.root.children.length
+  const beforePen = countNodesNow()
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }))
+  await settle(80)
+  dispatch('pointerdown', 520, 300, { buttons: 1 })
+  dispatch('pointerup', 520, 300, { buttons: 0 })
+  dispatch('pointerdown', 640, 360, { buttons: 1 })
+  dispatch('pointerup', 640, 360, { buttons: 0 })
+  dispatch('pointerdown', 600, 460, { buttons: 1 })
+  dispatch('pointerup', 600, 460, { buttons: 0 })
+  await settle(80)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  await settle(150)
+  const penPath = last()
+  record(
+    'Pen tool draws a curve',
+    penPath !== undefined && penPath.type === 'path' && penPath.anchors.length === 3 && penPath.closed === false,
+    penPath?.type === 'path' ? `${penPath.anchors.length} anchors, closed ${String(penPath.closed)}` : `created ${penPath?.type ?? 'nothing'}`,
+  )
+  const afterPen = countNodesNow()
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }))
+  await settle(60)
+  dispatch('pointerdown', 700, 300, { buttons: 1 })
+  dispatch('pointerup', 700, 300, { buttons: 0 })
+  dispatch('pointerdown', 760, 360, { buttons: 1 })
+  dispatch('pointerup', 760, 360, { buttons: 0 })
+  await settle(60)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  await settle(100)
+  record(
+    'Escape abandons a pen draft without touching the document',
+    afterPen === beforePen + 1 && countNodesNow() === afterPen,
+    `${countNodesNow() - afterPen} node(s) added by the abandoned draft`,
+  )
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+  await settle(60)
 
   return { passed: steps.every((step) => step.ok), steps }
 }

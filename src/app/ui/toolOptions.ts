@@ -16,8 +16,8 @@ import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'text' | 'hand' | 'zoom'
-export type ToolGroupId = 'select' | 'lasso' | 'shape' | 'type' | 'hand' | 'artboard'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'pen' | 'text' | 'hand' | 'zoom'
+export type ToolGroupId = 'select' | 'lasso' | 'pen' | 'shape' | 'type' | 'hand' | 'artboard'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
 
@@ -57,6 +57,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
 
   // The Lasso keeps Illustrator's own palette slot and its Q key rather than joining the arrows.
   { id: 'lasso', label: 'Lasso Tool', members: [{ tool: 'lasso', label: 'Lasso Tool', action: 'tool.lasso' }] },
+  // The Pen keeps Illustrator's P key and its own slot; anchor editing arrives with 5.3.
+  { id: 'pen', label: 'Pen Tool', members: [{ tool: 'pen', label: 'Pen Tool', action: 'tool.pen' }] },
   {
     id: 'shape',
     label: 'Shape Tool',
@@ -152,6 +154,16 @@ export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
     return [
       { kind: 'label', text: 'Lasso Tool' },
       { kind: 'hint', text: 'Drag a freehand path to select every object it touches.' },
+    ]
+  }
+
+  if (tool === 'pen') {
+    return [
+      { kind: 'label', text: 'Pen Tool' },
+      {
+        kind: 'hint',
+        text: 'Click for a corner, drag for a smooth anchor. Click the first anchor to close, Enter to finish, Escape to cancel.',
+      },
     ]
   }
 

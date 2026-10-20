@@ -1,6 +1,29 @@
 # Progress
 
 
+## Phase 5.2: the Pen tool (issue #138, 2026-10-20)
+
+A path can now be drawn by pointer, not only created by code.
+
+- **«src/tools/pen.ts»**: a click places a corner anchor, a press-and-drag places a smooth one whose
+  handles mirror the drag, clicking the first anchor (within eight scene units) closes the path, Enter
+  finishes it open, and Escape abandons the draft. Nothing is written to the document until the path is
+  finished, so a whole curve is **one undo entry** and an abandoned draft leaves no trace.
+- **The preview** («PathPreview.tsx») draws the anchors, the smooth anchors' handles, and a rubber band
+  from the last anchor to the pointer, using the same cubic segments the renderer records.
+- **The palette and the bar**: the Pen keeps Illustrator's **P** key and its own slot, and the tool options
+  bar explains the gesture instead of falling through to another tool's model.
+- **The tool contract** gained «setPenDraft»/«commitPenPath» on the host and an optional «finish» on a tool,
+  so Escape and Enter reach the state machine through the canvas rather than a store.
+- **Evidence**: 8 new unit tests (click, drag handles, close, the close radius, Enter, Enter with one anchor,
+  Escape, rubber band) — **303/303** in the suite — and two packaged steps: the Pen draws a three-anchor curve
+  and finishes it with Enter, and Escape leaves the document untouched. The packaged run is **146 steps**.
+
+Verified visually with the driven packaged app: the curve renders, is selected after committing, and
+Properties reads «Kind path» with its frame and anchors.
+
+
+
 ## Phase 5.1: the Bézier path node and format v5 (issue #137, 2026-10-20)
 
 The document can now hold a curve, and the file format says so.

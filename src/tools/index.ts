@@ -6,6 +6,7 @@
 
 import { createHandTool } from './hand.ts'
 import { createLassoTool } from './lasso.ts'
+import { createPenTool } from './pen.ts'
 import { createSelectTool } from './select.ts'
 import { createShapeTool } from './shapes.ts'
 import { createTypeTool } from './type.ts'
@@ -18,6 +19,7 @@ export const TOOL_CURSORS = {
   directSelect: 'default',
   hand: 'grab',
   lasso: 'crosshair',
+  pen: 'crosshair',
   rect: 'crosshair',
   roundedRect: 'crosshair',
   arc: 'crosshair',
@@ -37,6 +39,7 @@ export function createToolStateMachines(): Record<StateMachineToolId, Tool> {
     directSelect: createSelectTool({ id: 'directSelect', deep: true, cursor: TOOL_CURSORS.directSelect }),
     hand: createHandTool(TOOL_CURSORS.hand),
     lasso: createLassoTool({ cursor: TOOL_CURSORS.lasso }),
+    pen: createPenTool(TOOL_CURSORS.pen),
     rect: createShapeTool('rect', TOOL_CURSORS.rect),
     roundedRect: createShapeTool('roundedRect', TOOL_CURSORS.roundedRect),
     arc: createShapeTool('arc', TOOL_CURSORS.arc),

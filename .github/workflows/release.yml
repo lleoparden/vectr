@@ -106,6 +106,13 @@ jobs:
         run: |
           TAG="${{ needs.prepare.outputs.tag }}"
           ASSETS=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+          for asset in $ASSETS; do
+            case "$asset" in
+              *Setup.exe|*arm64.dmg|*x64.dmg) ;;
+              *) gh release delete-asset "$TAG" "$asset" --yes ;;
+            esac
+          done
+          ASSETS=$(gh release view "$TAG" --json assets --jq '.assets[].name')
           echo "$ASSETS"
           for name in Setup.exe arm64.dmg x64.dmg; do
             echo "$ASSETS" | grep -q "$name\$" || { echo "Missing $name"; exit 1; }

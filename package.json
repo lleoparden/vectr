@@ -76,7 +76,10 @@
       ],
       "identity": null
     },
-    "afterPack": "scripts/afterPack.cjs"
+    "afterPack": "scripts/afterPack.cjs",
+    "dmg": {
+      "artifactName": "Vectr-${version}-${arch}.dmg"
+    }
   },
   "allowScripts": {},
   "description": "A desktop-first vector design tool that exports its layer tree as React components styled with Tailwind.",

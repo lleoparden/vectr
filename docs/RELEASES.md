@@ -32,7 +32,24 @@ Windows x64 · per-user install · 95 MB · unsigned, so SmartScreen warns once
    and "Run anyway" if you trust the source.
 3. It installs per-user (no admin prompt) and creates a Start-menu shortcut.
 
-#### Run from source
+#### Install on macOS
+
+Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-x64.dmg`** on an Intel Mac.
+
+1. Open the DMG and drag **Vectr** into **Applications**.
+2. First launch: macOS may say the app is from an unidentified developer, or that it is **damaged**. It is
+   neither corrupt nor signed by Apple - the build is **ad-hoc signed** (no Apple Developer ID) and still carries
+   the download quarantine.
+3. Clear the quarantine once and open it:
+
+   ```bash
+   xattr -cr /Applications/Vectr.app
+   ```
+
+   Or right-click the app and choose **Open**, then **Open** again in the dialog.
+4. Notarization is not possible without a paid Apple Developer account; every macOS build shows this warning.
+
+## Run from source
 
 ```bash
 git clone https://github.com/lleoparden/vectr.git

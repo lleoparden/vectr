@@ -19,6 +19,7 @@ import {
   replaceNode,
 } from './document.ts'
 import { segmentAt, splitCubicAt } from '../geom/path.ts'
+import { localToScene, sceneToLocal, type PathEditCapture } from './pathEdit.ts'
 import { ALLOWED_IMAGE_MIME, MAX_ASSETS } from './assets.ts'
 import { validateDestination, validateRemovable, type ValidationCode } from './validate.ts'
 import {
@@ -61,6 +62,8 @@ export type Command =
   | { type: 'setSwatch'; swatchId: string; name?: string; color?: string; cmyk?: Cmyk | null; spot?: boolean }
   | { type: 'removeGuide'; guideId: string }
   | { type: 'setGuide'; guideId: string; position: number }
+  /** Joins two open paths at their nearest endpoints into one open path (Phase 5.3). */
+  | { type: 'joinPaths'; firstId: NodeId; secondId: NodeId }
   /** Inserts an anchor on a segment at t (Phase 5.3, issue #139). */
   | { type: 'addPathAnchor'; nodeId: NodeId; index: number; t: number }
   /** Removes one anchor, keeping the path above its minimum. */
@@ -597,6 +600,75 @@ export function applyCommand(document: Document, command: Command): CommandResul
         ok: true,
         document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),
         inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
+      }
+    }
+
+    case 'joinPaths': {
+      const first = findNode(document, command.firstId)
+      const second = findNode(document, command.secondId)
+      if (first === null || second === null) return rejected('absent-node', 'Both paths must exist to join them.')
+      if (first.type !== 'path' || second.type !== 'path') {
+        return rejected('invalid-parent', 'Join needs two paths.')
+      }
+      if (first.id === second.id) return rejected('invalid-index', 'A path cannot join itself.')
+      if (first.closed || second.closed) return rejected('invalid-index', 'Join needs two open paths.')
+      if (isLocked(document, first.id) || isLocked(document, second.id)) return rejected('locked', 'A locked path cannot be joined.')
+      if (!document.root.children.some((node) => node.id === first.id) || !document.root.children.some((node) => node.id === second.id)) {
+        return rejected('invalid-parent', 'Join currently requires both paths at the top level.')
+      }
+      const captureFor = (node: Extract<LayerNode, { type: 'path' }>): PathEditCapture => ({
+        nodeId: node.id,
+        anchors: node.anchors,
+        width: node.width,
+        height: node.height,
+        transform: node.transform,
+      })
+      const captureFirst = captureFor(first)
+      const captureSecond = captureFor(second)
+      const toScene = (anchor: PathAnchor, capture: PathEditCapture) => localToScene({ x: anchor.x, y: anchor.y }, capture)
+      const firstStart = toScene(first.anchors[0], captureFirst)
+      const firstEnd = toScene(first.anchors[first.anchors.length - 1], captureFirst)
+      const secondStart = toScene(second.anchors[0], captureSecond)
+      const secondEnd = toScene(second.anchors[second.anchors.length - 1], captureSecond)
+      const distance = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+      const options = [
+        { atFirstStart: false, atSecondEnd: false, gap: distance(firstEnd, secondStart) },
+        { atFirstStart: false, atSecondEnd: true, gap: distance(firstEnd, secondEnd) },
+        { atFirstStart: true, atSecondEnd: false, gap: distance(firstStart, secondStart) },
+        { atFirstStart: true, atSecondEnd: true, gap: distance(firstStart, secondEnd) },
+      ]
+      const best = options.reduce((left, right) => (right.gap < left.gap ? right : left))
+      const orderedFirst = best.atFirstStart ? [...first.anchors].reverse() : first.anchors
+      const orderedSecond = best.atSecondEnd ? [...second.anchors].reverse() : second.anchors
+      // The joining endpoint becomes one anchor: keep the first path's, drop the second's.
+      const movedSecond = orderedSecond.slice(1).map((anchor) => {
+        const scene = localToScene({ x: anchor.x, y: anchor.y }, captureSecond)
+        const local = sceneToLocal(scene, captureFirst)
+        const inScene = localToScene({ x: anchor.x + anchor.inX, y: anchor.y + anchor.inY }, captureSecond)
+        const outScene = localToScene({ x: anchor.x + anchor.outX, y: anchor.y + anchor.outY }, captureSecond)
+        const inLocal = sceneToLocal(inScene, captureFirst)
+        const outLocal = sceneToLocal(outScene, captureFirst)
+        return {
+          ...anchor,
+          x: local.x,
+          y: local.y,
+          inX: inLocal.x - local.x,
+          inY: inLocal.y - local.y,
+          outX: outLocal.x - local.x,
+          outY: outLocal.y - local.y,
+        }
+      })
+      const anchors = [...orderedFirst, ...movedSecond].map((anchor) => ({ ...anchor }))
+      const previous = { anchors: first.anchors.map((anchor) => ({ ...anchor })), closed: first.closed, fillRule: first.fillRule }
+      const index = childIndex(document.root, second.id)
+      const joined = removeNodes(replaceNode(document, first.id, (current) => ({ ...current, anchors })), [second.id])
+      return {
+        ok: true,
+        document: withRevision(joined),
+        inverse: batchCommand([
+          { type: 'setPathAnchors', nodeId: first.id, ...previous },
+          { type: 'insertNodes', parentId: document.root.id, index, nodes: [second] },
+        ]),
       }
     }
 

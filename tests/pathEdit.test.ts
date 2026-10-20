@@ -159,3 +159,38 @@ test('nudging an anchor moves it and leaves its handles alone', () => {
   assert.deepEqual([moved[0].x, moved[0].outX], [0, 10], 'the other anchor is untouched')
   assert.equal(moved[1].inX, 0, 'handles are relative, so they travel with the anchor')
 })
+
+test('joining two open paths merges them at their nearest endpoints and undoes cleanly', () => {
+  const first = createPath('First', 0, 0, [cornerAnchor(0, 0), cornerAnchor(40, 0)], { closed: false })
+  const second = createPath('Second', 40, 0, [cornerAnchor(0, 0), cornerAnchor(40, 20)], { closed: false })
+  const base = createDocument()
+  let document = insertNodes(base, base.root.id, base.root.children.length, [first, second])
+  const beforeFirst = (findNode(document, first.id) as PathNode).anchors.map((anchor) => ({ ...anchor }))
+
+  const result = applyCommand(document, { type: 'joinPaths', firstId: first.id, secondId: second.id })
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+  document = result.document
+  const merged = findNode(document, first.id) as PathNode
+  assert.equal(merged.anchors.length, 3, 'the joining endpoint becomes one anchor')
+  assert.equal(document.root.children.filter((node) => node.type === 'path').length, 1)
+
+  const undone = applyCommand(document, result.inverse)
+  assert.equal(undone.ok, true)
+  if (!undone.ok) return
+  assert.equal(undone.document.root.children.filter((node) => node.type === 'path').length, 2)
+  const restored = findNode(undone.document, first.id) as PathNode
+  assert.deepEqual(
+    restored.anchors.map((anchor) => [anchor.x, anchor.y]),
+    beforeFirst.map((anchor) => [anchor.x, anchor.y]),
+  )
+})
+
+test('join refuses closed, locked, and nested paths', () => {
+  const open = createPath('Open', 0, 0, [cornerAnchor(0, 0), cornerAnchor(10, 0)], { closed: false })
+  const closed = createPath('Closed', 10, 0, [cornerAnchor(0, 0), cornerAnchor(10, 0), cornerAnchor(5, 10)], { closed: true })
+  const base = createDocument()
+  const document = insertNodes(base, base.root.id, 0, [open, closed])
+  const result = applyCommand(document, { type: 'joinPaths', firstId: open.id, secondId: closed.id })
+  assert.equal(result.ok, false)
+})

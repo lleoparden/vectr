@@ -1828,7 +1828,10 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(120)
   const circle = last()
   const sizeOf = (node: LayerNode) => nodeSize(node)
-  const circleIsRound = circle !== undefined && circle.type === 'ellipse' && circle.width === circle.height
+  // The constrained drag computes both sides from one length, but start + size - start rounds in
+  // floating point, so compare at a sub-pixel tolerance rather than bit-for-bit.
+  const circleIsRound =
+    circle !== undefined && circle.type === 'ellipse' && Math.abs(circle.width - circle.height) <= 1e-6
   record(
     'Shift with the ellipse tool draws a circle',
     circleIsRound,

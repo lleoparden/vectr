@@ -21,6 +21,8 @@
 import type { BlendMode as CanvasBlendMode, Shader } from 'canvaskit-wasm'
 import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
+import { contentSignature } from './signature.ts'
+import { shaderColors } from './shaders.ts'
 import CanvasKitInit, {
   type Canvas,
   type CanvasKit,
@@ -211,7 +213,7 @@ export class EditorRenderer {
       const slice = scene.byRoot.slice(start, start + chunkSize)
       const roots = slice.map((entry) => entry.root)
       const shapes = slice.flatMap((entry) => entry.shapes)
-      const signature = signatureOf(shapes)
+      const signature = contentSignature(shapes)
       const key = roots.join('|')
       const reusable = previous.find((bucket) => bucket.key === key && bucket.signature === signature)
       if (reusable !== undefined && reusable.picture !== null) {
@@ -646,7 +648,7 @@ export class EditorRenderer {
  */
   private fillPaintFor(shape: SceneShape): Paint {
     if (shape.gradient === null) return this.paintFor('fill', shape.fill, 0, shape.opacity)
-    const colors = shape.gradient.stops.map((stop) => this.color(stop.color))
+    const colors = shaderColors(shape.gradient.stops.map((stop) => stop.color))
     const positions = shape.gradient.stops.map((stop) => stop.offset)
     const start: number[] = [shape.gradient.from.x * shape.width, shape.gradient.from.y * shape.height]
     const end: number[] = [shape.gradient.to.x * shape.width, shape.gradient.to.y * shape.height]
@@ -670,7 +672,7 @@ export class EditorRenderer {
   /** The gradient shader for a shape in its own box, or null when it has no gradient. */
   private gradientShaderFor(shape: SceneShape): Shader | null {
     if (shape.gradient === null) return null
-    const colors = shape.gradient.stops.map((stop) => this.color(stop.color))
+    const colors = shaderColors(shape.gradient.stops.map((stop) => stop.color))
     const positions = shape.gradient.stops.map((stop) => stop.offset)
     const start: number[] = [shape.gradient.from.x * shape.width, shape.gradient.from.y * shape.height]
     const end: number[] = [shape.gradient.to.x * shape.width, shape.gradient.to.y * shape.height]
@@ -853,7 +855,6 @@ export class EditorRenderer {
   }
 }
 
-/** Cheap content signature: any pixel-affecting change alters the bucket's record. */
 /** Base64 for the thumbnail data URLs; chunked so a larger encode cannot blow the call stack. */
 function base64FromBytes(bytes: Uint8Array): string {
   let binary = ''
@@ -862,20 +863,6 @@ function base64FromBytes(bytes: Uint8Array): string {
     binary += String.fromCharCode(...bytes.subarray(index, index + chunk))
   }
   return btoa(binary)
-}
-
-function signatureOf(shapes: SceneShape[]): string {
-  let signature = ''
-  for (const shape of shapes) {
-    signature += `${shape.id},${shape.x},${shape.y},${shape.rotation},${shape.scaleX},${shape.scaleY},${shape.width},${shape.height},${shape.kind},${shape.fill},${shape.stroke?.color ?? '-'},${shape.stroke?.width ?? 0},${shape.opacity},${shape.assetId ?? '-'}`
-    // Text content and metrics affect pixels exactly as geometry does, so they belong in the
-    // signature: an edited string must re-record its bucket.
-    if (shape.text !== null) {
-      signature += `,${shape.text.content},${shape.text.fontSize},${shape.text.fontFamily},${shape.text.align},${shape.text.lineHeight}`
-    }
-    signature += ';'
-  }
-  return signature
 }
 
 /** Reads a bundled asset's byte size without retaining it. */

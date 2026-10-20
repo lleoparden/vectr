@@ -2363,3 +2363,16 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **The workflow is the only publisher**, and it decides with facts: new version → build, existing version without
   an installer → build, manual `rebuild` → build, otherwise just refresh notes. That is why `package:win` passes
   `--publish never` and why no step ever deletes a tag.
+
+## 2026-10-20 - Shader colours are 0-1 in all four channels, and the signature covers every pixel
+
+- **CanvasKit's «Color()» is not a shader colour.** It normalises RGB and leaves alpha at 0-255; gradient APIs
+  want 0-1 across the board. The renderer now converts hex to «Float32Array» itself («src/render/shaders.ts»),
+  so the quirk cannot leak back in through a convenient helper.
+- **The bucket signature is a correctness boundary, not a cache detail.** Anything that changes pixels belongs in
+  it; a field that is missing is a style edit that silently does not repaint. It now lives in a pure module with
+  its own tests, because a cache bug is invisible until someone looks at the canvas and sees the old picture.
+- **A bug needs a reproduction, not a guess.** The first screenshot confirmed the symptom but not the cause; the
+  cause came from logging the actual shader parameters and from a Node probe that painted a white rect. The
+  writing in the issue said a fix without a reproduced cause would be a guess, and this is what that looks like
+  when it is done properly.

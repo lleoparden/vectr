@@ -41,6 +41,7 @@ import { assetRegistry } from '../state/assetRegistry.ts'
 import { childIndex, createGroup, createImage, type ShapeKind, type ShapeParams } from '../doc/document.ts'
 import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from '../geom/viewport.ts'
 import { isLocked, parentIdOf, type Command } from '../doc/commands.ts'
+import { nudgedAnchor } from '../doc/pathEdit.ts'
 
 /** Artboard ids are opaque and never reused, like node ids. */
 function newArtboardId(): string {
@@ -423,6 +424,22 @@ export function setToolTextSize(fontSize: number): void {
  * Every selected object moves in one transaction, so a nudge is one undo entry, and a locked
  * object is refused by the command path rather than skipped silently.
  */
+/**
+ * Nudges the anchor Direct Selection last picked, as one undo entry. With no active anchor, or one
+ * that no longer belongs to a path, this does nothing rather than nudging the whole object.
+ */
+export function nudgeActiveAnchor(dx: number, dy: number): void {
+  const anchor = workspaceStore.getState().activeAnchor
+  if (anchor === null) return
+  const node = findNode(documentStore.getState().document, anchor.nodeId)
+  if (node === null || node.type !== 'path' || anchor.index < 0 || anchor.index >= node.anchors.length) {
+    workspaceStore.setActiveAnchor(null)
+    return
+  }
+  const anchors = nudgedAnchor(node.anchors.map((value) => ({ ...value })), anchor.index, dx, dy)
+  documentStore.dispatch({ type: 'setPathAnchors', nodeId: node.id, anchors, closed: node.closed, fillRule: node.fillRule }, 'nudge anchor')
+}
+
 export function nudgeSelection(dx: number, dy: number): void {
   if (!Number.isFinite(dx) || !Number.isFinite(dy) || (dx === 0 && dy === 0)) return
   const { document, selection } = documentStore.getState()

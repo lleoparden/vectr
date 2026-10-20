@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef } from 'react'
-import { canRunAction, nudgeSelection, runEditorAction } from '../actions.ts'
+import { canRunAction, nudgeActiveAnchor, nudgeSelection, runEditorAction } from '../actions.ts'
 import { chordFromEvent, matchShortcut } from './shortcuts.ts'
 import { documentStore } from '../../state/documentStore.ts'
 import { workspaceStore } from '../../state/workspaceStore.ts'
@@ -61,6 +61,11 @@ export function useEditorShortcuts() {
         if (documentStore.getState().selection.length === 0) return
         event.preventDefault()
         const step = event.shiftKey ? NUDGE_STEP_BIG : NUDGE_STEP
+        const anchor = workspaceStore.getState().activeAnchor
+        if (anchor !== null && documentStore.getState().tool === 'directSelect') {
+          nudgeActiveAnchor(arrow[0] * step, arrow[1] * step)
+          return
+        }
         nudgeSelection(arrow[0] * step, arrow[1] * step)
         return
       }

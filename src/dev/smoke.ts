@@ -2016,6 +2016,17 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
       moved !== null && (Math.abs(moved.x - beforeAnchor.x) > 1 || Math.abs(moved.y - beforeAnchor.y) > 1),
       moved === null ? 'anchor missing' : `moved to ${Math.round(moved.x)}, ${Math.round(moved.y)}`,
     )
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await settle(120)
+    const nudgedNode = documentStore.getState().document.root.children.find((node) => node.id === penNode.id)
+    const nudged = nudgedNode !== undefined && nudgedNode.type === 'path' ? nudgedNode.anchors[0] : null
+    record(
+      'arrow nudges the picked anchor',
+      nudged !== null && moved !== null && Math.abs(nudged.x - (moved.x + 1)) < 1e-6,
+      nudged === null || moved === null ? 'anchor missing' : `x ${Math.round(nudged.x)} from ${Math.round(moved.x)}`,
+    )
+    documentStore.undo()
+    await settle(100)
     documentStore.undo()
     await settle(120)
     const restored = documentStore.getState().document.root.children.find((node) => node.id === penNode.id)

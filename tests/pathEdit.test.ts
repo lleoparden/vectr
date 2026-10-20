@@ -13,6 +13,7 @@ import {
   localToScene,
   nearestAnchor,
   nearestHandle,
+  nudgedAnchor,
   sceneToLocal,
   type PathEditCapture,
 } from '../src/doc/pathEdit.ts'
@@ -146,4 +147,15 @@ test('anchor commands refuse a locked path and a non-path', () => {
     assert.equal(result.ok, false)
     if (!result.ok) assert.equal(result.code, 'locked')
   }
+})
+
+test('nudging an anchor moves it and leaves its handles alone', () => {
+  const anchors = [
+    { x: 0, y: 0, inX: -5, inY: 0, outX: 10, outY: 0, smooth: true },
+    { x: 50, y: 50, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false },
+  ]
+  const moved = nudgedAnchor(anchors, 1, 3, -2)
+  assert.deepEqual([moved[1].x, moved[1].y], [53, 48])
+  assert.deepEqual([moved[0].x, moved[0].outX], [0, 10], 'the other anchor is untouched')
+  assert.equal(moved[1].inX, 0, 'handles are relative, so they travel with the anchor')
 })

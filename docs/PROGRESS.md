@@ -1,6 +1,20 @@
 # Progress
 
 
+## Anchor selection and arrow nudging (issue #139, second part)
+
+- **An anchor can be picked.** Direct Selection records the anchor it grabs in «workspaceStore.activeAnchor»;
+  the overlay draws that anchor filled in the brand rose, and the state is cleared when the tool, node, or
+  selection stops being one path.
+- **Arrow keys nudge the picked anchor**, not the object: one «setPathAnchors» command per press (1 unit, 10 with
+  Shift), so undo is one entry. With no active anchor the arrows keep nudging the selection as before.
+- **Evidence**: 312 unit tests (a pure «nudgedAnchor» test that handles stay relative) and **150 packaged steps**;
+  the new step presses ArrowRight after dragging an anchor and asserts the anchor, not the object, moved.
+
+Still open on #139: join, average, and the menu/shortcut entry for add/delete/convert.
+
+
+
 ## Phase 5.3, first part: anchor editing (issue #139, 2026-10-20)
 
 A selected path can now be reshaped by its own points.

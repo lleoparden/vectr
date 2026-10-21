@@ -2159,6 +2159,22 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   )
   documentStore.undo()
   await settle(100)
+  // 17. Outline Stroke: an open stroked path becomes a filled outline, one undo entry.
+  const openStroke = createPath('Stroke fixture', 600, 200, [cornerAnchor(0, 0), cornerAnchor(150, 60)], { closed: false })
+  openStroke.style.stroke = { color: '#a94a4a', width: 20 }
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [openStroke] }, 'outline fixture')
+  documentStore.setSelection([openStroke.id])
+  await settle(80)
+  runEditorAction('path.outlineStroke')
+  await settle(150)
+  const outlined = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Outline'))
+  record(
+    'Outline Stroke turns a stroke into a filled path',
+    outlined !== undefined && outlined.type === 'path' && outlined.style.fill === '#a94a4a' && documentStore.getState().document.root.children.every((node) => node.id !== openStroke.id),
+    outlined === undefined ? 'no outline' : `${outlined.anchors.length} anchors`,
+  )
+  documentStore.undo()
+  await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

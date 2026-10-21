@@ -629,6 +629,34 @@ export function simplifySelectedPath(): void {
   documentStore.dispatch({ type: 'simplifyPath', nodeId: selection[0], tolerance: 1 }, 'simplify path')
 }
 
+/** Outline Stroke: an open shape's stroke becomes a filled path, one undo entry (Phase 5.6). */
+export function outlineStrokeSelection(): void {
+  const { document, selection } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null || selection.length === 0) return
+  const shapes = buildScene(document).shapes.filter((shape) => selection.includes(shape.id))
+  const nodes: ReturnType<typeof createPath>[] = []
+  const removed: string[] = []
+  for (const shape of shapes) {
+    const outline = renderer.outlineStrokeForShape(shape)
+    if (outline === null || shape.stroke === null) continue
+    const anchors = outline.map((point) => cornerAnchor(point.x, point.y))
+    const bounds = pathBounds(anchors, true)
+    const existing = document.root.children.filter((node) => node.name.startsWith('Outline')).length
+    nodes.push(createPath(`Outline ${existing + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shape.stroke.color }))
+    removed.push(shape.id)
+  }
+  if (nodes.length === 0) return
+  const result = documentStore.dispatch(
+    batchCommand([
+      { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },
+      { type: 'removeNodes', nodeIds: removed },
+    ]),
+    'outline stroke',
+  )
+  if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -832,7 +860,15 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return anyNode((node) => node.hidden)
     case 'object.unlockAll':
       return anyNode((node) => node.locked)
-    case 'file.recover':
+    case 'path.outlineStroke':
+    return editor.selection.some((id) => {
+      const node = findNode(editor.document, id)
+      if (node === null || node.type === 'group' || node.type === 'image' || node.type === 'text') return false
+      const stroke = node.style.stroke
+      const open = node.type === 'line' || (node.type === 'path' && !node.closed)
+      return open && stroke !== null && stroke.width > 0
+    })
+  case 'file.recover':
       // Illustrator-style: the command is only available when there is something to recover.
       return editor.recovery.available
     case 'file.save':
@@ -1182,6 +1218,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.simplify':
       simplifySelectedPath()
+      return
+    case 'path.outlineStroke':
+      outlineStrokeSelection()
       return
     case 'path.unite':
       runPathfinder('unite')

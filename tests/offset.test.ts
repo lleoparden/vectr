@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { outlineArea, strokeOutline } from '../src/geom/offset.ts'
+import { outlineArea, strokeOutline, strokeRing } from '../src/geom/offset.ts'
 
 test('a straight line becomes a rectangle of length × width', () => {
   const outline = strokeOutline(
@@ -44,4 +44,25 @@ test('duplicate points and a zero width produce nothing', () => {
   assert.equal(outline.length, 4)
   assert.deepEqual(strokeOutline([{ x: 0, y: 0 }], 10), [])
   assert.deepEqual(strokeOutline([{ x: 0, y: 0 }, { x: 10, y: 0 }], 0), [])
+})
+
+test('a closed square becomes an outer and an inner contour whose difference is the stroke area', () => {
+  const square = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+    { x: 0, y: 100 },
+  ]
+  const ring = strokeRing(square, 10)
+  assert.ok(ring !== null)
+  assert.equal(ring.outer.length, 4)
+  assert.equal(ring.inner.length, 4)
+  const area = outlineArea(ring.outer) - outlineArea(ring.inner)
+  assert.ok(Math.abs(area - 4000) < 1e-6, `ring area ${area}`)
+  assert.ok(outlineArea(ring.outer) > outlineArea(ring.inner), 'the outer contour encloses the hole')
+})
+
+test('a degenerate closed contour produces no ring', () => {
+  assert.equal(strokeRing([{ x: 0, y: 0 }], 10), null)
+  assert.equal(strokeRing([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 0 }], 10), null)
 })

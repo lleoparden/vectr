@@ -2195,7 +2195,7 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     compoundId !== null &&
       hitTest(documentStore.getState().document, { x: 900, y: 400 }) === null &&
       hitTest(documentStore.getState().document, { x: 825, y: 325 }) === compoundId,
-    'hole misses, ring hits',
+    `${String(hitTest(documentStore.getState().document, { x: 1150, y: 350 }))} / ${String(hitTest(documentStore.getState().document, { x: 1098, y: 350 }))}`,
   )
   // A cover rectangle intersected with the compound must come back as a compound again.
   const cover = createRect('CP Cover', 780, 280, 240, 240)
@@ -2226,6 +2226,32 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(120)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
+
+  // 20. Outline Stroke on a closed shape: a compound ring whose hole is not clickable.
+  const closedStroke = createRect('Closed stroke', 1100, 300, 100, 100)
+  ;(closedStroke as { style: { stroke: { color: string; width: number } } }).style.stroke = { color: '#a94a4a', width: 10 }
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [closedStroke] }, 'closed outline fixture')
+  documentStore.setSelection([closedStroke.id])
+  await settle(80)
+  runEditorAction('path.outlineStroke')
+  await settle(150)
+  const ring = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Outline') && (((node as { subpaths?: unknown[] }).subpaths?.length ?? 0) === 1))
+  const ringId = ring?.id ?? null
+  record(
+    'Outline Stroke on a closed shape makes a ring',
+    ring !== undefined && ring.type === 'path' && ring.fillRule === 'evenodd',
+    ring === undefined ? 'no ring' : 'compound ring',
+  )
+  record(
+    'the ring of an outlined closed shape is a real hole',
+    ringId !== null &&
+      hitTest(documentStore.getState().document, { x: 1150, y: 350 }) === null &&
+      hitTest(documentStore.getState().document, { x: 1098, y: 350 }) === ringId,
+    `${String(hitTest(documentStore.getState().document, { x: 1150, y: 350 }))} / ${String(hitTest(documentStore.getState().document, { x: 1105, y: 305 }))}`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
   return { passed: steps.every((step) => step.ok), steps }
 }

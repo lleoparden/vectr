@@ -1,6 +1,23 @@
 # Progress
 
 
+## Outline Stroke for closed shapes, as compound rings (issue #142)
+
+- The stroke of a closed shape is a **ring**, so outlining it produces a **compound path**: an outer
+  contour and an inner one, drawn with the even-odd rule. «geom/offset.strokeRing» builds both by offsetting the
+  closed contour to each side, and it swaps them if the contour's winding made the signs come out backwards -
+  the area test caught exactly that.
+- **Hit testing follows the hole:** clicking the interior of a 10-wide outlined rectangle misses, clicking the
+  band hits. The packaged run proves both, in the app.
+- **Evidence**: 344 unit tests (a 100×100 square with a 10-unit stroke gives a ring of area 4000, outer larger
+  than inner, degenerate contours refused) and **165 packaged steps**; the two new steps outline a closed
+  rectangle in the packaged app, assert the compound ring, and check the hole is not clickable while the band is.
+
+**Still open on #142:** offset path, live shape reshaping, and Outline Stroke on a compound's stroke (the ring
+code reads one contour, which a compound would need to extend).
+
+
+
 ## Compound-aware booleans (issue #142 depth)
 
 - **Compound paths are real operands now.** The curved boolean builder adds every contour of a compound path, and

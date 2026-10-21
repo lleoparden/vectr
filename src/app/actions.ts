@@ -649,12 +649,20 @@ export function outlineStrokeSelection(): void {
   const nodes: ReturnType<typeof createPath>[] = []
   const removed: string[] = []
   for (const shape of shapes) {
-    const outline = renderer.outlineStrokeForShape(shape)
-    if (outline === null || shape.stroke === null) continue
-    const anchors = outline.map((point) => cornerAnchor(point.x, point.y))
+    const contours = renderer.outlineStrokeContours(shape)
+    if (contours.length === 0 || shape.stroke === null) continue
+    const anchors = contours[0].map((point) => cornerAnchor(point.x, point.y))
+    const subpaths = contours.slice(1).map((contour) => contour.map((point) => cornerAnchor(point.x, point.y)))
     const bounds = pathBounds(anchors, true)
     const existing = document.root.children.filter((node) => node.name.startsWith('Outline')).length
-    nodes.push(createPath(`Outline ${existing + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shape.stroke.color }))
+    nodes.push(
+      createPath(`Outline ${existing + 1}`, bounds.x, bounds.y, anchors, {
+        closed: true,
+        fillRule: subpaths.length > 0 ? 'evenodd' : 'nonzero',
+        fill: shape.stroke.color,
+        subpaths,
+      }),
+    )
     removed.push(shape.id)
   }
   if (nodes.length === 0) return
@@ -939,8 +947,7 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       const node = findNode(editor.document, id)
       if (node === null || node.type === 'group' || node.type === 'image' || node.type === 'text') return false
       const stroke = node.style.stroke
-      const open = node.type === 'line' || (node.type === 'path' && !node.closed)
-      return open && stroke !== null && stroke.width > 0
+      return stroke !== null && stroke.width > 0
     })
   case 'file.recover':
       // Illustrator-style: the command is only available when there is something to recover.

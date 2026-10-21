@@ -1,6 +1,19 @@
 # Progress
 
 
+## The stress report is gone (owner request, 2026-10-21)
+
+- **The 1,000-shape stress report no longer runs at the end of the packaged suite.** «runEditorStress» and its call
+  in the smoke harness were removed, so the run now logs **six reports (158 steps)** instead of seven: smoke, file,
+  text, UI, path, and memory.
+- **Memory coverage is unchanged:** the memory report still builds a 1,000-shape document with images, saves,
+  reopens and closes it, and checks the 1,200 MiB budget - what was removed is the separate zoom/interaction stress
+  pass that ran after it.
+- The harness comment now says the stress case was removed on request rather than leaving a dangling flag meaning
+  nothing.
+
+
+
 ## The Offset Path dialog (issue #142)
 
 - **Offset Path now asks for its distance**, the way Illustrator does: a small modal with a number field, an

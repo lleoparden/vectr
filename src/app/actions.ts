@@ -425,52 +425,94 @@ export function setToolTextSize(fontSize: number): void {
  * object is refused by the command path rather than skipped silently.
  */
 /**
- * Nudges the anchor Direct Selection last picked, as one undo entry. With no active anchor, or one
- * that no longer belongs to a path, this does nothing rather than nudging the whole object.
+ * Nudges every anchor Direct Selection picked, as one undo entry. With no anchor selection, or one
+ * that no longer belongs to a path, this clears it rather than nudging the whole object.
  */
-export function nudgeActiveAnchor(dx: number, dy: number): void {
-  const anchor = workspaceStore.getState().activeAnchor
-  if (anchor === null) return
-  const node = findNode(documentStore.getState().document, anchor.nodeId)
-  if (node === null || node.type !== 'path' || anchor.index < 0 || anchor.index >= node.anchors.length) {
-    workspaceStore.setActiveAnchor(null)
+export function nudgeActiveAnchors(dx: number, dy: number): void {
+  const selection = workspaceStore.getState().anchorSelection
+  if (selection === null) return
+  const node = findNode(documentStore.getState().document, selection.nodeId)
+  if (node === null || node.type !== 'path' || selection.indices.some((index) => index < 0 || index >= node.anchors.length)) {
+    workspaceStore.setAnchorSelection(null)
     return
   }
-  const anchors = nudgedAnchor(node.anchors.map((value) => ({ ...value })), anchor.index, dx, dy)
+  let anchors = node.anchors.map((value) => ({ ...value }))
+  for (const index of selection.indices) anchors = nudgedAnchor(anchors, index, dx, dy)
   documentStore.dispatch({ type: 'setPathAnchors', nodeId: node.id, anchors, closed: node.closed, fillRule: node.fillRule }, 'nudge anchor')
 }
 
-/** The selected single path and the anchor the white arrow picked, or null. */
-function activePath(): { node: Extract<ReturnType<typeof findNode>, { type: 'path' }>; index: number } | null {
+/** The selected single path and the anchors the white arrow picked, or null. */
+function activePath(): { node: Extract<ReturnType<typeof findNode>, { type: 'path' }>; indices: number[] } | null {
   const { selection, document } = documentStore.getState()
   if (selection.length !== 1) return null
   const node = findNode(document, selection[0])
   if (node === null || node.type !== 'path') return null
-  const active = workspaceStore.getState().activeAnchor
-  const index = active !== null && active.nodeId === node.id ? active.index : 0
-  if (index < 0 || index >= node.anchors.length) return null
-  return { node, index }
+  const picked = workspaceStore.getState().anchorSelection
+  const indices = picked !== null && picked.nodeId === node.id ? picked.indices : [0]
+  const valid = indices.filter((index) => Number.isInteger(index) && index >= 0 && index < node.anchors.length)
+  if (valid.length === 0) return null
+  return { node, indices: valid }
 }
 
-/** Adds a point on the segment after the active anchor, in one undo entry. */
+/** Adds a point on the segment after the first picked anchor, in one undo entry. */
 export function addAnchorAtActive(): void {
   const target = activePath()
   if (target === null || target.node.anchors.length < 2) return
-  documentStore.dispatch({ type: 'addPathAnchor', nodeId: target.node.id, index: Math.min(target.index, target.node.anchors.length - 1), t: 0.5 }, 'add anchor')
+  documentStore.dispatch({ type: 'addPathAnchor', nodeId: target.node.id, index: Math.min(target.indices[0], target.node.anchors.length - 1), t: 0.5 }, 'add anchor')
 }
 
-/** Removes the active anchor when the path can lose one. */
+/** Removes every picked anchor that the path can lose, in one undo entry. */
 export function deleteActiveAnchor(): void {
   const target = activePath()
   if (target === null) return
-  documentStore.dispatch({ type: 'removePathAnchor', nodeId: target.node.id, index: target.index }, 'delete anchor')
+  const minimum = target.node.closed ? 3 : 2
+  const indices = [...target.indices].sort((left, right) => right - left)
+  let anchors = target.node.anchors.map((value) => ({ ...value }))
+  for (const index of indices) {
+    if (anchors.length <= minimum) break
+    anchors = anchors.filter((_, at) => at !== index)
+  }
+  if (anchors.length === target.node.anchors.length) return
+  documentStore.dispatch({ type: 'setPathAnchors', nodeId: target.node.id, anchors, closed: target.node.closed, fillRule: target.node.fillRule }, 'delete anchor')
 }
 
-/** Converts the active anchor to smooth or corner. */
+/** Converts every picked anchor to smooth or corner, in one undo entry. */
 export function convertActiveAnchor(smooth: boolean): void {
   const target = activePath()
   if (target === null) return
-  documentStore.dispatch({ type: 'convertPathAnchor', nodeId: target.node.id, index: target.index, smooth }, smooth ? 'smooth anchor' : 'corner anchor')
+  const count = target.node.anchors.length
+  const anchors = target.node.anchors.map((anchor) => ({ ...anchor }))
+  for (const index of target.indices) {
+    const value = anchors[index]
+    if (!smooth) {
+      value.inX = 0
+      value.inY = 0
+      value.outX = 0
+      value.outY = 0
+      value.smooth = false
+      continue
+    }
+    const previous = anchors[(index - 1 + count) % count]
+    const next = anchors[(index + 1) % count]
+    const dx = next.x - previous.x
+    const dy = next.y - previous.y
+    const length = Math.hypot(dx, dy)
+    if (length === 0) continue
+    const reach = Math.min(Math.hypot(value.x - previous.x, value.y - previous.y), Math.hypot(next.x - value.x, next.y - value.y)) / 3
+    value.outX = (dx / length) * reach
+    value.outY = (dy / length) * reach
+    value.inX = -(dx / length) * reach
+    value.inY = -(dy / length) * reach
+    value.smooth = true
+  }
+  documentStore.dispatch({ type: 'setPathAnchors', nodeId: target.node.id, anchors, closed: target.node.closed, fillRule: target.node.fillRule }, smooth ? 'smooth anchors' : 'corner anchors')
+}
+
+/** Moves the picked anchors to their mean point, in one undo entry. */
+export function averageActiveAnchors(): void {
+  const target = activePath()
+  if (target === null || target.indices.length < 2) return
+  documentStore.dispatch({ type: 'averagePathAnchors', nodeId: target.node.id, indices: target.indices }, 'average anchors')
 }
 
 /** Joins two selected open paths at their nearest endpoints, in one undo entry. */
@@ -1015,6 +1057,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.join':
       joinSelectedPaths()
+      return
+    case 'path.average':
+      averageActiveAnchors()
       return
     case 'artboard.new': {
       const document = documentStore.getState().document

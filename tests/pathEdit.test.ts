@@ -194,3 +194,24 @@ test('join refuses closed, locked, and nested paths', () => {
   const result = applyCommand(document, { type: 'joinPaths', firstId: open.id, secondId: closed.id })
   assert.equal(result.ok, false)
 })
+
+test('averaging anchors moves exactly the picked ones to their mean and inverts', () => {
+  const path = createPath('Triangle', 0, 0, [cornerAnchor(0, 0), cornerAnchor(100, 0), cornerAnchor(0, 80)], { closed: true })
+  let { document, id } = documentWith(path)
+  const result = applyCommand(document, { type: 'averagePathAnchors', nodeId: id, indices: [0, 2] })
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+  document = result.document
+  const averaged = findNode(document, id) as PathNode
+  assert.deepEqual([averaged.anchors[0].x, averaged.anchors[0].y, averaged.anchors[2].x, averaged.anchors[2].y], [0, 40, 0, 40])
+  assert.deepEqual([averaged.anchors[1].x, averaged.anchors[1].y], [100, 0], 'unpicked anchors stay put')
+
+  const undone = applyCommand(document, result.inverse)
+  assert.equal(undone.ok, true)
+  if (!undone.ok) return
+  const restored = findNode(undone.document, id) as PathNode
+  assert.deepEqual([restored.anchors[2].x, restored.anchors[2].y], [0, 80])
+
+  const one = applyCommand(undone.document, { type: 'averagePathAnchors', nodeId: id, indices: [1] })
+  assert.equal(one.ok, false, 'averaging one anchor is refused')
+})

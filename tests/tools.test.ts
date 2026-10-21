@@ -58,6 +58,8 @@ function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]
     zoomToBox: (box) => calls.push("zoomBox:" + box.width + "x" + box.height),
     // Anchor editing belongs to a selected path; these tests exercise selection, so it reports none.
     pathEditCapture: () => null,
+    selectAnchor: (id, index, additive) => calls.push("anchor:" + id + ":" + index + (additive ? ":add" : "")),
+    clearAnchorSelection: () => calls.push("clearAnchors"),
     beginPathDrag: () => calls.push("beginPathDrag"),
     setPathAnchors: (id, anchors) => calls.push("setAnchors:" + id + ":" + anchors.length),
     endPathDrag: () => calls.push("endPathDrag"),

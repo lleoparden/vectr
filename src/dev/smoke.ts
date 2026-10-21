@@ -2104,6 +2104,20 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   )
   documentStore.undo()
   await settle(100)
+  // 14. Curved booleans keep their cubics: two overlapping ellipses unite with handles intact.
+  const ellipses = [createEllipse('CV A', 400, 300, 120, 120), createEllipse('CV B', 460, 300, 120, 120)]
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: ellipses }, 'curved fixture')
+  documentStore.setSelection(ellipses.map((node) => node.id))
+  runEditorAction('path.unite')
+  await settle(150)
+  const curvedResult = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Pathfinder') && node.anchors.some((anchor) => anchor.smooth && (anchor.outX !== 0 || anchor.outY !== 0)))
+  record(
+    'curved booleans keep their handles',
+    curvedResult !== undefined && curvedResult.type === 'path',
+    curvedResult === undefined ? 'no curved result' : `${curvedResult.type} with handles`,
+  )
+  documentStore.undo()
+  await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

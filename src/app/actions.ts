@@ -539,13 +539,20 @@ function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtra
   const scene = buildScene(document)
   const shapes = scene.shapes.filter((shape) => targetIds.includes(shape.id))
   if (shapes.length < 2) return
-  const polygons = mode === 'divide' ? renderer.divideShapes(shapes) : renderer.booleanPolygonsForShapes(shapes, mode)
-  if (polygons.length === 0) return
-  const nodes = polygons.map((polygon, index) => {
-    const anchors = polygon.map((point) => cornerAnchor(point.x, point.y))
-    const bounds = pathBounds(anchors, true)
-    return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
-  })
+  // Boolean modes keep their curves: the renderer builds scene-space Skia paths and reads back cubics.
+  // Divide still works on flattened faces, because it needs a finite set of polygons to trim.
+  const nodes =
+    mode === 'divide'
+      ? renderer.divideShapes(shapes).map((polygon, index) => {
+          const anchors = polygon.map((point) => cornerAnchor(point.x, point.y))
+          const bounds = pathBounds(anchors, true)
+          return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
+        })
+      : renderer.booleanShapesCurved(shapes, mode).map((anchors, index) => {
+          const bounds = pathBounds(anchors, true)
+          return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
+        })
+  if (nodes.length === 0) return
   const result = documentStore.dispatch(
     batchCommand([
       { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },

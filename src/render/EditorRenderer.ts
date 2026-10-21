@@ -23,7 +23,7 @@ import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
-import { booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
+import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -848,6 +848,73 @@ export class EditorRenderer {
   booleanPolygonsForShapes(shapes: SceneShape[], mode: BooleanMode): Polygon[] {
     const polygons = shapes.map((shape) => this.scenePolygon(shape)).filter((polygon) => polygon.length >= 3)
     return booleanPolygons(this.kit, polygons, mode)
+  }
+
+  /** Boolean of the selected shapes that keeps curves: inputs are built as scene-space Skia paths. */
+  booleanShapesCurved(shapes: SceneShape[], mode: BooleanMode): ReturnType<typeof booleanPaths> {
+    const paths = shapes.map((shape) => this.scenePathFor(shape)).filter((path): path is NonNullable<typeof path> => path !== null)
+    try {
+      if (paths.length < 2) return []
+      return booleanPaths(this.kit, paths, mode)
+    } finally {
+      for (const path of paths) path.delete()
+    }
+  }
+
+  /** A shape as a scene-space Skia path with its curves intact. */
+  private scenePathFor(shape: SceneShape): Path | null {
+    const builder = new this.kit.PathBuilder()
+    const point = (local: { x: number; y: number }) => {
+      const placed = { x: shape.x + local.x * shape.scaleX, y: shape.y + local.y * shape.scaleY }
+      if (shape.rotation === 0) return placed
+      const centre = { x: shape.x + (shape.width * shape.scaleX) / 2, y: shape.y + (shape.height * shape.scaleY) / 2 }
+      return rotatePoint(placed, centre, shape.rotation)
+    }
+    const cubicSegment = (from: { x: number; y: number; outX: number; outY: number }, to: { x: number; y: number; inX: number; inY: number }) => {
+      const c1 = point({ x: from.x + from.outX, y: from.y + from.outY })
+      const c2 = point({ x: to.x + to.inX, y: to.y + to.inY })
+      const end = point({ x: to.x, y: to.y })
+      builder.cubicTo(c1.x, c1.y, c2.x, c2.y, end.x, end.y)
+    }
+    if (shape.kind === 'path' && shape.anchors !== null && shape.anchors.length >= 2) {
+      const anchors = shape.anchors
+      const startPoint = point({ x: anchors[0].x, y: anchors[0].y })
+      builder.moveTo(startPoint.x, startPoint.y)
+      const segments = shape.closed ? anchors.length : anchors.length - 1
+      for (let index = 0; index < segments; index += 1) {
+        cubicSegment(anchors[index], anchors[(index + 1) % anchors.length])
+      }
+      if (shape.closed) builder.close()
+    } else if (shape.kind === 'ellipse') {
+      const kappa = 0.5522847498
+      // Four cubic quarters: right → bottom → left → top, in local unit coordinates.
+      const centre = point({ x: shape.width / 2, y: shape.height / 2 })
+      builder.moveTo(centre.x + (shape.width / 2) * shape.scaleX, centre.y)
+      const quarters = [
+        { from: { x: 1, y: 0 }, c1: { x: 1, y: kappa }, c2: { x: 1 - kappa, y: 1 }, to: { x: 0, y: 1 } },
+        { from: { x: 0, y: 1 }, c1: { x: -kappa, y: 1 }, c2: { x: -1, y: 1 - kappa }, to: { x: -1, y: 0 } },
+        { from: { x: -1, y: 0 }, c1: { x: -1, y: -kappa }, c2: { x: -1 + kappa, y: -1 }, to: { x: 0, y: -1 } },
+        { from: { x: 0, y: -1 }, c1: { x: kappa, y: -1 }, c2: { x: 1, y: -1 + kappa }, to: { x: 1, y: 0 } },
+      ]
+      const unit = (value: { x: number; y: number }) => {
+        const local = { x: shape.width / 2 + (value.x * shape.width) / 2, y: shape.height / 2 + (value.y * shape.height) / 2 }
+        return point(local)
+      }
+      for (const quarter of quarters) {
+        const c1 = unit(quarter.c1)
+        const c2 = unit(quarter.c2)
+        const end = unit(quarter.to)
+        builder.cubicTo(c1.x, c1.y, c2.x, c2.y, end.x, end.y)
+      }
+      builder.close()
+    } else {
+      const polygon = this.scenePolygon(shape)
+      if (polygon.length < 3) return null
+      builder.moveTo(polygon[0].x, polygon[0].y)
+      for (const vertex of polygon.slice(1)) builder.lineTo(vertex.x, vertex.y)
+      builder.close()
+    }
+    return builder.detach()
   }
 
   /** Divide: the selected shapes split into non-overlapping faces (Phase 5.4). */

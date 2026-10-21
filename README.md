@@ -116,7 +116,7 @@ npm run package:win   # optional: build the installer into release/
 npm run typecheck    # tsc --noEmit
 npm test             # 272 unit tests + layer rule + UI standards
 npm run build        # vite build
-npm run smoke        # packaged evidence: 156 steps across seven reports
+npm run smoke        # packaged evidence: 157 steps across seven reports
 ```
 
 `npm run smoke` launches the packaged app and drives it with real input — text editing, undo, recovery, hit testing, the wheel, a rotation drag, the panels. If it fails with `Cannot read properties of undefined (reading 'whenReady')`, the shell has `ELECTRON_RUN_AS_NODE=1` set; clear it for the run (`$env:ELECTRON_RUN_AS_NODE=''` in PowerShell) — that is not a Vectr bug.

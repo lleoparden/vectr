@@ -93,7 +93,7 @@ catalog claims were stale and are corrected.
 | 52 | Stroke, Gradient panels | ❌ | both live in Properties | Phase 7 |
 | 53 | Swatches panel | ❌ | swatches live in Color (row 42) | Phase 7 |
 | 54 | Character and Paragraph panels | ❌ | - | Phase 6 |
-| 55 | Pathfinder and Symbols panels | ◐ | Pathfinder panel with four modes; Object ▸ Pathfinder | Symbols panel is Phase 7 |
+| 55 | Pathfinder and Symbols panels | ◐ | Pathfinder, Shape Builder, Live Paint; Object ▸ Pathfinder | Symbols panel is Phase 7 |
 | 56 | Command palette | ❌ | - | UI-02, unscheduled |
 | 57 | Preferences (autosave interval) | ✅ | `edit.preferences`, `settingsStore` | one preference |
 | 58 | Workspaces and floating panels | ❌ | - | unscheduled |

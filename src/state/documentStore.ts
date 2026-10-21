@@ -23,6 +23,7 @@ export type Tool =
   | 'lasso'
   | 'pen'
   | 'shapeBuilder'
+  | 'livePaint'
   | 'zoom'
   | 'rect'
   | 'roundedRect'

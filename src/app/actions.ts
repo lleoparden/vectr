@@ -534,6 +534,34 @@ export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclud
  * collected - united, or removed with Alt - and everything else survives as its own path. This is
  * region-based, with the faces coming from the same Divide engine the panel uses.
  */
+/** Live Paint bucket: fills the divided face under a scene point, leaving the artwork underneath. */
+export function paintRegionAt(point: Point): void {
+  const { document } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null) return
+  const shapes = buildScene(document).shapes.filter(
+    (shape) =>
+      shape.kind !== 'line' &&
+      point.x >= shape.x &&
+      point.x <= shape.x + shape.width * shape.scaleX &&
+      point.y >= shape.y &&
+      point.y <= shape.y + shape.height * shape.scaleY,
+  )
+  if (shapes.length === 0) return
+  const face = renderer.regionAt(shapes, point)
+  if (face === null) return
+  const anchors = face.map((vertex) => cornerAnchor(vertex.x, vertex.y))
+  const bounds = pathBounds(anchors, true)
+  const defaults = workspaceStore.getState().creationDefaults
+  const existing = document.root.children.filter((node) => node.name.startsWith('Live Paint')).length
+  const node = createPath(`Live Paint ${existing + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: defaults.shape.fill })
+  const result = documentStore.dispatch(
+    { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes: [node] },
+    'live paint',
+  )
+  if (result.ok) documentStore.setSelection([node.id])
+}
+
 export function shapeBuilder(ids: NodeId[], subtract: boolean, path: Point[], tolerance: number): void {
   const { document } = documentStore.getState()
   const renderer = getActiveRenderer()
@@ -1109,6 +1137,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'tool.shapeBuilder':
       documentStore.setTool('shapeBuilder')
+      return
+    case 'tool.livePaint':
+      documentStore.setTool('livePaint')
       return
     case 'tool.rect':
     case 'tool.roundedRect':

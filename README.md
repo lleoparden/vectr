@@ -31,7 +31,7 @@ Nothing is borrowed: the icons, type, colours, copy, and code are Vectr's own. I
 
 ## Features
 
-- **Fourteen tools, all state machines** — Selection and Direct Selection with their flyout, Lasso, seven shape tools, Type, Hand, and Zoom. Every tool takes pointer input, emits commands, and draws its own overlay; the canvas only routes.
+- **Fifteen tools, all state machines** — Selection and Direct Selection with their flyout, Lasso, seven shape tools, Type, Hand, and Zoom. Every tool takes pointer input, emits commands, and draws its own overlay; the canvas only routes.
 - **Real transforms** — Move, eight-handle scale in the object's own frame, rotation about the centre with a 15° Shift snap, Alt-drag to duplicate, arrow-key nudging, and a rotated selection that still scales along its own sides.
 - **Precision canvas** — Multiple artboards with size presets, rulers with re-stepping ticks, a grid under the artwork, and guides that snap, persist, and live in the file.
 - **Paint that behaves** — Fills, strokes with caps, joins, dashes, and inside/centre/outside alignment; linear and radial gradients with up to eight stops painting fill, stroke, or both; all sixteen blend modes on fills and strokes; named swatches with CMYK and spot definitions.
@@ -116,7 +116,7 @@ npm run package:win   # optional: build the installer into release/
 npm run typecheck    # tsc --noEmit
 npm test             # 272 unit tests + layer rule + UI standards
 npm run build        # vite build
-npm run smoke        # packaged evidence: 157 steps across seven reports
+npm run smoke        # packaged evidence: 158 steps across seven reports
 ```
 
 `npm run smoke` launches the packaged app and drives it with real input — text editing, undo, recovery, hit testing, the wheel, a rotation drag, the panels. If it fails with `Cannot read properties of undefined (reading 'whenReady')`, the shell has `ELECTRON_RUN_AS_NODE=1` set; clear it for the run (`$env:ELECTRON_RUN_AS_NODE=''` in PowerShell) — that is not a Vectr bug.

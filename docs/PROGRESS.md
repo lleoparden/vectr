@@ -1,6 +1,25 @@
 # Progress
 
 
+## Live Paint Bucket (issue #140, finished in scope)
+
+- **The fifteenth tool** on Illustrator's **K**: clicking inside an arrangement fills exactly the region under
+  the pointer with the current creation fill, as its own editable path on top, while the shapes underneath stay
+  untouched. The regions come from the Divide engine, so the bucket paints the same faces the panel's Divide
+  produces.
+- **Declared limits:** only the bucket ships - painting **edges** and a live-paint *group* are not built, and each
+  painted region becomes a separate path rather than a member of one live-paint group. Faces are polygonal because
+  Divide is. These are recorded in the catalog rather than implied away.
+- **Evidence**: 333 unit tests (the tool hands the scene point to the host; the touch/region helpers) and
+  **158 packaged steps**; the new step draws two overlapping rectangles, presses **K**, clicks the overlap, and
+  asserts exactly one painted path exists while both originals survive - then undoes.
+
+With that, every capability named in Phase 5.4 exists in some form: the four boolean modes (curve-preserving),
+Divide, the Pathfinder panel, region-based Shape Builder, and the Live Paint bucket. What remains is depth, not
+existence, and it is listed in the catalog.
+
+
+
 ## Region-based Shape Builder (issue #140, sixth part)
 
 - **The drag now selects regions, not whole shapes.** The crossed objects are divided into their faces by the same

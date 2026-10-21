@@ -314,7 +314,7 @@ export function CanvasView() {
     for (const id of current.selection) {
       const node = findNode(current.document, id)
       if (node === null || node.locked || isGroup(node)) continue
-      nodes.push({ id, transform: { ...node.transform }, width: node.width, height: node.height })
+      nodes.push({ id, kind: node.type, transform: { ...node.transform }, width: node.width, height: node.height })
     }
     if (nodes.length === 0) return null
     return {
@@ -600,6 +600,9 @@ export function CanvasView() {
       },
       setNodeTransform: (nodeId, transform) => {
         documentStore.dispatch({ type: 'setTransform', nodeId, transform }, 'scale')
+      },
+      resizeNode: (nodeId, x, y, width, height) => {
+        documentStore.dispatch({ type: 'resizeNode', nodeId, x, y, width, height }, 'reshape')
       },
       scaleEnd: () => documentStore.commitTransaction(),
       scaleCancel: () => documentStore.abortTransaction(),

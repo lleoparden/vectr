@@ -98,12 +98,14 @@ export type ToolHost = {
   rotateCancel(): void
   /** Applies one node's transform during a scale. */
   setNodeTransform(nodeId: NodeId, transform: Transform): void
+  /** Reshapes a live shape (width/height and position) instead of scaling it. */
+  resizeNode(nodeId: NodeId, x: number, y: number, width: number, height: number): void
   scaleEnd(): void
   scaleCancel(): void
 }
 
 /** One node captured for a transform gesture: its original transform and its own extent. */
-export type CapturedNode = { id: NodeId; transform: Transform; width: number; height: number }
+export type CapturedNode = { id: NodeId; kind: string; transform: Transform; width: number; height: number }
 
 /** What a scale gesture needs: the oriented frame and every node in it. */
 export type ScaleCapture = { box: Rect; rotation: number; centre: Point; nodes: CapturedNode[] }

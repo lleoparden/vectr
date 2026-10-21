@@ -729,6 +729,30 @@ export function releaseCompoundPath(): void {
   if (result.ok) documentStore.setSelection(nodes.map((entry) => entry.id))
 }
 
+/** Offset Path: copies the selection at a fixed distance, one undo entry (Phase 5.6). */
+export function offsetSelection(distance = 10): void {
+  const { document, selection } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null || selection.length === 0 || !Number.isFinite(distance) || distance === 0) return
+  const shapes = buildScene(document).shapes.filter((shape) => selection.includes(shape.id))
+  const nodes: ReturnType<typeof createPath>[] = []
+  for (const shape of shapes) {
+    if (shape.kind === 'image' || shape.kind === 'text') continue
+    const points = renderer.offsetShape(shape, distance)
+    if (points === null || points.length < 3) continue
+    const anchors = points.map((point) => cornerAnchor(point.x, point.y))
+    const bounds = pathBounds(anchors, true)
+    const existing = document.root.children.filter((node) => node.name.startsWith('Offset')).length
+    nodes.push(createPath(`Offset ${existing + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shape.fill }))
+  }
+  if (nodes.length === 0) return
+  const result = documentStore.dispatch(
+    { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },
+    'offset path',
+  )
+  if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -932,7 +956,12 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return anyNode((node) => node.hidden)
     case 'object.unlockAll':
       return anyNode((node) => node.locked)
-    case 'object.compoundMake': {
+    case 'path.offsetPath':
+    return editor.selection.some((id) => {
+      const node = findNode(editor.document, id)
+      return node !== null && node.type !== 'group' && node.type !== 'image' && node.type !== 'text' && node.type !== 'line'
+    })
+  case 'object.compoundMake': {
     const leaves = editor.selection
       .map((id) => findNode(editor.document, id))
       .filter((node) => node !== null && node.type !== 'group' && node.type !== 'image' && node.type !== 'text')
@@ -1299,6 +1328,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.simplify':
       simplifySelectedPath()
+      return
+    case 'path.offsetPath':
+      offsetSelection()
       return
     case 'path.outlineStroke':
       outlineStrokeSelection()

@@ -1,6 +1,25 @@
 # Progress
 
 
+## Offset Path (issue #142)
+
+- **Object ▸ Path ▸ Offset Path** copies each selected shape's outline at a **fixed 10-unit** distance, leaving the
+  original in place and selecting the copies. It goes through the batch command path, so the copies are one undo
+  entry.
+- **Direction is normalised:** a positive distance grows a closed contour whatever its winding. The first attempt
+  offset inward for a clockwise square, which the area test caught (6400 instead of 14400); «offsetRing» now reads
+  the contour's signed area and flips the sign itself.
+- **Evidence**: 346 unit tests (a line offsets perpendicular by 10; a 100-square offsets to 14400 outward and 6400
+  inward) and **166 packaged steps**; the new step offsets a 100×100 rectangle in the packaged app, asserts the copy
+  is 120 wide and the original survives, then undoes.
+- **Declared limit:** the distance is fixed rather than prompted - Illustrator opens an Offset Path dialog. A
+  numeric dialog is the next step here, and the command already takes the distance as a parameter, so only the
+  prompt is missing.
+
+Still open on #142: the Offset Path dialog, live shape reshaping, and outlining a compound's own stroke.
+
+
+
 ## Outline Stroke for closed shapes, as compound rings (issue #142)
 
 - The stroke of a closed shape is a **ring**, so outlining it produces a **compound path**: an outer

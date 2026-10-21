@@ -64,6 +64,7 @@ const PANEL_ACTION_IDS: Record<PanelId, EditorActionId> = {
   properties: 'window.togglePanel.properties',
   align: 'window.togglePanel.align',
   transform: 'window.togglePanel.transform',
+  pathfinder: 'window.togglePanel.pathfinder',
   appearance: 'window.togglePanel.appearance',
   color: 'window.togglePanel.color',
 }

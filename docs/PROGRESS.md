@@ -1,6 +1,20 @@
 # Progress
 
 
+## The Pathfinder panel (issue #140, second part)
+
+- **A real panel**, docked with Align and Transform and reachable from the Window menu: Unite, Intersect,
+  Subtract, and Exclude as buttons with their rules as tooltips. The buttons are disabled below two selected
+  objects, because the commands refuse that case too.
+- **Evidence**: 322 unit tests unchanged, and **153 packaged steps**; the pathfinder step now opens the panel,
+  asserts its Unite button is enabled, clicks it, and then checks the single 150×150 path and the undo back to
+  two rectangles. The first run of that step failed with "panel missing", which is how the missing «case
+  'pathfinder'» in the dock switch was caught - the panel registered but the body did not render.
+
+Still open on #140: Shape Builder, Divide, and curve-preserving boolean results.
+
+
+
 ## Pathfinder: unite, intersect, subtract, exclude (issue #140, first part)
 
 - **Skia's own path ops do the clipping** («src/render/boolean.ts»), so a union cannot disagree with what the

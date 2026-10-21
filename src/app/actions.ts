@@ -758,6 +758,27 @@ export function offsetSelection(distance = 10): void {
   if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
 }
 
+/** Width Profile presets: multipliers per anchor, one undo entry each (Phase 5.5). */
+export function applyWidthProfile(preset: 'uniform' | 'taperStart' | 'taperEnd' | 'bulge'): void {
+  const { document, selection } = documentStore.getState()
+  if (selection.length !== 1) return
+  const node = findNode(document, selection[0])
+  if (node === null || node.type !== 'path' || node.style.stroke === null) return
+  const count = node.anchors.length
+  if (preset === 'uniform') {
+    documentStore.dispatch({ type: 'setWidthProfile', nodeId: node.id, profile: null }, 'uniform width')
+    return
+  }
+  const profile = Array.from({ length: count }, (_, index) => {
+    const t = count <= 1 ? 0 : index / (count - 1)
+    if (preset === 'taperStart') return 0.15 + 0.85 * t
+    if (preset === 'taperEnd') return 1 - 0.85 * t
+    // Bulge: thin at both ends, full in the middle.
+    return 0.35 + 0.65 * Math.sin(Math.PI * t)
+  })
+  documentStore.dispatch({ type: 'setWidthProfile', nodeId: node.id, profile }, 'width profile')
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -961,7 +982,15 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return anyNode((node) => node.hidden)
     case 'object.unlockAll':
       return anyNode((node) => node.locked)
-    case 'path.offsetPath':
+    case 'path.profileUniform':
+  case 'path.profileTaperStart':
+  case 'path.profileTaperEnd':
+  case 'path.profileBulge': {
+    const node = editor.selection.length === 1 ? findNode(editor.document, editor.selection[0]) : null
+    if (node === null || node.type !== 'path' || node.style.stroke === null) return false
+    return id === 'path.profileUniform' ? node.style.stroke.widthProfile !== undefined : true
+  }
+  case 'path.offsetPath':
     return editor.selection.some((id) => {
       const node = findNode(editor.document, id)
       return node !== null && node.type !== 'group' && node.type !== 'image' && node.type !== 'text' && node.type !== 'line'
@@ -1333,6 +1362,18 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.simplify':
       simplifySelectedPath()
+      return
+    case 'path.profileUniform':
+      applyWidthProfile('uniform')
+      return
+    case 'path.profileTaperStart':
+      applyWidthProfile('taperStart')
+      return
+    case 'path.profileTaperEnd':
+      applyWidthProfile('taperEnd')
+      return
+    case 'path.profileBulge':
+      applyWidthProfile('bulge')
       return
     case 'path.offsetPath':
       workspaceStore.setOffsetDistance(10)

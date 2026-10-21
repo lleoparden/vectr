@@ -9,7 +9,7 @@
 import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
 import { clipPolygon } from '../geom/shapeGeometry.ts'
 import type { PathAnchor } from '../geom/path.ts'
-import type { BlendMode, FillGradient, PathFillRule } from '../doc/types.ts'
+import type { BlendMode, FillGradient, PathFillRule, Stroke } from '../doc/types.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
@@ -65,7 +65,7 @@ export type SceneShape = {
   gradient: FillGradient | null
   /** Which part the gradient paints: fill, stroke, or both (issue #70). */
   gradientTarget: 'fill' | 'stroke' | 'both' | null
-  stroke: { color: string; width: number } | null
+  stroke: Stroke | null
   opacity: number
   /** Fill blend mode, or null for normal (issue #71). */
   blendMode: BlendMode | null

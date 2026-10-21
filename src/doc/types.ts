@@ -14,9 +14,9 @@ export type { PathAnchor }
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 6
-/** Versions this build still opens. v6 adds compound paths (Phase 5.6). */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6]
+export const FORMAT_VERSION = 7
+/** Versions this build still opens. v7 adds width profiles to strokes (Phase 5.5). */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7]
 
 export type NodeId = string
 
@@ -47,6 +47,11 @@ export type Stroke = {
   dash?: number[]
   /** Centre by default; inside/outside clip the stroke to the outline. */
   align?: StrokeAlign
+  /**
+   * Multipliers on `width`, one per path anchor, in anchor order (Phase 5.5 width profiles).
+   * Absent means a uniform stroke; the first and last values also scale a closed contour's ring.
+   */
+  widthProfile?: number[]
 }
 
 /** A linear gradient in the node's own box, normalised 0..1 (issue #70). */

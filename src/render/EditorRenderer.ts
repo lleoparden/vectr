@@ -25,7 +25,7 @@ import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
 import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { polygonContains } from '../doc/hitTest.ts'
-import { offsetRing, offsetSide, strokeOutline, strokeRing } from '../geom/offset.ts'
+import { flattenedWithWidths, offsetRing, offsetSide, strokeOutline, strokeRing, variableOutline, variableRing } from '../geom/offset.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -502,7 +502,9 @@ export class EditorRenderer {
         if (shape.blendMode !== null) fillPaint.setBlendMode(this.blendModeFor(shape.blendMode))
         recording.drawPath(path, fillPaint)
         if (shape.stroke !== null && shape.stroke.width > 0) {
-          recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
+          if (!this.drawVariableStroke(recording, shape)) {
+            recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
+          }
         }
       }
       recording.restore()
@@ -511,6 +513,42 @@ export class EditorRenderer {
     bucket.picture?.delete()
     bucket.picture = recorder.finishRecordingAsPicture()
     recorder.delete()
+  }
+
+  /**
+   * A stroke whose width varies along the path (Phase 5.5): an outline is built from the anchors
+   * and the per-anchor multipliers and filled with the stroke colour. Returns true when it painted,
+   * so the caller skips the uniform stroke. Curves are flattened; alignment and dashes are not
+   * applied to a profile.
+   */
+  private drawVariableStroke(recording: Canvas, shape: SceneShape): boolean {
+    const stroke = shape.stroke
+    const profile = stroke?.widthProfile
+    if (stroke === null || profile === undefined || profile.length < 2 || shape.kind !== 'path' || shape.anchors === null) return false
+    const { points, halfWidths } = flattenedWithWidths(shape.anchors, shape.closed, profile, stroke.width)
+    if (points.length < 2) return true
+    const builder = new this.kit.PathBuilder()
+    if (shape.closed) {
+      const ring = variableRing(points, halfWidths)
+      if (ring === null) return false
+      builder.moveTo(ring.outer[0].x, ring.outer[0].y)
+      for (const point of ring.outer.slice(1)) builder.lineTo(point.x, point.y)
+      builder.close()
+      builder.moveTo(ring.inner[0].x, ring.inner[0].y)
+      for (const point of ring.inner.slice(1)) builder.lineTo(point.x, point.y)
+      builder.close()
+    } else {
+      const outline = variableOutline(points, halfWidths)
+      builder.moveTo(outline[0].x, outline[0].y)
+      for (const point of outline.slice(1)) builder.lineTo(point.x, point.y)
+      builder.close()
+    }
+    const outlinePath = builder.detach()
+    outlinePath.setFillType(this.kit.FillType.EvenOdd)
+    const paint = this.paintFor('fill', stroke.color, 0, shape.opacity)
+    recording.drawPath(outlinePath, paint)
+    outlinePath.delete()
+    return true
   }
 
   /**

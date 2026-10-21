@@ -2281,6 +2281,25 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 22. Width Profile: a preset writes one multiplier per anchor, undo restores uniform.
+  const profilePath = createPath('Profile fixture', 1400, 300, [cornerAnchor(0, 0), cornerAnchor(60, 40), cornerAnchor(120, 0)], { closed: false })
+  profilePath.style.stroke = { color: '#a94a4a', width: 14 }
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [profilePath] }, 'profile fixture')
+  documentStore.setSelection([profilePath.id])
+  await settle(80)
+  runEditorAction('path.profileBulge')
+  await settle(150)
+  const profiled = documentStore.getState().document.root.children.find((node) => node.id === profilePath.id)
+  const profileValues = profiled !== undefined && profiled.type === 'path' ? (profiled.style.stroke?.widthProfile ?? null) : null
+  record(
+    'Width Profile writes one multiplier per anchor',
+    profileValues !== null && profileValues.length === 3 && Math.abs(profileValues[1] - 1) < 1e-6,
+    profileValues === null ? 'no profile' : profileValues.map((value) => value.toFixed(2)).join(', '),
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

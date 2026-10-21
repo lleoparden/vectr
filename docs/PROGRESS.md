@@ -1,6 +1,24 @@
 # Progress
 
 
+## Width profiles, first version (issue #141)
+
+- **A stroke can vary along its path.** `Stroke.widthProfile` is one multiplier per path anchor; the renderer builds
+  an outline from the flattened anchors and the interpolated widths and fills it with the stroke colour, so a taper
+  is geometry rather than a brush. Closed paths become an even-odd outer/inner ring.
+- **Object ▸ Path ▸ Width Profile** offers **Uniform, Taper Start, Taper End, and Bulge**; each is one
+  `setWidthProfile` command with an exact inverse, and the menu greys out unless a single stroked path is selected.
+- **Hit testing follows the band**: the hit test interpolates the width along each segment, so a tapered stroke is
+  thin to click where it is thin. Unit tests pin both ends.
+- **Format v7**: the field is optional, so v1-v6 files open unchanged and an older build refuses v7 rather than
+  drawing a uniform stroke.
+- **Evidence**: 353 unit tests (trapezoid area 1500 for a 1→2 taper, command values/inverse/refusal, thin and wide
+  hit bands) and **159 packaged steps**; the new step applies Bulge to a three-anchor path in the packaged app,
+  asserts one multiplier per anchor with the middle at 1, and undoes.
+- **Declared limits:** **there is no Width tool** yet - profiles come from presets, not from dragging widths on the
+  canvas; curves are flattened for the outline, and stroke alignment (inside/outside) and dashes are not applied
+  to a profiled stroke. Those are the remaining #141 items.
+
 ## Live shape reshaping (issue #142, final verb)
 
 - **A single parametric shape reshapes instead of scaling.** Dragging a selection handle on one rectangle,

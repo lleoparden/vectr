@@ -2399,3 +2399,14 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   older build to refuse a v6 file instead of drawing a compound without its holes.
 - **Even-odd hit testing by parity.** A compound's fill is the parity of covering contours, so holes are real in
   both the renderer and the click test rather than only visually.
+
+## 2026-10-21 - Width profiles live on the stroke, one multiplier per anchor
+
+- **Per-anchor, not per-arc-length samples.** A multiplier list that matches the anchor list is small, survives
+  editing (nudging or adding anchors keeps the correspondence), and reads clearly in a file; a dense sample table
+  would be finer but would drift out of sync the moment the path changes.
+- **Profiles are geometry.** Skia has no variable-width stroke, so the renderer builds the outline and fills it.
+  That is also why dashes and stroke alignment are declared unsupported on a profiled stroke instead of being
+  silently ignored.
+- **Format v7, optional field.** Old files open unchanged; new files are refused by older builds rather than drawn
+  with a uniform stroke.

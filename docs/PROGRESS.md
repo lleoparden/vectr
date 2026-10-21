@@ -1,6 +1,25 @@
 # Progress
 
 
+## Outline Stroke (issue #142, second verb)
+
+- **Object ▸ Path ▸ Outline Stroke** turns an open shape's stroke into a filled path: the polyline is offset to
+  both sides with mitered corners and flat caps, the outline is closed, and the shape is replaced in one undoable
+  batch. The outline keeps the stroke's colour as its fill.
+- **Availability does not lie:** the action is enabled only when the selection contains an open shape with a
+  positive stroke width, so the menu greys out where it would do nothing.
+- **Declared limits:** **open paths only.** A closed path's stroke is a ring, which needs a hole; compound paths
+  are not built yet, so outlining a closed shape is refused rather than filling the wrong region. Round and square
+  caps are not modelled (flat caps), and curves are flattened by the caller before offsetting.
+- **Evidence**: 336 unit tests (a straight line becomes a 1000-area rectangle, an L-shaped stroke covers both legs,
+  duplicate points collapse, zero width returns nothing) and **159 packaged steps**; the new step inserts an open
+  stroked path, outlines it in the packaged app, asserts the filled outline exists with the stroke's colour and the
+  original is gone, and undoes.
+
+Still open on #142: compound paths, offset path, live shape reshaping.
+
+
+
 ## Live Paint Bucket (issue #140, finished in scope)
 
 - **The fifteenth tool** on Illustrator's **K**: clicking inside an arrangement fills exactly the region under

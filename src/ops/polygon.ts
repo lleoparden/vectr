@@ -6,7 +6,7 @@
  * winding instead of by trust.
  */
 
-import { flattenPath, type PathAnchor, type PathPoint } from '../geom/path.ts'
+import { distanceToPolyline, flattenPath, type PathAnchor, type PathPoint } from '../geom/path.ts'
 
 /** The signed area of a polygon via the shoelace formula; positive means counter-clockwise. */
 export function signedArea(points: PathPoint[]): number {
@@ -56,4 +56,27 @@ function cross(a: PathPoint, b: PathPoint, point: PathPoint): number {
 /** True when the point is inside the polygon by the nonzero rule. */
 export function polygonContainsNonzero(points: PathPoint[], point: PathPoint): boolean {
   return windingNumber(points, point) !== 0
+}
+
+/** The average of a polygon's vertices; for a convex face this is inside it. */
+export function centroid(points: PathPoint[]): PathPoint {
+  if (points.length === 0) return { x: 0, y: 0 }
+  let x = 0
+  let y = 0
+  for (const point of points) {
+    x += point.x
+    y += point.y
+  }
+  return { x: x / points.length, y: y / points.length }
+}
+
+/** True when a drag path comes within tolerance of the face: its vertices, edges, or centre. */
+export function polygonTouchesPath(points: PathPoint[], path: PathPoint[], tolerance: number): boolean {
+  if (points.length === 0 || path.length === 0) return false
+  const centre = centroid(points)
+  if (distanceToPolyline(path, false, centre) <= tolerance) return true
+  for (const point of points) {
+    if (distanceToPolyline(path, false, point) <= tolerance) return true
+  }
+  return false
 }

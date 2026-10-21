@@ -475,7 +475,7 @@ export function CanvasView() {
       },
       setShapePreview: (preview) => setOverlay(preview),
       setPenDraft: (draft) => setPenDraft(draft),
-      applyShapeBuilder: (ids, subtract) => shapeBuilder(ids, subtract),
+      applyShapeBuilder: (ids, subtract, path, tolerance) => shapeBuilder(ids, subtract, path, tolerance),
       pathEditCapture: () => {
         const { selection, document } = documentStore.getState()
         if (selection.length !== 1) return null

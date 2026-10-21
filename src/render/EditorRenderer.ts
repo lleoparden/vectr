@@ -25,7 +25,7 @@ import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
 import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { polygonContains } from '../doc/hitTest.ts'
-import { strokeOutline } from '../geom/offset.ts'
+import { strokeOutline, strokeRing } from '../geom/offset.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -953,13 +953,20 @@ export class EditorRenderer {
     return polygon.length >= 3 ? polygon : null
   }
 
-  /** The closed outline of an open shape's stroke, for Outline Stroke (Phase 5.6). */
-  outlineStrokeForShape(shape: SceneShape): Polygon | null {
-    if (shape.stroke === null || shape.stroke.width <= 0) return null
-    if (!(shape.kind === 'line' || (shape.kind === 'path' && !shape.closed))) return null
+  /**
+   * The contours a stroke covers, for Outline Stroke: one polygon for an open shape, and an outer
+   * plus inner ring for a closed one (drawn as a compound with an even-odd hole).
+   */
+  outlineStrokeContours(shape: SceneShape): Polygon[] {
+    if (shape.stroke === null || shape.stroke.width <= 0) return []
     const polygon = this.scenePolygon(shape)
-    const outline = strokeOutline(polygon, shape.stroke.width)
-    return outline.length >= 3 ? outline : null
+    const open = shape.kind === 'line' || (shape.kind === 'path' && !shape.closed)
+    if (open) {
+      const outline = strokeOutline(polygon, shape.stroke.width)
+      return outline.length >= 3 ? [outline] : []
+    }
+    const ring = strokeRing(polygon, shape.stroke.width)
+    return ring === null ? [] : [ring.outer, ring.inner]
   }
 
   /** The divided face containing a scene point, for the Live Paint bucket (Phase 5.4). */

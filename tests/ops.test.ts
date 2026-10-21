@@ -1,0 +1,53 @@
+/**
+ * Polygon primitives for path operations (Phase 5.4, issue #140).
+ *
+ * Area and winding are the scoreboard a boolean result has to satisfy; these tests fix what those
+ * words mean before any operation is built on them.
+ */
+
+import assert from 'node:assert/strict'
+import test from 'node:test'
+
+import { area, polygonContainsNonzero, polygonOf, signedArea, windingNumber } from '../src/ops/polygon.ts'
+import { cornerAnchor } from '../src/geom/path.ts'
+
+const square = [
+  { x: 0, y: 0 },
+  { x: 10, y: 0 },
+  { x: 10, y: 10 },
+  { x: 0, y: 10 },
+]
+
+test('shoelace area is exact and signed by direction', () => {
+  assert.equal(area(square), 100)
+  assert.ok(signedArea(square) > 0, 'counter-clockwise is positive in y-down coordinates')
+  assert.equal(signedArea([...square].reverse()), -100)
+  assert.equal(area(square.slice(0, 2)), 0, 'two points have no area')
+})
+
+test('the winding number is nonzero inside and zero outside', () => {
+  assert.equal(windingNumber(square, { x: 5, y: 5 }), 1)
+  assert.equal(windingNumber(square, { x: -1, y: 5 }), 0)
+  assert.equal(polygonContainsNonzero(square, { x: 5, y: 5 }), true)
+  assert.equal(polygonContainsNonzero(square, { x: 15, y: 5 }), false)
+})
+
+test('a curved path flattens to a polygon whose area is close to the analytic value', () => {
+  const radius = 50
+  const kappa = 0.5522847498 * radius
+  const anchors = [
+    { x: radius, y: 0, inX: 0, inY: -kappa, outX: 0, outY: kappa, smooth: true },
+    { x: 0, y: radius, inX: kappa, inY: 0, outX: -kappa, outY: 0, smooth: true },
+    { x: -radius, y: 0, inX: 0, inY: kappa, outX: 0, outY: -kappa, smooth: true },
+    { x: 0, y: -radius, inX: -kappa, inY: 0, outX: kappa, outY: 0, smooth: true },
+  ]
+  const polygon = polygonOf(anchors)
+  const expected = Math.PI * radius * radius
+  assert.ok(Math.abs(area(polygon) - expected) / expected < 0.01, `area ${area(polygon)} vs ${expected}`)
+})
+
+test('a two-anchor path still produces a usable polygon', () => {
+  const tiny = polygonOf([cornerAnchor(0, 0), cornerAnchor(10, 0)])
+  assert.ok(tiny.length >= 2, 'a two-anchor path still yields a polygon')
+  assert.equal(tiny[0].x, 0)
+})

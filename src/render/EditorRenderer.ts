@@ -23,6 +23,9 @@ import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
+import { booleanPolygons, type BooleanMode, type Polygon } from './boolean.ts'
+import { rotatePoint } from '../geom/transform.ts'
+import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
   type Canvas,
   type CanvasKit,
@@ -838,6 +841,37 @@ export class EditorRenderer {
     return color
   }
 
+  /**
+   * A boolean of the given scene shapes, as scene-space polygons (Phase 5.4). Curves are flattened at
+   * the document tolerance and the result is polygonal; that limitation is deliberate and documented.
+   */
+  booleanPolygonsForShapes(shapes: SceneShape[], mode: BooleanMode): Polygon[] {
+    const polygons = shapes.map((shape) => this.scenePolygon(shape)).filter((polygon) => polygon.length >= 3)
+    return booleanPolygons(this.kit, polygons, mode)
+  }
+
+  /** A shape's outline in scene coordinates, flattened. */
+  private scenePolygon(shape: SceneShape): Polygon {
+    // outlinePoints deliberately returns null for the primitives; sample those here.
+    const local =
+      shape.kind === 'path' && shape.anchors !== null
+        ? flattenPath(shape.anchors, true)
+        : shape.kind === 'line'
+          ? []
+          : shape.kind === 'rect'
+            ? rectPolygon(shape.width, shape.height, clampCornerRadius(shape.width, shape.height, shape.cornerRadius))
+            : shape.kind === 'ellipse'
+              ? ellipsePolygon(shape.width, shape.height)
+              : outlinePoints(shape) ?? []
+    if (local.length === 0) return []
+    const centre = { x: shape.x + (shape.width * shape.scaleX) / 2, y: shape.y + (shape.height * shape.scaleY) / 2 }
+    const points = local.map((point: { x: number; y: number }) => {
+      const placed = { x: shape.x + point.x * shape.scaleX, y: shape.y + point.y * shape.scaleY }
+      return shape.rotation === 0 ? placed : rotatePoint(placed, centre, shape.rotation)
+    })
+    return points
+  }
+
   /** Releases every owned Skia object, the surface, and the GPU/WASM context. */
   dispose(): void {
     for (const bucket of this.buckets) {
@@ -864,6 +898,44 @@ export class EditorRenderer {
     }
     if (this.webglHandle !== null) this.kit.deleteContext(this.webglHandle)
   }
+}
+
+/** A rectangle as a polygon; a rounded corner is sampled at eight steps. */
+function rectPolygon(width: number, height: number, radius: number): Array<{ x: number; y: number }> {
+  if (radius <= 0) {
+    return [
+      { x: 0, y: 0 },
+      { x: width, y: 0 },
+      { x: width, y: height },
+      { x: 0, y: height },
+    ]
+  }
+  const points: Array<{ x: number; y: number }> = []
+  const corners = [
+    { cx: width - radius, cy: radius, from: -Math.PI / 2, to: 0 },
+    { cx: width - radius, cy: height - radius, from: 0, to: Math.PI / 2 },
+    { cx: radius, cy: height - radius, from: Math.PI / 2, to: Math.PI },
+    { cx: radius, cy: radius, from: Math.PI, to: (3 * Math.PI) / 2 },
+  ]
+  for (const corner of corners) {
+    for (let step = 0; step <= 8; step += 1) {
+      const angle = corner.from + ((corner.to - corner.from) * step) / 8
+      points.push({ x: corner.cx + Math.cos(angle) * radius, y: corner.cy + Math.sin(angle) * radius })
+    }
+  }
+  return points
+}
+
+/** An ellipse as a 64-point polygon. */
+function ellipsePolygon(width: number, height: number): Array<{ x: number; y: number }> {
+  const rx = width / 2
+  const ry = height / 2
+  const points: Array<{ x: number; y: number }> = []
+  for (let step = 0; step < 64; step += 1) {
+    const angle = (step / 64) * Math.PI * 2
+    points.push({ x: rx + rx * Math.cos(angle), y: ry + ry * Math.sin(angle) })
+  }
+  return points
 }
 
 /** Base64 for the thumbnail data URLs; chunked so a larger encode cannot blow the call stack. */

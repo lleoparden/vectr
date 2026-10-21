@@ -2037,6 +2037,27 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
       back === null ? 'anchor missing' : `restored to ${Math.round(back.x)}, ${Math.round(back.y)}`,
     )
   }
+  // 11. Pathfinder: two overlapping rectangles unite into one editable path, in one undo entry.
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [createRect('PF A', 100, 100, 100, 100), createRect('PF B', 150, 150, 100, 100)] }, 'pathfinder fixture')
+  const fixture = documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B')
+  documentStore.setSelection(fixture.map((node) => node.id))
+  await settle(80)
+  runEditorAction('path.unite')
+  await settle(150)
+  const united = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Pathfinder'))
+  const bounds = united[0] === undefined ? null : worldBounds(documentStore.getState().document, united[0].id)
+  record(
+    'Pathfinder unites two rectangles into one path',
+    united.length === 1 && bounds !== null && Math.abs(bounds.width - 150) < 1 && Math.abs(bounds.height - 150) < 1,
+    bounds === null ? 'no result' : `${united.length} path, ${Math.round(bounds.width)} x ${Math.round(bounds.height)}`,
+  )
+  documentStore.undo()
+  await settle(100)
+  record(
+    'undo restores the two originals',
+    documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B').length === 2,
+    'originals back',
+  )
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

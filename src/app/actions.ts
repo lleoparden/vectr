@@ -42,6 +42,11 @@ import { childIndex, createGroup, createImage, type ShapeKind, type ShapeParams 
 import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from '../geom/viewport.ts'
 import { isLocked, parentIdOf, type Command } from '../doc/commands.ts'
 import { nudgedAnchor } from '../doc/pathEdit.ts'
+import { createPath } from '../doc/document.ts'
+import { buildScene } from '../render/scene.ts'
+import { getActiveRenderer } from '../render/activeRenderer.ts'
+import { batchCommand } from '../doc/commands.ts'
+import { cornerAnchor, pathBounds } from '../geom/path.ts'
 
 /** Artboard ids are opaque and never reused, like node ids. */
 function newArtboardId(): string {
@@ -516,6 +521,33 @@ export function averageActiveAnchors(): void {
 }
 
 /** Joins two selected open paths at their nearest endpoints, in one undo entry. */
+/** Applies a Pathfinder mode to the selection: one batched command, one undo entry. */
+export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclude'): void {
+  const { document, selection } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null || selection.length < 2) return
+  const scene = buildScene(document)
+  const shapes = scene.shapes.filter((shape) => selection.includes(shape.id))
+  if (shapes.length < 2) return
+  const polygons = renderer.booleanPolygonsForShapes(shapes, mode)
+  console.log('[pathfinder-debug] ' + JSON.stringify({ selection: selection.length, shapes: shapes.length, polygons: polygons.length, kinds: shapes.map((shape) => shape.kind) }))
+  if (polygons.length === 0) return
+  const nodes = polygons.map((polygon, index) => {
+    const anchors = polygon.map((point) => cornerAnchor(point.x, point.y))
+    const bounds = pathBounds(anchors, true)
+    return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
+  })
+  const result = documentStore.dispatch(
+    batchCommand([
+      { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },
+      { type: 'removeNodes', nodeIds: selection },
+    ]),
+    'pathfinder',
+  )
+  console.log('[pathfinder-debug] dispatch ' + JSON.stringify(result.ok ? 'ok' : { code: result.code, message: result.message }))
+  if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -1060,6 +1092,18 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.average':
       averageActiveAnchors()
+      return
+    case 'path.unite':
+      runPathfinder('unite')
+      return
+    case 'path.intersect':
+      runPathfinder('intersect')
+      return
+    case 'path.subtract':
+      runPathfinder('subtract')
+      return
+    case 'path.exclude':
+      runPathfinder('exclude')
       return
     case 'artboard.new': {
       const document = documentStore.getState().document

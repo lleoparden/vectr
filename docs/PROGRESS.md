@@ -1,6 +1,21 @@
 # Progress
 
 
+## The Offset Path dialog (issue #142)
+
+- **Offset Path now asks for its distance**, the way Illustrator does: a small modal with a number field, an
+  Offset button, and Cancel/Escape. The command already took the distance, so the dialog is the only new surface;
+  the smoke step drives it end to end - set 20, click Offset, and the copy comes out 140 wide from a 100 square.
+- **The dialog's field keeps a draft** so a half-typed number is not clamped mid-keystroke, and Apply runs the
+  existing one-undo copy. `applyOffsetPath` is the seam between the dialog and the command.
+- **Evidence**: 346 unit tests unchanged and **166 packaged steps**; the offset step now asserts the dialog opens,
+  sets a distance through the field, applies, and checks both the copy's size and that the original survived.
+
+With that, **#142 is down to live shape reshaping** (and outlining a compound's own stroke, which the ring code
+still reads one contour for).
+
+
+
 ## Offset Path (issue #142)
 
 - **Object ▸ Path ▸ Offset Path** copies each selected shape's outline at a **fixed 10-unit** distance, leaving the

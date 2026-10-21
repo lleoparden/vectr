@@ -64,6 +64,8 @@ export type WorkspaceState = {
   crashPrompt: CrashPrompt | null
   /** Whether the Preferences dialog is open. */
   preferencesOpen: boolean
+  offsetDialogOpen: boolean
+  offsetDistance: number
   /** What the shape and text tools draw with, and which shape member is showing. */
   creationDefaults: CreationDefaults
   /** The artboard the status bar, Fit Artboard, and new objects use; null means the first one. */
@@ -122,6 +124,8 @@ export class WorkspaceStore {
       pendingPrompt: null,
       crashPrompt: null,
       preferencesOpen: false,
+  offsetDialogOpen: false,
+  offsetDistance: 10,
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
       activeArtboardId: null,
       isolatedGroupId: null,
@@ -259,6 +263,14 @@ export class WorkspaceStore {
   }
 
   /** The Preferences dialog, opened from Edit ▸ Preferences. */
+  setOffsetDialogOpen(offsetDialogOpen: boolean) {
+    this.update({ offsetDialogOpen })
+  }
+
+  setOffsetDistance(offsetDistance: number) {
+    this.update({ offsetDistance })
+  }
+
   setPreferencesOpen(preferencesOpen: boolean) {
     if (this.state.preferencesOpen === preferencesOpen) return
     this.update({ preferencesOpen })

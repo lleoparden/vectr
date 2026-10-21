@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPath, createShape, createText, estimateTextSize, findNode, shapeLabel, worldTransform } from '../../doc/document.ts'
+import { localToScene } from '../../doc/pathEdit.ts'
 import type { ShapeKind } from '../../doc/document.ts'
 import { hitTest, hierarchySelection, lassoHitTest, marqueeHitTest, type Point } from '../../doc/hitTest.ts'
 import { clampCornerRadius, outlinePoints } from '../../geom/shapeGeometry.ts'
@@ -606,6 +607,22 @@ export function CanvasView() {
       },
       scaleEnd: () => documentStore.commitTransaction(),
       scaleCancel: () => documentStore.abortTransaction(),
+      widthBegin: (point) => {
+        const document = documentStore.getState().document
+        const hit = hitTest(document, point)
+        if (hit === null) return null
+        const node = findNode(document, hit)
+        if (node === null || node.type !== 'path' || node.style.stroke === null || node.anchors.length < 2) return null
+        const points = node.anchors.map((anchor) => localToScene({ x: anchor.x, y: anchor.y }, { nodeId: node.id, anchors: node.anchors, transform: node.transform, width: node.width, height: node.height }))
+        const profile = node.style.stroke.widthProfile ?? node.anchors.map(() => 1)
+        documentStore.beginTransaction('width profile')
+        return { nodeId: node.id, points, profile: [...profile], width: node.style.stroke.width }
+      },
+      widthApply: (nodeId, profile) => {
+        documentStore.dispatch({ type: 'setWidthProfile', nodeId, profile }, 'width profile')
+      },
+      widthEnd: () => documentStore.commitTransaction(),
+      widthCancel: () => documentStore.abortTransaction(),
       placeText: (scene) => {
         const document = documentStore.getState().document
         const existing = document.root.children.filter((node) => node.type === 'text').length

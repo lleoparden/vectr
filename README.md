@@ -15,7 +15,7 @@ A desktop-first vector design tool with Illustrator's conventions and its own co
 [![Tailwind](https://img.shields.io/badge/Tailwind-4.3-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Site](https://img.shields.io/badge/site-lleoparden.github.io%2Fvectr-A94A4A)](https://lleoparden.github.io/vectr/)
-[![Release](https://img.shields.io/badge/release-v0.4.1-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.4.1)
+[![Release](https://img.shields.io/badge/release-v0.5.0-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.5.0)
 
 </div>
 
@@ -31,7 +31,9 @@ Nothing is borrowed: the icons, type, colours, copy, and code are Vectr's own. I
 
 ## Features
 
-- **Fifteen tools, all state machines** — Selection and Direct Selection with their flyout, Lasso, seven shape tools, Type, Hand, and Zoom. Every tool takes pointer input, emits commands, and draws its own overlay; the canvas only routes.
+- **Seventeen tools, all state machines** — Selection and Direct Selection with their flyout, Lasso, Pen, Shape Builder, Live Paint, Width, seven shape tools, Type, Hand, and Zoom. Every tool takes pointer input, emits commands, and draws its own overlay; the canvas only routes.
+- **Real paths** — A Bézier path node with per-anchor handles (format v7), the Pen, full anchor editing (nudge, add, delete, corner/smooth, join, average), curve-preserving Pathfinder booleans, Divide, compound paths with even-odd holes, and Simplify.
+- **Path finishing** — Outline Stroke (open outlines and closed rings with a real hole), Offset Path with a distance dialog, live shape reshaping, and width profiles with Uniform/Taper/Bulge presets and the Shift+W Width tool.
 - **Real transforms** — Move, eight-handle scale in the object's own frame, rotation about the centre with a 15° Shift snap, Alt-drag to duplicate, arrow-key nudging, and a rotated selection that still scales along its own sides.
 - **Precision canvas** — Multiple artboards with size presets, rulers with re-stepping ticks, a grid under the artwork, and guides that snap, persist, and live in the file.
 - **Paint that behaves** — Fills, strokes with caps, joins, dashes, and inside/centre/outside alignment; linear and radial gradients with up to eight stops painting fill, stroke, or both; all sixteen blend modes on fills and strokes; named swatches with CMYK and spot definitions.

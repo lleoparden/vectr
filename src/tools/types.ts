@@ -63,6 +63,12 @@ export type ToolHost = {
   setShapePreview(preview: ShapePreview | null): void
   /** The selected single path's geometry for anchor editing, or null (Phase 5.3). */
   pathEditCapture(): PathEditCapture | null
+  /** Begins a Width-tool drag on the stroked path under a scene point, or null when there is none. */
+  widthBegin(point: Point): WidthCapture | null
+  /** Applies a width profile during the drag; the capture's transaction makes it one undo entry. */
+  widthApply(nodeId: NodeId, profile: number[]): void
+  widthEnd(): void
+  widthCancel(): void
   /** Paints the Live Paint region under a scene point with the current fill. */
   paintRegion(point: Point): void
   /** Collects the objects a Shape Builder drag crossed and combines the regions it touched. */
@@ -105,6 +111,15 @@ export type ToolHost = {
 }
 
 /** One node captured for a transform gesture: its original transform and its own extent. */
+export type WidthCapture = {
+  nodeId: NodeId
+  /** Anchor positions in scene space, in anchor order. */
+  points: Point[]
+  /** The multiplier per anchor at the start of the drag. */
+  profile: number[]
+  width: number
+}
+
 export type CapturedNode = { id: NodeId; kind: string; transform: Transform; width: number; height: number }
 
 /** What a scale gesture needs: the oriented frame and every node in it. */

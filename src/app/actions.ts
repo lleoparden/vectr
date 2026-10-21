@@ -1321,6 +1321,9 @@ export function runEditorAction(id: EditorActionId): void {
     case 'tool.livePaint':
       documentStore.setTool('livePaint')
       return
+    case 'tool.width':
+      documentStore.setTool('width')
+      return
     case 'tool.rect':
     case 'tool.roundedRect':
     case 'tool.ellipse':

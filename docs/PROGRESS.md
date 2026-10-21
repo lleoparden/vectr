@@ -1,6 +1,28 @@
 # Progress
 
 
+## Pathfinder: unite, intersect, subtract, exclude (issue #140, first part)
+
+- **Skia's own path ops do the clipping** («src/render/boolean.ts»), so a union cannot disagree with what the
+  renderer draws. Inputs are the selected shapes' outlines flattened to polygons at the document tolerance
+  (rectangles keep their rounded corners sampled at eight steps, ellipses at 64 points, curve paths at 0.25
+  units); the result is read back with «toCmds» as scene-space polygons. **Results are polygonal**, and that
+  limitation is stated rather than hidden — curves are sampled, not preserved.
+- **Exclude is built from two differences and a union** because CanvasKit's XOR returned the full areas in a
+  probe; the area tests caught it (20000 instead of 15000) before it shipped.
+- **One command path**: the action computes polygons in the renderer, then dispatches one «batch» of
+  insertNodes plus removeNodes, so a Pathfinder result is one undo entry and the originals come back exactly.
+- **Object ▸ Pathfinder** exposes Unite, Intersect, Subtract, and Exclude.
+- **Evidence**: 322 unit tests — a Node CanvasKit test asserts the area of every mode on two squares overlapping
+  by half (17500 / 2500 / 7500 / 15000), disjoint subpaths, single-input passthrough, plus the polygon primitives
+  (shoelace area, winding, curved-path area within 1%) — and **152 packaged steps**; the new step unites two
+  rectangles into one 150×150 path and undoes back to both originals.
+
+Still open on #140: the **Pathfinder panel** (the menu is the only UI entry), Shape Builder, and preserving
+curves instead of flattening them.
+
+
+
 ## Multi-anchor selection and Average close Phase 5.3 (issue #139, 2026-10-20)
 
 - **Shift-click picks more than one anchor.** «workspaceStore.anchorSelection» holds the set, the overlay fills

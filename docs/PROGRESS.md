@@ -1,6 +1,27 @@
 # Progress
 
 
+## Region-based Shape Builder (issue #140, sixth part)
+
+- **The drag now selects regions, not whole shapes.** The crossed objects are divided into their faces by the same
+  engine as **Divide**, the faces the drag path comes within six screen pixels of are collected, and:
+  - without Alt they are **united into one path**, with every untouched face left as its own path;
+  - with Alt the touched faces are **removed**, and the rest survives.
+- The tool records the drag path (scene points, de-duplicated) and converts the tolerance from screen pixels
+  through the zoom, so the gesture means the same thing at any magnification.
+- **Evidence**: 332 unit tests (a face is touched within tolerance and not outside it; centroid; single-shape
+  regions are allowed and cancel leaves nothing) and **157 packaged steps**; the packaged Shape Builder step now
+  runs through the region pipeline - divide, touch, union - and still replaces two rectangles with one path.
+- **Honest gap:** the "untouched faces survive as separate paths" branch has unit coverage for the touch test but
+  **no packaged step**; the attempt to drive it in the app landed outside the shapes because the panel had changed
+  the canvas layout, and rather than keep a flaky step the packaged evidence was kept to the branch that is
+  reliable. Recorded here and in the catalog.
+
+Still open on #140: Live Paint. Region segmentation is drag-path based (a swept area), not Illustrator's exact
+per-region click model, and its faces are polygonal because they come from Divide.
+
+
+
 ## Simplify (issue #142 area, first path cleanup verb)
 
 - **Object ▸ Path ▸ Simplify** replaces a path's anchors with a Ramer-Douglas-Peucker simplification of its

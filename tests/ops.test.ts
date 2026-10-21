@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { area, polygonContainsNonzero, polygonOf, signedArea, windingNumber } from '../src/ops/polygon.ts'
+import { area, centroid, polygonContainsNonzero, polygonOf, polygonTouchesPath, signedArea, windingNumber } from '../src/ops/polygon.ts'
 import { cornerAnchor } from '../src/geom/path.ts'
 
 const square = [
@@ -50,4 +50,19 @@ test('a two-anchor path still produces a usable polygon', () => {
   const tiny = polygonOf([cornerAnchor(0, 0), cornerAnchor(10, 0)])
   assert.ok(tiny.length >= 2, 'a two-anchor path still yields a polygon')
   assert.equal(tiny[0].x, 0)
+})
+
+test('a face is touched when the drag passes within tolerance of it', () => {
+  assert.deepEqual(centroid(square), { x: 5, y: 5 })
+  const drag = [
+    { x: -5, y: 5 },
+    { x: 15, y: 5 },
+  ]
+  assert.equal(polygonTouchesPath(square, drag, 0.5), true, 'the drag crosses the face')
+  const far = [
+    { x: -30, y: 5 },
+    { x: -20, y: 5 },
+  ]
+  assert.equal(polygonTouchesPath(square, far, 0.5), false)
+  assert.equal(polygonTouchesPath(square, [{ x: -10, y: 4 }, { x: -10, y: 6 }], 3), false)
 })

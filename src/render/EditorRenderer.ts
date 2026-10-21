@@ -917,6 +917,11 @@ export class EditorRenderer {
     return builder.detach()
   }
 
+  /** Unites a set of scene polygons, for the Shape Builder's touched regions. */
+  unitePolygons(polygons: Polygon[]): Polygon[] {
+    return booleanPolygons(this.kit, polygons, 'unite')
+  }
+
   /** Divide: the selected shapes split into non-overlapping faces (Phase 5.4). */
   divideShapes(shapes: SceneShape[]): Polygon[] {
     const polygons = shapes.map((shape) => this.scenePolygon(shape)).filter((polygon) => polygon.length >= 3)

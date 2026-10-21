@@ -43,6 +43,8 @@ import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from '../g
 import { isLocked, parentIdOf, type Command } from '../doc/commands.ts'
 import { nudgedAnchor } from '../doc/pathEdit.ts'
 import { createPath } from '../doc/document.ts'
+import { polygonTouchesPath } from '../ops/polygon.ts'
+import type { Point } from '../geom/transform.ts'
 import { buildScene } from '../render/scene.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { batchCommand } from '../doc/commands.ts'
@@ -527,9 +529,38 @@ export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclud
   pathfinderOn(documentStore.getState().selection, mode)
 }
 
-/** Shape Builder: the objects a drag crossed are united, or removed from the rest with Alt. */
-export function shapeBuilder(ids: NodeId[], subtract: boolean): void {
-  pathfinderOn(ids, subtract ? 'subtract' : 'unite')
+/**
+ * Shape Builder: the crossed objects are divided into their faces, the faces the drag touched are
+ * collected - united, or removed with Alt - and everything else survives as its own path. This is
+ * region-based, with the faces coming from the same Divide engine the panel uses.
+ */
+export function shapeBuilder(ids: NodeId[], subtract: boolean, path: Point[], tolerance: number): void {
+  const { document } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null || ids.length < 1 || path.length === 0) return
+  const scene = buildScene(document)
+  const shapes = scene.shapes.filter((shape) => ids.includes(shape.id))
+  if (shapes.length < 1) return
+  const faces = renderer.divideShapes(shapes)
+  if (faces.length === 0) return
+  const touched = faces.filter((face) => polygonTouchesPath(face, path, tolerance))
+  if (touched.length === 0) return
+  const rest = faces.filter((face) => !touched.includes(face))
+  const polygons = subtract ? rest : [...renderer.unitePolygons(touched), ...rest]
+  if (polygons.length === 0) return
+  const nodes = polygons.map((polygon, index) => {
+    const anchors = polygon.map((point) => cornerAnchor(point.x, point.y))
+    const bounds = pathBounds(anchors, true)
+    return createPath(`Shape Builder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
+  })
+  const result = documentStore.dispatch(
+    batchCommand([
+      { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },
+      { type: 'removeNodes', nodeIds: ids },
+    ]),
+    'shape builder',
+  )
+  if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
 }
 
 function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtract' | 'exclude' | 'divide'): void {

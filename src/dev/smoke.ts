@@ -2080,7 +2080,7 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   canvas.dispatchEvent(new PointerEvent('pointermove', at(220, 220, 1)))
   canvas.dispatchEvent(new PointerEvent('pointerup', at(220, 220, 0)))
   await settle(150)
-  const built = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Pathfinder'))
+  const built = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Shape Builder'))
   record(
     'Shape Builder combines the shapes a drag crosses',
     built.length === 1 && documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B').length === 0,

@@ -17,8 +17,10 @@ export function createShapeBuilderTool(cursor: string): Tool {
   let start: { x: number; y: number } | null = null
   let last: { x: number; y: number } | null = null
   let crossed: NodeId[] = []
+  let path: Array<{ x: number; y: number }> = []
 
   const collect = (host: ToolHost, point: ToolPoint): void => {
+    pushPath(point)
     const hit = host.hitTest(point.scene, true)
     if (hit !== null && !crossed.includes(hit)) crossed = [...crossed, hit]
     host.setMarquee(marqueeRect({ x: start?.x ?? point.scene.x, y: start?.y ?? point.scene.y }, point.scene))
@@ -35,11 +37,17 @@ export function createShapeBuilderTool(cursor: string): Tool {
     }
   }
 
+  const pushPath = (point: ToolPoint): void => {
+    const lastPoint = path[path.length - 1]
+    if (lastPoint === undefined || Math.hypot(lastPoint.x - point.scene.x, lastPoint.y - point.scene.y) > 0.5) path.push({ ...point.scene })
+  }
+
   const reset = (host: ToolHost): void => {
     host.setMarquee(null)
     start = null
     last = null
     crossed = []
+    path = []
   }
 
   return {
@@ -50,12 +58,14 @@ export function createShapeBuilderTool(cursor: string): Tool {
       start = { x: point.scene.x, y: point.scene.y }
       last = { x: point.scene.x, y: point.scene.y }
       crossed = []
+      path = []
       collect(host, point)
     },
 
     onPointerMove(host: ToolHost, point: ToolPoint): void {
       if (start === null || last === null) return
       sampleBetween(host, last, point.scene)
+      pushPath(point)
       last = { x: point.scene.x, y: point.scene.y }
       host.setMarquee(marqueeRect(start, point.scene))
     },
@@ -65,8 +75,10 @@ export function createShapeBuilderTool(cursor: string): Tool {
       if (last !== null) sampleBetween(host, last, point.scene)
       const ids = crossed
       const subtract = modifiers.alt
+      const dragPath = path
+      const tolerance = 6 / Math.max(host.zoomFactor(), 0.0001)
       reset(host)
-      if (ids.length >= 2) host.applyShapeBuilder(ids, subtract)
+      if (ids.length >= 1 && dragPath.length > 0) host.applyShapeBuilder(ids, subtract, dragPath, tolerance)
     },
 
     cancel(host: ToolHost): void {

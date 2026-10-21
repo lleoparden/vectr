@@ -12,11 +12,13 @@ import { createShapeBuilderTool } from '../src/tools/shapeBuilder.ts'
 import type { ToolHost, ToolPoint } from '../src/tools/types.ts'
 
 function harness(hits: Record<string, string>) {
-  const applied: Array<{ ids: string[]; subtract: boolean }> = []
+  const applied: Array<{ ids: string[]; subtract: boolean; pathLength: number; tolerance: number }> = []
   const host = {
     hitTest: (scene: { x: number; y: number }) => hits[Math.round(scene.x) + ',' + Math.round(scene.y)] ?? null,
     setMarquee: () => {},
-    applyShapeBuilder: (ids: string[], subtract: boolean) => applied.push({ ids, subtract }),
+    zoomFactor: () => 1,
+    applyShapeBuilder: (ids: string[], subtract: boolean, path: Array<{ x: number; y: number }>, tolerance: number) =>
+      applied.push({ ids, subtract, pathLength: path.length, tolerance }),
   } as unknown as ToolHost
   return { host, applied }
 }
@@ -33,6 +35,8 @@ test('a drag across two objects unites them on release', () => {
   assert.equal(applied.length, 1)
   assert.deepEqual(applied[0].ids.sort(), ['a', 'b'])
   assert.equal(applied[0].subtract, false)
+  assert.ok(applied[0].pathLength >= 2, 'the drag path reaches the host')
+  assert.equal(applied[0].tolerance, 6)
 })
 
 test('Alt on release subtracts instead', () => {
@@ -44,12 +48,13 @@ test('Alt on release subtracts instead', () => {
   assert.equal(applied[0].subtract, true)
 })
 
-test('crossing one object applies nothing, and a cancel leaves nothing behind', () => {
+test('crossing one object still hands it to the host, and a cancel leaves nothing behind', () => {
   const { host, applied } = harness({ '10,10': 'a' })
   const tool = createShapeBuilderTool('crosshair')
   tool.onPointerDown(host, point(10, 10), none)
   tool.onPointerUp(host, point(10, 10), none)
-  assert.equal(applied.length, 0, 'one object is not a boolean')
+  assert.equal(applied.length, 1, 'one object is a single region')
+  applied.length = 0
   tool.onPointerDown(host, point(10, 10), none)
   tool.cancel(host)
   tool.onPointerUp(host, point(10, 10), none)

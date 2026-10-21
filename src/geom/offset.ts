@@ -19,7 +19,19 @@ function normal(a: PathPoint, b: PathPoint): PathPoint {
 }
 
 /** Offset a closed ring by `distance`, using each vertex's two neighbours. */
-function offsetRing(points: PathPoint[], distance: number): PathPoint[] {
+export function offsetRing(points: PathPoint[], distance: number): PathPoint[] {
+  // Positive distance grows the ring whatever the winding: the sign follows the contour's area.
+  let area = 0
+  for (let index = 0; index < points.length; index += 1) {
+    const a = points[index]
+    const b = points[(index + 1) % points.length]
+    area += a.x * b.y - b.x * a.y
+  }
+  const oriented = area >= 0 ? -distance : distance
+  return offsetRingRaw(points, oriented)
+}
+
+function offsetRingRaw(points: PathPoint[], distance: number): PathPoint[] {
   return points.map((point, index) => {
     const previous = points[(index - 1 + points.length) % points.length]
     const next = points[(index + 1) % points.length]
@@ -63,7 +75,7 @@ export function strokeRing(points: PathPoint[], width: number): { outer: PathPoi
 }
 
 /** Offset one open polyline by `distance` along its left-hand normals. */
-function offsetSide(points: PathPoint[], distance: number): PathPoint[] {
+export function offsetSide(points: PathPoint[], distance: number): PathPoint[] {
   return points.map((point, index) => {
     const before = index === 0 ? null : normal(points[index - 1], point)
     const after = index === points.length - 1 ? null : normal(point, points[index + 1])

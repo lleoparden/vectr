@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { outlineArea, strokeOutline, strokeRing } from '../src/geom/offset.ts'
+import { offsetRing, offsetSide, outlineArea, strokeOutline, strokeRing } from '../src/geom/offset.ts'
 
 test('a straight line becomes a rectangle of length × width', () => {
   const outline = strokeOutline(
@@ -65,4 +65,27 @@ test('a closed square becomes an outer and an inner contour whose difference is 
 test('a degenerate closed contour produces no ring', () => {
   assert.equal(strokeRing([{ x: 0, y: 0 }], 10), null)
   assert.equal(strokeRing([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 0 }], 10), null)
+})
+
+test('offsetting an open line moves it perpendicular to its direction', () => {
+  const line = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+  ]
+  const moved = offsetSide(line, 10)
+  assert.deepEqual(moved, [
+    { x: 0, y: 10 },
+    { x: 100, y: 10 },
+  ])
+})
+
+test('offsetting a closed square changes its area exactly', () => {
+  const square = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+    { x: 0, y: 100 },
+  ]
+  assert.equal(outlineArea(offsetRing(square, 10)), 14400)
+  assert.equal(outlineArea(offsetRing(square, -10)), 6400)
 })

@@ -2253,6 +2253,24 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 21. Offset Path: a copy of the outline at a fixed distance, originals untouched.
+  const offsetSource = createRect('Offset source', 1250, 300, 100, 100)
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [offsetSource] }, 'offset fixture')
+  documentStore.setSelection([offsetSource.id])
+  await settle(80)
+  runEditorAction('path.offsetPath')
+  await settle(150)
+  const offsetCopy = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Offset'))
+  const offsetBounds = offsetCopy === undefined ? null : worldBounds(documentStore.getState().document, offsetCopy.id)
+  record(
+    'Offset Path copies the outline at the offset distance',
+    offsetBounds !== null && Math.abs(offsetBounds.width - 120) < 1 && documentStore.getState().document.root.children.some((node) => node.id === offsetSource.id),
+    offsetBounds === null ? 'no offset' : `${Math.round(offsetBounds.width)} wide, original kept`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

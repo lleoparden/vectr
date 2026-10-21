@@ -25,7 +25,7 @@ import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
 import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { polygonContains } from '../doc/hitTest.ts'
-import { strokeOutline, strokeRing } from '../geom/offset.ts'
+import { offsetRing, offsetSide, strokeOutline, strokeRing } from '../geom/offset.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -945,6 +945,19 @@ export class EditorRenderer {
   /** Unites a set of scene polygons, for the Shape Builder's touched regions. */
   unitePolygons(polygons: Polygon[]): Polygon[] {
     return booleanPolygons(this.kit, polygons, 'unite')
+  }
+
+  /** A shape's outline offset by a distance, as anchors (Phase 5.6 Offset Path). */
+  offsetShape(shape: SceneShape, distance: number): ReturnType<typeof flattenPath> | null {
+    const polygon = this.scenePolygon(shape)
+    if (polygon.length < 3) return null
+    const open = shape.kind === 'line' || (shape.kind === 'path' && !shape.closed)
+    if (open) {
+      const offsetPoints = offsetSide(polygon, distance)
+      return offsetPoints.map((point) => ({ x: point.x, y: point.y }))
+    }
+    const offsetPoints = offsetRing(polygon, distance)
+    return offsetPoints.map((point) => ({ x: point.x, y: point.y }))
   }
 
   /** A shape's outline as a scene polygon, for compound-path contours (Phase 5.6). */

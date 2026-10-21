@@ -121,11 +121,14 @@ export function containsLocalPoint(node: LayerNode, local: Point): boolean {
   if (isGroup(node)) return false
   // Rectangles, text, and images occupy their box; ellipses are tested against the ellipse.
   if (node.type === 'path') {
-    const points = flattenPath(node.anchors, node.closed)
-    if (node.closed && polygonContains(points, local)) return true
-    // An open path, or a closed one clicked outside its fill, is hit by its stroke.
+    const contours = [node.anchors, ...(node.subpaths ?? [])].map((contour) => flattenPath(contour, true))
+    if (node.closed) {
+      const hits = contours.filter((points) => polygonContains(points, local)).length
+      // evenodd counts parity, nonzero accepts any contour that covers the point.
+      if (node.fillRule === 'evenodd' ? hits % 2 === 1 : hits > 0) return true
+    }
     const width = node.style.stroke?.width ?? 0
-    return width > 0 && distanceToPolyline(points, node.closed, local) <= width / 2 + 3
+    return width > 0 && contours.some((points) => distanceToPolyline(points, true, local) <= width / 2 + 3)
   }
   if (node.type === 'rect' || node.type === 'text' || node.type === 'image') {
     return local.x >= 0 && local.x <= node.width && local.y >= 0 && local.y <= node.height

@@ -1,6 +1,27 @@
 # Progress
 
 
+## Compound paths, and format v6 (issue #142)
+
+- **A path can hold several closed contours.** «PathNode.subpaths» is an optional list; the renderer builds every
+  contour into one Skia path, so with the even-odd rule the inner contours are holes. Hit testing counts parity for
+  evenodd and any covering contour for nonzero, so a click inside a hole misses and a click on the ring hits.
+- **Make / Release Compound Path** on Illustrator's chords (Ctrl+8, Ctrl+Alt+8): Make turns the selected leaves
+  into one path (their outlines become contours, so a curve's flattening applies), Release gives each contour its
+  own path. Both are one undoable batch, and the menu items grey out when the selection cannot use them.
+- **Format v6**: «subpaths» is optional, so v1-v5 files open unchanged; the version list is now 1-6 in both the
+  document validator and the serializer.
+- **Evidence**: 340 unit tests (a compound validates, format is 6, a click in the hole misses while the ring hits,
+  an invalid contour is refused, contours survive a clone) and **162 packaged steps**; the new steps make a
+  compound from two nested rectangles in the packaged app, assert one path with two contours, check the hole is not
+  clickable, release back to two paths, and undo.
+
+**Declared limits:** compound contours are flattened when made from non-path shapes (their outlines are polygons),
+and booleans, Live Paint, and Outline Stroke still look only at the first contour; making those contour-aware is the
+next depth item. Offset path and live shape reshaping remain open on #142.
+
+
+
 ## Outline Stroke (issue #142, second verb)
 
 - **Object ▸ Path ▸ Outline Stroke** turns an open shape's stroke into a filled path: the polyline is offset to

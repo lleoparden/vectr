@@ -56,6 +56,8 @@ export type SceneShape = {
   pie: boolean
   /** Present exactly when `kind` is `path`: the anchors, closure, and fill rule. */
   anchors: PathAnchor[] | null
+  /** Additional contours of a compound path, when present (Phase 5.6). */
+  subpaths: PathAnchor[][] | null
   closed: boolean
   fillRule: PathFillRule | null
   fill: string
@@ -157,6 +159,7 @@ function walkShapes(
     sweepAngle: node.type === 'arc' ? node.sweepAngle : 0,
     pie: node.type === 'arc' ? node.pie : false,
     anchors: node.type === 'path' ? node.anchors.map((anchor) => ({ ...anchor })) : null,
+    subpaths: node.type === 'path' && node.subpaths !== undefined ? node.subpaths.map((contour) => contour.map((anchor) => ({ ...anchor }))) : null,
     closed: node.type === 'path' ? node.closed : false,
     fillRule: node.type === 'path' ? node.fillRule : null,
     fill: node.style.fill,

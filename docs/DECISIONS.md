@@ -2389,3 +2389,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   file opens unchanged, and a v5 file opened by an older build fails its version check rather than half-loading.
 - **Model first, tool second.** 5.1 ships no pointer interaction on purpose: the pen (5.2) and anchor editing
   (5.3) are only honest if the document, file, renderer, and hit test already agree about what a path is.
+
+## 2026-10-21 - Compound paths are an optional contour list, not a group flag
+
+- **A path owns its contours.** `subpaths` sits on `PathNode`, so a compound path is still one node with one style,
+  one fill rule, one transform, and one selection - which is what every command already assumes. A group with a
+  "compound" flag would have split the style and the hit test across two kinds.
+- **Format v6, optional field.** Old files have no `subpaths` and open unchanged; the version bump only tells an
+  older build to refuse a v6 file instead of drawing a compound without its holes.
+- **Even-odd hit testing by parity.** A compound's fill is the parity of covering contours, so holes are real in
+  both the renderer and the click test rather than only visually.

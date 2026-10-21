@@ -613,6 +613,17 @@ export class EditorRenderer {
         builder.cubicTo(a.x + a.outX, a.y + a.outY, b.x + b.inX, b.y + b.inY, b.x, b.y)
       }
       if (shape.closed) builder.close()
+      for (const contour of shape.subpaths ?? []) {
+        if (contour.length < 2) continue
+        const startPoint = contour[0]
+        builder.moveTo(startPoint.x, startPoint.y)
+        for (let index = 0; index < contour.length; index += 1) {
+          const from = contour[index]
+          const to = contour[(index + 1) % contour.length]
+          builder.cubicTo(from.x + from.outX, from.y + from.outY, to.x + to.inX, to.y + to.inY, to.x, to.y)
+        }
+        builder.close()
+      }
     } else {
       const points = outlinePoints(shape)
       if (points !== null && points.length > 0) {
@@ -922,6 +933,12 @@ export class EditorRenderer {
   /** Unites a set of scene polygons, for the Shape Builder's touched regions. */
   unitePolygons(polygons: Polygon[]): Polygon[] {
     return booleanPolygons(this.kit, polygons, 'unite')
+  }
+
+  /** A shape's outline as a scene polygon, for compound-path contours (Phase 5.6). */
+  outlineFillForShape(shape: SceneShape): Polygon | null {
+    const polygon = this.scenePolygon(shape)
+    return polygon.length >= 3 ? polygon : null
   }
 
   /** The closed outline of an open shape's stroke, for Outline Stroke (Phase 5.6). */

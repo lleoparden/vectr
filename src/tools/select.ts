@@ -46,7 +46,7 @@ export function createSelectTool({ id, deep, cursor }: SelectToolOptions): Tool 
             const origin = capture.anchors[anchor.index]
             const local = sceneToLocal(point.scene, capture)
             host.beginPathDrag()
-            host.setActiveAnchor(capture.nodeId, anchor.index)
+            host.selectAnchor(capture.nodeId, anchor.index, modifiers.shift)
             state = { kind: 'anchorDrag', capture, index: anchor.index, offset: { x: origin.x - local.x, y: origin.y - local.y } }
             return
           }

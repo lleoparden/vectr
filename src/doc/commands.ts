@@ -62,6 +62,8 @@ export type Command =
   | { type: 'setSwatch'; swatchId: string; name?: string; color?: string; cmyk?: Cmyk | null; spot?: boolean }
   | { type: 'removeGuide'; guideId: string }
   | { type: 'setGuide'; guideId: string; position: number }
+  /** Moves the listed anchors to their mean point (Phase 5.3). */
+  | { type: 'averagePathAnchors'; nodeId: NodeId; indices: number[] }
   /** Joins two open paths at their nearest endpoints into one open path (Phase 5.3). */
   | { type: 'joinPaths'; firstId: NodeId; secondId: NodeId }
   /** Inserts an anchor on a segment at t (Phase 5.3, issue #139). */
@@ -596,6 +598,24 @@ export function applyCommand(document: Document, command: Command): CommandResul
         }
       }
       const previous = { anchors: node.anchors.map((value) => ({ ...value })), closed: node.closed, fillRule: node.fillRule }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),
+        inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
+      }
+    }
+
+    case 'averagePathAnchors': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      const indices = [...new Set(command.indices)].filter((index) => Number.isInteger(index) && index >= 0 && index < node.anchors.length)
+      if (indices.length < 2) return rejected('invalid-index', 'Average needs at least two anchors.')
+      const meanX = indices.reduce((sum, index) => sum + node.anchors[index].x, 0) / indices.length
+      const meanY = indices.reduce((sum, index) => sum + node.anchors[index].y, 0) / indices.length
+      const anchors = node.anchors.map((anchor, index) => (indices.includes(index) ? { ...anchor, x: meanX, y: meanY } : { ...anchor }))
+      const previous = { anchors: node.anchors.map((anchor) => ({ ...anchor })), closed: node.closed, fillRule: node.fillRule }
       return {
         ok: true,
         document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),

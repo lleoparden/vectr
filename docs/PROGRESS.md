@@ -1,6 +1,23 @@
 # Progress
 
 
+## Multi-anchor selection and Average close Phase 5.3 (issue #139, 2026-10-20)
+
+- **Shift-click picks more than one anchor.** «workspaceStore.anchorSelection» holds the set, the overlay fills
+  every picked anchor, and clearing happens whenever the tool, node, or selection stops being one path.
+- **Arrow nudging moves the whole picked set**, one «setPathAnchors» command per press.
+- **Average** («averagePathAnchors») moves the picked anchors to their mean point in one undoable command,
+  refuses fewer than two, and leaves the rest of the curve alone. It is reachable from **Object ▸ Path**.
+- **Add / Delete / Convert now act on the set**: delete removes every picked anchor the path can lose, convert
+  changes all of them, in one undo entry each.
+- **Evidence**: 315 unit tests (multi-anchor nudge, the average command's mean and inverse, refusal of a single
+  anchor) and 150 packaged steps.
+
+Phase 5.3 is complete: paths can be drawn, reshaped, joined, and their anchors selected, nudged, added,
+deleted, converted, and averaged.
+
+
+
 ## Join, and the Object Path menu (issue #139, third part)
 
 - **Join Paths** («joinPaths»): two selected top-level open paths merge at their nearest endpoints, the second

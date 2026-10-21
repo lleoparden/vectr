@@ -488,7 +488,13 @@ export function CanvasView() {
           transform: { ...node.transform },
         }
       },
-      setActiveAnchor: (nodeId, index) => workspaceStore.setActiveAnchor(index === null ? null : { nodeId, index }),
+      selectAnchor: (nodeId, index, additive) => {
+        const current = workspaceStore.getState().anchorSelection
+        const same = current !== null && current.nodeId === nodeId ? current.indices : []
+        const indices = !additive ? [index] : same.includes(index) ? same.filter((value) => value !== index) : [...same, index]
+        workspaceStore.setAnchorSelection(indices.length === 0 ? null : { nodeId, indices })
+      },
+      clearAnchorSelection: () => workspaceStore.setAnchorSelection(null),
       beginPathDrag: () => documentStore.beginTransaction('edit anchors'),
       setPathAnchors: (nodeId, anchors) => {
         const node = findNode(documentStore.getState().document, nodeId)
@@ -651,11 +657,11 @@ export function CanvasView() {
 
   // Anchor selection belongs to one path in the white arrow; anything else clears it.
   useEffect(() => {
-    const anchor = workspaceStore.getState().activeAnchor
-    if (anchor === null) return
-    const node = findNode(documentStore.getState().document, anchor.nodeId)
+    const selection = workspaceStore.getState().anchorSelection
+    if (selection === null) return
+    const node = findNode(documentStore.getState().document, selection.nodeId)
     if (state.tool !== 'directSelect' || state.selection.length !== 1 || node === null || node.type !== 'path') {
-      workspaceStore.setActiveAnchor(null)
+      workspaceStore.setAnchorSelection(null)
     }
   }, [state.tool, state.selection])
 
@@ -909,7 +915,7 @@ export function CanvasView() {
           width={selectedPath.width}
           height={selectedPath.height}
           transform={selectedPath.transform}
-          activeIndex={workspace.activeAnchor?.nodeId === selectedPath.id ? workspace.activeAnchor.index : null}
+          activeIndices={workspace.anchorSelection?.nodeId === selectedPath.id ? workspace.anchorSelection.indices : []}
           zoom={state.viewport.zoom}
           panX={state.viewport.panX}
           panY={state.viewport.panY}

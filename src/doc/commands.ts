@@ -52,6 +52,8 @@ export type Command =
   | { type: 'renameNode'; nodeId: NodeId; name: string }
   /** Editable rounded corner on an existing rectangle (Phase 2.1, issue #64). */
   | { type: 'setCornerRadius'; nodeId: NodeId; cornerRadius: number }
+  /** Per-anchor width multipliers for a path's stroke, or null to make it uniform again (Phase 5.5). */
+  | { type: 'setWidthProfile'; nodeId: NodeId; profile: number[] | null }
   /** Live shape reshape: width/height and position without converting or scaling (Phase 5.6). */
   | { type: 'resizeNode'; nodeId: NodeId; x: number; y: number; width: number; height: number }
   /** Makes a direct child clip its group's other children, or releases the clip (issue #71). */
@@ -720,6 +722,34 @@ export function applyCommand(document: Document, command: Command): CommandResul
           { type: 'setPathAnchors', nodeId: first.id, ...previous },
           { type: 'insertNodes', parentId: document.root.id, index, nodes: [second] },
         ]),
+      }
+    }
+
+    case 'setWidthProfile': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (node.style.stroke === null) return rejected('invalid-parent', `Node ${command.nodeId} has no stroke to profile.`)
+      if (command.profile !== null) {
+        if (!Array.isArray(command.profile) || command.profile.length !== node.anchors.length) {
+          return rejected('invalid-index', 'A width profile needs one value per anchor.')
+        }
+        if (!command.profile.every((value) => Number.isFinite(value) && value >= 0 && value <= 4)) {
+          return rejected('non-finite', 'Width profile values must be between 0 and 4.')
+        }
+      }
+      const previous = node.style.stroke.widthProfile === undefined ? null : [...node.style.stroke.widthProfile]
+      const stroke = command.profile === null ? { ...node.style.stroke } : { ...node.style.stroke, widthProfile: [...command.profile] }
+      if (command.profile === null) delete stroke.widthProfile
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) =>
+            current.type === 'path' ? { ...current, style: { ...current.style, stroke } } : current,
+          ),
+        ),
+        inverse: { type: 'setWidthProfile', nodeId: command.nodeId, profile: previous },
       }
     }
 

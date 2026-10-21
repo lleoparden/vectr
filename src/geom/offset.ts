@@ -7,7 +7,7 @@
  * path), which is not built yet, so this refuses them rather than filling the wrong region.
  */
 
-import type { PathPoint } from './path.ts'
+import { flattenPath, type PathAnchor, type PathPoint } from './path.ts'
 
 /** The unit normal of a segment, rotated 90 degrees. */
 function normal(a: PathPoint, b: PathPoint): PathPoint {
@@ -135,4 +135,79 @@ export function outlineArea(points: PathPoint[]): number {
     sum += a.x * b.y - b.x * a.y
   }
   return Math.abs(sum / 2)
+}
+
+/** Per-point half widths from anchor multipliers, sampled along the flattened path. */
+export function flattenedWithWidths(
+  anchors: PathAnchor[],
+  closed: boolean,
+  multipliers: number[],
+  width: number,
+): { points: PathPoint[]; halfWidths: number[] } {
+  const points: PathPoint[] = []
+  const halfWidths: number[] = []
+  const count = anchors.length
+  const multiplierAt = (index: number): number => multipliers[index] ?? 1
+  const segments = closed ? count : Math.max(0, count - 1)
+  for (let index = 0; index < segments; index += 1) {
+    const from = anchors[index]
+    const to = anchors[(index + 1) % count]
+    const samples = flattenPath([from, to], false)
+    const fromWidth = (width * multiplierAt(index)) / 2
+    const toWidth = (width * multiplierAt((index + 1) % count)) / 2
+    const skipFirst = index > 0
+    const start = skipFirst ? 1 : 0
+    for (let sample = start; sample < samples.length; sample += 1) {
+      const fraction = samples.length <= 1 ? 0 : sample / (samples.length - 1)
+      points.push(samples[sample])
+      halfWidths.push(fromWidth + (toWidth - fromWidth) * fraction)
+    }
+  }
+  return { points, halfWidths }
+}
+
+/** Normal at a point, from the direction of its neighbours. Endpoints use their one segment. */
+function profileNormal(points: PathPoint[], index: number, closed: boolean): PathPoint {
+  const count = points.length
+  const hasBefore = closed || index > 0
+  const hasAfter = closed || index < count - 1
+  const before = hasBefore ? normal(points[(index - 1 + count) % count], points[index]) : null
+  const after = hasAfter ? normal(points[index], points[(index + 1) % count]) : null
+  if (before === null && after !== null) return after
+  if (after === null && before !== null) return before
+  if (before === null || after === null) return { x: 0, y: 0 }
+  let nx = before.x + after.x
+  let ny = before.y + after.y
+  const length = Math.hypot(nx, ny)
+  if (length === 0) return after
+  nx /= length
+  ny /= length
+  const scale = 1 / Math.max(0.35, before.x * nx + before.y * ny)
+  return { x: nx * scale, y: ny * scale }
+}
+
+/** A variable-width open stroke: the outline rails at each point's own half width. */
+export function variableOutline(points: PathPoint[], halfWidths: number[]): PathPoint[] {
+  if (points.length < 2) return []
+  const left: PathPoint[] = []
+  const right: PathPoint[] = []
+  for (let index = 0; index < points.length; index += 1) {
+    const unit = profileNormal(points, index, false)
+    left.push({ x: points[index].x + unit.x * halfWidths[index], y: points[index].y + unit.y * halfWidths[index] })
+    right.push({ x: points[index].x - unit.x * halfWidths[index], y: points[index].y - unit.y * halfWidths[index] })
+  }
+  return [...left, ...right.reverse()]
+}
+
+/** A variable-width closed stroke: outer and inner rings, drawn even-odd like a compound. */
+export function variableRing(points: PathPoint[], halfWidths: number[]): { outer: PathPoint[]; inner: PathPoint[] } | null {
+  if (points.length < 3) return null
+  const outer: PathPoint[] = []
+  const inner: PathPoint[] = []
+  for (let index = 0; index < points.length; index += 1) {
+    const unit = profileNormal(points, index, true)
+    outer.push({ x: points[index].x + unit.x * halfWidths[index], y: points[index].y + unit.y * halfWidths[index] })
+    inner.push({ x: points[index].x - unit.x * halfWidths[index], y: points[index].y - unit.y * halfWidths[index] })
+  }
+  return outlineArea(outer) >= outlineArea(inner) ? { outer, inner } : { outer: inner, inner: outer }
 }

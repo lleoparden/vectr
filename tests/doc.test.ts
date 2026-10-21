@@ -43,7 +43,7 @@ function scene(): { document: Document; rect: LayerNode; rect2: LayerNode; group
 test('a new document is valid, empty, and versioned', () => {
   const document = createDocument()
   assert.equal(document.formatVersion, FORMAT_VERSION)
-  assert.equal(FORMAT_VERSION, 6, 'v6 adds compound paths')
+  assert.equal(FORMAT_VERSION, 7, 'v7 adds width profiles')
   assert.equal(countNodes(document), 0)
   assert.equal(validateDocument(document).ok, true)
 })

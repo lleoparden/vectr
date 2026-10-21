@@ -16,6 +16,7 @@ import { findNode, findParent, worldTransform } from './document.ts'
 import { isGroup, type Document, type LayerNode, type NodeId } from './types.ts'
 import { clipPolygon } from '../geom/shapeGeometry.ts'
 import { distanceToPolyline, flattenPath } from '../geom/path.ts'
+import { flattenedWithWidths } from '../geom/offset.ts'
 
 export type Point = { x: number; y: number }
 
@@ -127,7 +128,17 @@ export function containsLocalPoint(node: LayerNode, local: Point): boolean {
       // evenodd counts parity, nonzero accepts any contour that covers the point.
       if (node.fillRule === 'evenodd' ? hits % 2 === 1 : hits > 0) return true
     }
-    const width = node.style.stroke?.width ?? 0
+    const stroke = node.style.stroke
+    const width = stroke?.width ?? 0
+    if (width > 0 && stroke?.widthProfile !== undefined && stroke.widthProfile.length >= 2) {
+      // A profiled stroke is a variable outline, so the hit band narrows and widens with it.
+      const { points, halfWidths } = flattenedWithWidths(node.anchors, node.closed, stroke.widthProfile, width)
+      for (let index = 0; index < points.length - 1; index += 1) {
+        const { distance, t: along } = distanceToSegment(local, points[index], points[index + 1])
+        if (distance <= halfWidths[index] + (halfWidths[index + 1] - halfWidths[index]) * along + 3) return true
+      }
+      return false
+    }
     return width > 0 && contours.some((points) => distanceToPolyline(points, true, local) <= width / 2 + 3)
   }
   if (node.type === 'rect' || node.type === 'text' || node.type === 'image') {
@@ -351,4 +362,14 @@ export function hierarchySelection(document: Document, point: Point, selection: 
   const index = selection.length === 1 ? chain.indexOf(selection[0]) : -1
   const next = index >= 0 ? Math.min(index + 1, chain.length - 1) : Math.min(1, chain.length - 1)
   return chain[next]
+}
+
+/** Perpendicular distance from a point to a segment; used by the width-profile hit band. */
+function distanceToSegment(point: Point, a: Point, b: Point): { distance: number; t: number } {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const lengthSquared = dx * dx + dy * dy
+  if (lengthSquared === 0) return { distance: Math.hypot(point.x - a.x, point.y - a.y), t: 0 }
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared))
+  return { distance: Math.hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy)), t }
 }

@@ -167,7 +167,7 @@ test('v2 image manifests gain an explicit full crop and no mask on open (and are
   assert.equal(parsed.ok, true, parsed.ok ? '' : parsed.message)
   if (!parsed.ok) return
   const reopened = parsed.document.root.children.find((node) => node.type === 'image')
-  assert.equal(parsed.document.formatVersion, 6)
+  assert.equal(parsed.document.formatVersion, 7)
   assert.deepEqual(reopened?.type === 'image' ? reopened.crop : null, { x: 0, y: 0, width: 1, height: 1 })
   assert.equal(reopened?.type === 'image' ? reopened.maskAssetId : undefined, null)
 })

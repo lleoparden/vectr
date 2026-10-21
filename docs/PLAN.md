@@ -26,7 +26,7 @@ no Bézier path node yet, so the pen, anchors, Pathfinder, width profiles, and c
 | 5.1 Path node and format v5 | #137 | `PathNode` with anchors and in/out handles, open and closed paths, validation, serialization as format v5 with v4 files still opening, rendering, and hit testing |
 | 5.2 Pen tool | #138 | **Done**: click for a corner, drag for a smooth anchor, close on the first anchor, rubber-band preview, Escape to cancel, one undo entry per path |
 | 5.3 Anchor and segment editing | #139 | **Done**: anchors and handles select and drag under rotation/scale, shift-click picks a set, arrows nudge it, add/delete/convert/join/average all have exact inverses and Object ▸ Path entries |
-| 5.4 Pathfinder and Shape Builder | #140 | **Unite/Intersect/Subtract/Exclude ship** via Skia path ops over flattened polygons, with Object ▸ Pathfinder and one-undo batches. Remaining: Divide, Live Paint, region segmentation, and curve-preserving results |
+| 5.4 Pathfinder and Shape Builder | #140 | **Unite/Intersect/Subtract/Exclude ship** via Skia path ops over flattened polygons, with Object ▸ Pathfinder and one-undo batches. Remaining: Live Paint, Shape Builder region segmentation, and curve-preserving results |
 | 5.5 Width profiles (#103) | #141 | Stroke-to-outline geometry, width points, and the Width tool; the renderer draws the outline and hit testing follows it |
 | 5.6 Compound paths, offset, and live shapes | #142 | Compound path create and release, offset path, simplify, outline stroke, and live rectangle/ellipse/corner reshaping |
 

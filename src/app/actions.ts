@@ -523,7 +523,7 @@ export function averageActiveAnchors(): void {
 
 /** Joins two selected open paths at their nearest endpoints, in one undo entry. */
 /** Applies a Pathfinder mode to the selection: one batched command, one undo entry. */
-export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclude'): void {
+export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclude' | 'divide'): void {
   pathfinderOn(documentStore.getState().selection, mode)
 }
 
@@ -532,14 +532,14 @@ export function shapeBuilder(ids: NodeId[], subtract: boolean): void {
   pathfinderOn(ids, subtract ? 'subtract' : 'unite')
 }
 
-function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtract' | 'exclude'): void {
+function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtract' | 'exclude' | 'divide'): void {
   const { document } = documentStore.getState()
   const renderer = getActiveRenderer()
   if (renderer === null || targetIds.length < 2) return
   const scene = buildScene(document)
   const shapes = scene.shapes.filter((shape) => targetIds.includes(shape.id))
   if (shapes.length < 2) return
-  const polygons = renderer.booleanPolygonsForShapes(shapes, mode)
+  const polygons = mode === 'divide' ? renderer.divideShapes(shapes) : renderer.booleanPolygonsForShapes(shapes, mode)
   if (polygons.length === 0) return
   const nodes = polygons.map((polygon, index) => {
     const anchors = polygon.map((point) => cornerAnchor(point.x, point.y))
@@ -1115,6 +1115,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.exclude':
       runPathfinder('exclude')
+      return
+    case 'path.divide':
+      runPathfinder('divide')
       return
     case 'artboard.new': {
       const document = documentStore.getState().document

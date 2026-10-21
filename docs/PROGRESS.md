@@ -1,6 +1,23 @@
 # Progress
 
 
+## Divide (issue #140, fourth part)
+
+- **Divide** splits the selected shapes into non-overlapping faces: each new shape is intersected with every
+  face already produced, the covered part of that face is trimmed away, and what remains of the new shape is
+  added. Slivers below a hundredth of a square unit are dropped so an axis-aligned curve does not become a layer.
+- Reachable from **Object ▸ Pathfinder** and as a fifth button in the **Pathfinder panel**.
+- **Evidence**: 327 unit tests — two half-overlapping squares divide into faces of 2500, 7500, and 7500, whose sum
+  is the union's 17500 exactly — and **155 packaged steps**; the new step selects the two rectangles in the
+  packaged app, clicks Divide, gets three paths, and undoes back to two. The first divide run returned
+  2500/7500/10000, which is how the overwrite bug in the face list was caught.
+- **Declaration:** results are flattened like the other modes (rounded corners at eight steps, ellipses at 64
+  points, curves at 0.25 units), and Divide is pairwise over the selection rather than a Live Paint model.
+
+Still open on #140: Live Paint, Shape Builder region segmentation, and curve-preserving results.
+
+
+
 ## Shape Builder (issue #140, third part)
 
 - **A fourteenth tool** on Illustrator's **Shift+M**: drag across objects and they are combined with the tool

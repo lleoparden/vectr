@@ -23,7 +23,7 @@ import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
-import { booleanPolygons, type BooleanMode, type Polygon } from './boolean.ts'
+import { booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -848,6 +848,12 @@ export class EditorRenderer {
   booleanPolygonsForShapes(shapes: SceneShape[], mode: BooleanMode): Polygon[] {
     const polygons = shapes.map((shape) => this.scenePolygon(shape)).filter((polygon) => polygon.length >= 3)
     return booleanPolygons(this.kit, polygons, mode)
+  }
+
+  /** Divide: the selected shapes split into non-overlapping faces (Phase 5.4). */
+  divideShapes(shapes: SceneShape[]): Polygon[] {
+    const polygons = shapes.map((shape) => this.scenePolygon(shape)).filter((polygon) => polygon.length >= 3)
+    return dividePolygons(this.kit, polygons)
   }
 
   /** A shape's outline in scene coordinates, flattened. */

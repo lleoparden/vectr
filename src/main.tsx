@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App.tsx'
 import { BenchmarkApp } from './bench/BenchmarkApp.tsx'
-import { runEditorSmoke, runEditorStress, runFileRoundTrip, runMemoryReport, runShapeToolsReport, runTextEntryReport, runToolOptionsReport } from './dev/smoke.ts'
+import { runEditorSmoke, runFileRoundTrip, runMemoryReport, runShapeToolsReport, runTextEntryReport, runToolOptionsReport } from './dev/smoke.ts'
 import { documentStore } from './state/documentStore.ts'
 import './styles.css'
 
@@ -13,8 +13,8 @@ const isBenchmark = search.has('benchmark')
 createRoot(document.getElementById('root')!).render(isBenchmark ? <BenchmarkApp /> : <App />)
 
 // `?smoke` runs the scripted acceptance pass and logs JSON lines for the packaged
-// evidence run (`electron . --smoke`); `?smoke=stress` adds the memory/zoom report and the
-// 1,000-shape stress case.
+// evidence run (`electron . --smoke`); `?smoke=stress` adds the text, UI, path, and memory reports.
+// The 1,000-shape stress case was removed on request in 2026-10-21 and is recorded as not run.
 if (search.has('smoke')) {
   window.setTimeout(() => {
     void (async () => {
@@ -31,8 +31,6 @@ if (search.has('smoke')) {
         console.log(`[vectr-path] ${JSON.stringify(shapes)}`)
         const memory = await runMemoryReport()
         console.log(`[vectr-memory] ${JSON.stringify(memory)}`)
-        const stress = await runEditorStress(documentStore)
-        console.log(`[vectr-stress] ${JSON.stringify(stress)}`)
       }
     })()
   }, 1_500)

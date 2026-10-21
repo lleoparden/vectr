@@ -109,7 +109,7 @@ export function createPath(
   x: number,
   y: number,
   anchors: PathAnchor[],
-  options: { closed?: boolean; fillRule?: 'nonzero' | 'evenodd'; fill?: string } = {},
+  options: { closed?: boolean; fillRule?: 'nonzero' | 'evenodd'; fill?: string; subpaths?: PathAnchor[][] } = {},
 ): import('./types.ts').PathNode {
   const closed = options.closed ?? false
   const bounds = pathBounds(anchors, closed)
@@ -122,6 +122,7 @@ export function createPath(
     width: Math.max(bounds.width, 0.001),
     height: Math.max(bounds.height, 0.001),
     anchors: shifted,
+    ...(options.subpaths === undefined ? {} : { subpaths: options.subpaths.map((contour) => contour.map((anchor) => ({ ...anchor, x: anchor.x - bounds.x, y: anchor.y - bounds.y }))) }),
     closed,
     fillRule: options.fillRule ?? 'nonzero',
     style: createStyle(options.fill ?? '#4f7cff'),

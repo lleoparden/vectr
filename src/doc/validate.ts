@@ -139,6 +139,18 @@ export function validateShapeGeometry(node: LayerNode): ValidationResult | null 
         return fail('invalid-index', `Path ${node.id} has an unusable handle length.`, node.id)
       }
     }
+    const contours = [node.anchors, ...(node.subpaths ?? [])]
+    if (contours.length > 64) return fail('invalid-index', `Path ${node.id} has too many contours.`, node.id)
+    for (const contour of node.subpaths ?? []) {
+      if (!Array.isArray(contour) || contour.length < 2) {
+        return fail('invalid-index', `Path ${node.id} has a contour with fewer than two anchors.`, node.id)
+      }
+      for (const anchor of contour) {
+        if (![anchor.x, anchor.y, anchor.inX, anchor.inY, anchor.outX, anchor.outY].every((value) => Number.isFinite(value))) {
+          return fail('non-finite', `Path ${node.id} has a non-finite contour anchor.`, node.id)
+        }
+      }
+    }
   }
   if (node.type === 'line' && node.from !== 'top-left' && node.from !== 'top-right') {
     return fail('invalid-index', `Line ${node.id} has an unsupported start corner.`, node.id)

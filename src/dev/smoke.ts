@@ -2171,10 +2171,43 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   record(
     'Outline Stroke turns a stroke into a filled path',
     outlined !== undefined && outlined.type === 'path' && outlined.style.fill === '#a94a4a' && documentStore.getState().document.root.children.every((node) => node.id !== openStroke.id),
-    outlined === undefined ? 'no outline' : `${outlined.anchors.length} anchors`,
+    outlined !== undefined && outlined.type === 'path' ? `${outlined.anchors.length} anchors` : 'no outline',
   )
   documentStore.undo()
   await settle(100)
+  // 18. Compound Path: two nested rectangles become one path whose hole is not clickable.
+  const outerRect = createRect('CP Outer', 800, 300, 200, 200)
+  const innerRect = createRect('CP Inner', 850, 350, 100, 100)
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [outerRect, innerRect] }, 'compound fixture')
+  documentStore.setSelection([outerRect.id, innerRect.id])
+  await settle(80)
+  runEditorAction('object.compoundMake')
+  await settle(150)
+  const compound = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Compound'))
+  const compoundId = compound?.id ?? null
+  record(
+    'Compound Path turns two shapes into one path with a hole',
+    compound !== undefined && compound.type === 'path' && (compound.subpaths?.length ?? 0) === 1,
+    compound !== undefined && compound.type === 'path' ? `${1 + (compound.subpaths?.length ?? 0)} contours` : 'no compound',
+  )
+  record(
+    'the hole of a compound path is not clickable',
+    compoundId !== null &&
+      hitTest(documentStore.getState().document, { x: 900, y: 400 }) === null &&
+      hitTest(documentStore.getState().document, { x: 825, y: 325 }) === compoundId,
+    'hole misses, ring hits',
+  )
+  runEditorAction('object.compoundRelease')
+  await settle(150)
+  const released = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Released'))
+  record(
+    'Release Compound Path gives each contour its own path',
+    released.length === 2,
+    `${released.length} paths`,
+  )
+  documentStore.undo()
+  documentStore.undo()
+  await settle(120)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

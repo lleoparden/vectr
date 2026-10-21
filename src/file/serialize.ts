@@ -31,7 +31,7 @@ export type DeserializeResult =
   | { ok: false; code: DeserializeFailure; message: string }
 
 /** Format versions this build can open, plus the hook later migrations plug into. */
-export const SUPPORTED_FORMAT_VERSIONS = [1, 2, 3, 4, 5]
+export const SUPPORTED_FORMAT_VERSIONS = [1, 2, 3, 4, 5, 6]
 export const MIGRATIONS: Record<number, (manifest: Manifest) => Manifest> = {}
 
 /**

@@ -657,6 +657,59 @@ export function outlineStrokeSelection(): void {
   if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
 }
 
+/** Compound Path: the selected leaves become one path with holes, one undo entry (Phase 5.6). */
+export function makeCompoundPath(): void {
+  const { document, selection } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null || selection.length < 2) return
+  const shapes = buildScene(document).shapes.filter((shape) => selection.includes(shape.id))
+  const contours: Array<Array<{ x: number; y: number }>> = []
+  for (const shape of shapes) {
+    const outline = renderer.outlineFillForShape(shape)
+    if (outline !== null && outline.length >= 3) contours.push(outline)
+  }
+  if (contours.length < 2) return
+  const anchors = contours[0].map((point) => cornerAnchor(point.x, point.y))
+  const subpaths = contours.slice(1).map((contour) => contour.map((point) => cornerAnchor(point.x, point.y)))
+  const bounds = pathBounds(anchors, true)
+  const existing = document.root.children.filter((node) => node.name.startsWith('Compound')).length
+  const node = createPath(`Compound ${existing + 1}`, bounds.x, bounds.y, anchors, {
+    closed: true,
+    fillRule: 'evenodd',
+    fill: shapes[0].fill,
+    subpaths,
+  })
+  const result = documentStore.dispatch(
+    batchCommand([
+      { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes: [node] },
+      { type: 'removeNodes', nodeIds: selection },
+    ]),
+    'make compound path',
+  )
+  if (result.ok) documentStore.setSelection([node.id])
+}
+
+/** Release Compound Path: every contour becomes its own path, one undo entry. */
+export function releaseCompoundPath(): void {
+  const { document, selection } = documentStore.getState()
+  if (selection.length !== 1) return
+  const node = findNode(document, selection[0])
+  if (node === null || node.type !== 'path' || node.subpaths === undefined || node.subpaths.length === 0) return
+  const contours = [node.anchors, ...node.subpaths]
+  const nodes = contours.map((contour, index) => {
+    const bounds = pathBounds(contour, true)
+    return createPath(`Released ${index + 1}`, bounds.x, bounds.y, contour, { closed: true, fill: node.style.fill })
+  })
+  const result = documentStore.dispatch(
+    batchCommand([
+      { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },
+      { type: 'removeNodes', nodeIds: [node.id] },
+    ]),
+    'release compound path',
+  )
+  if (result.ok) documentStore.setSelection(nodes.map((entry) => entry.id))
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -860,7 +913,17 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       return anyNode((node) => node.hidden)
     case 'object.unlockAll':
       return anyNode((node) => node.locked)
-    case 'path.outlineStroke':
+    case 'object.compoundMake': {
+    const leaves = editor.selection
+      .map((id) => findNode(editor.document, id))
+      .filter((node) => node !== null && node.type !== 'group' && node.type !== 'image' && node.type !== 'text')
+    return leaves.length >= 2
+  }
+  case 'object.compoundRelease': {
+    const node = editor.selection.length === 1 ? findNode(editor.document, editor.selection[0]) : null
+    return node !== null && node.type === 'path' && (node.subpaths?.length ?? 0) > 0
+  }
+  case 'path.outlineStroke':
     return editor.selection.some((id) => {
       const node = findNode(editor.document, id)
       if (node === null || node.type === 'group' || node.type === 'image' || node.type === 'text') return false
@@ -1221,6 +1284,12 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.outlineStroke':
       outlineStrokeSelection()
+      return
+    case 'object.compoundMake':
+      makeCompoundPath()
+      return
+    case 'object.compoundRelease':
+      releaseCompoundPath()
       return
     case 'path.unite':
       runPathfinder('unite')

@@ -2042,7 +2042,17 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   const fixture = documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B')
   documentStore.setSelection(fixture.map((node) => node.id))
   await settle(80)
-  runEditorAction('path.unite')
+  workspaceStore.activate('pathfinder')
+  await settle(120)
+  const pathfinderBody = document.querySelector('[data-panel-body="pathfinder"]')
+  const uniteButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) => (button.textContent || '').trim() === 'Unite')
+  record(
+    'the Pathfinder panel opens with its modes',
+    pathfinderBody !== null && uniteButton !== undefined && !uniteButton.disabled,
+    pathfinderBody === null ? 'panel missing' : `panel open, Unite ${uniteButton === undefined ? 'missing' : 'enabled'}`,
+  )
+  uniteButton?.click()
+  if (uniteButton === undefined) runEditorAction('path.unite')
   await settle(150)
   const united = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Pathfinder'))
   const bounds = united[0] === undefined ? null : worldBounds(documentStore.getState().document, united[0].id)

@@ -10,7 +10,7 @@
 
 import { DEFAULT_SHAPE_PARAMS, type ShapeKind, type ShapeParams } from '../doc/document.ts'
 
-export type PanelId = 'layers' | 'properties' | 'align' | 'transform' | 'appearance' | 'color'
+export type PanelId = 'layers' | 'properties' | 'align' | 'transform' | 'pathfinder' | 'appearance' | 'color'
 /** Illustrator groups panels into tabbed stacks; so does the dock. */
 export type PanelGroup = {
   id: string
@@ -92,21 +92,22 @@ export const PANEL_LABELS: Record<PanelId, string> = {
   properties: 'Properties',
   align: 'Align',
   transform: 'Transform',
+  pathfinder: 'Pathfinder',
   appearance: 'Appearance',
   color: 'Color',
 }
 
 /** Panel ids in docking order, so the Window menu and the dock cannot disagree. */
-export const PANEL_IDS: PanelId[] = ['layers', 'properties', 'align', 'transform', 'appearance', 'color']
+export const PANEL_IDS: PanelId[] = ['layers', 'properties', 'align', 'transform', 'pathfinder', 'appearance', 'color']
 
 export const PANEL_GROUPS: PanelGroup[] = [
   { id: 'group.layers', tabs: ['layers'], active: 'layers', collapsed: false },
   { id: 'group.style', tabs: ['properties', 'appearance', 'color'], active: 'properties', collapsed: false },
-  { id: 'group.arrange', tabs: ['align', 'transform'], active: 'align', collapsed: false },
+  { id: 'group.arrange', tabs: ['align', 'transform', 'pathfinder'], active: 'align', collapsed: false },
 ]
 
 function initialVisible(): Record<PanelId, boolean> {
-  return { layers: true, properties: true, align: true, transform: true, appearance: true, color: true }
+  return { layers: true, properties: true, align: true, transform: true, pathfinder: true, appearance: true, color: true }
 }
 export class WorkspaceStore {
   private state: WorkspaceState

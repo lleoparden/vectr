@@ -22,6 +22,7 @@ import type { EditorActionId } from '../actions.ts'
 import { useWorkspaceState } from '../../state/useWorkspaceState.ts'
 import { AppearancePanel } from './AppearancePanel.tsx'
 import { AlignPanel } from './AlignPanel.tsx'
+import { PathfinderPanel } from './PathfinderPanel.tsx'
 import { TransformPanel } from './TransformPanel.tsx'
 import { ColorPanel } from './ColorPanel.tsx'
 import { LayersPanel } from './LayersPanel.tsx'
@@ -53,6 +54,8 @@ function PanelBody({ panel }: { panel: PanelId }) {
       return <TransformPanel />
     case 'appearance':
       return <AppearancePanel />
+    case 'pathfinder':
+      return <PathfinderPanel />
     case 'color':
       return <ColorPanel />
   }

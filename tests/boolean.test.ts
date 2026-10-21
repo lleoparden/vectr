@@ -11,7 +11,7 @@ import path from 'node:path'
 
 import CanvasKitInit from 'canvaskit-wasm'
 
-import { booleanPolygons, type BooleanMode } from '../src/render/boolean.ts'
+import { booleanPolygons, dividePolygons, type BooleanMode } from '../src/render/boolean.ts'
 import { area } from '../src/ops/polygon.ts'
 
 const wasm = path.join(process.cwd(), 'node_modules', 'canvaskit-wasm', 'bin', 'canvaskit.wasm')
@@ -55,4 +55,12 @@ test('fewer than two polygons passes the input through', () => {
   const result = booleanPolygons(kit, [left], 'unite')
   assert.equal(result.length, 1)
   assert.ok(Math.abs(area(result[0]) - 10000) < 1e-6)
+})
+
+test('divide splits two overlapping squares into three non-overlapping faces', () => {
+  const faces = dividePolygons(kit, [left, right])
+  assert.equal(faces.length, 3)
+  const areas = faces.map((face) => area(face)).sort((a, b) => a - b)
+  assert.deepEqual(areas.map((value) => Math.round(value)), [2500, 7500, 7500])
+  assert.ok(Math.abs(areas.reduce((sum, value) => sum + value, 0) - 17500) < 1e-6, 'faces cover the union exactly once')
 })

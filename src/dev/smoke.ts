@@ -2088,6 +2088,22 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   )
   documentStore.undo()
   await settle(100)
+  // 13. Divide: the same two rectangles split into three non-overlapping faces.
+  const divideFixtures = documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B')
+  documentStore.setSelection(divideFixtures.map((node) => node.id))
+  workspaceStore.activate('pathfinder')
+  await settle(120)
+  const divideButton = [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) => (button.textContent || '').trim() === 'Divide')
+  divideButton?.click()
+  await settle(150)
+  const divided = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Pathfinder'))
+  record(
+    'Divide splits two rectangles into three faces',
+    divided.length === 3,
+    divided.length === 3 ? 'three faces' : `${divided.length} results`,
+  )
+  documentStore.undo()
+  await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

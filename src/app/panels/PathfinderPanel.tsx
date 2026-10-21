@@ -17,6 +17,7 @@ const MODES = [
   { action: 'path.intersect', label: 'Intersect', hint: 'Keep only the area every shape covers.' },
   { action: 'path.subtract', label: 'Subtract', hint: 'Remove the front shapes from the back one.' },
   { action: 'path.exclude', label: 'Exclude', hint: 'Keep the area covered by an odd number of shapes.' },
+  { action: 'path.divide', label: 'Divide', hint: 'Split the shapes into separate, non-overlapping pieces.' },
 ] as const
 
 export function PathfinderPanel() {

@@ -125,3 +125,47 @@ export function booleanPolygons(kit: CanvasKit, polygons: Polygon[], mode: Boole
     accumulator?.delete()
   }
 }
+
+/**
+ * Divide: every polygon is split against the ones before it, leaving non-overlapping faces. The
+ * pairwise engine does the work; a face smaller than a hundredth of a square unit is dropped so
+ * numerical slivers do not become layers.
+ */
+export function dividePolygons(kit: CanvasKit, polygons: Polygon[]): Polygon[] {
+  const inputs = polygons.filter((polygon) => polygon.length >= 3)
+  const faces: Polygon[] = []
+  let leftovers: Polygon[] = []
+  for (const polygon of inputs) {
+    let pieces: Polygon[] = [polygon.map((point) => ({ ...point }))]
+    const nextLeftovers: Polygon[] = []
+    for (const existing of leftovers) {
+      const nextPieces: Polygon[] = []
+      for (const piece of pieces) {
+        for (const part of booleanPolygons(kit, [piece, existing], 'intersect')) {
+          if (area(part) > 0.01) faces.push(part)
+        }
+        for (const part of booleanPolygons(kit, [piece, existing], 'subtract')) {
+          if (area(part) > 0.01) nextPieces.push(part)
+        }
+      }
+      pieces = nextPieces
+      // The existing face loses the part the new polygon covers.
+      for (const part of booleanPolygons(kit, [existing, polygon], 'subtract')) {
+        if (area(part) > 0.01) nextLeftovers.push(part)
+      }
+    }
+    leftovers = [...nextLeftovers, ...pieces]
+  }
+  return [...faces, ...leftovers]
+}
+
+/** The polygon area, local to this module to keep the divide honest about slivers. */
+function area(polygon: Polygon): number {
+  let sum = 0
+  for (let index = 0; index < polygon.length; index += 1) {
+    const a = polygon[index]
+    const b = polygon[(index + 1) % polygon.length]
+    sum += a.x * b.y - b.x * a.y
+  }
+  return Math.abs(sum / 2)
+}

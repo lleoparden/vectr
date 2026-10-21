@@ -24,6 +24,7 @@ export type Tool =
   | 'pen'
   | 'shapeBuilder'
   | 'livePaint'
+  | 'width'
   | 'zoom'
   | 'rect'
   | 'roundedRect'

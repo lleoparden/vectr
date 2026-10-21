@@ -93,6 +93,18 @@ export function IconLasso(props: IconProps) {
   )
 }
 
+export function IconWidth(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 6 L8 6 L8 12 L3 12 Z" />
+      <path d="M16 6 L21 6 L21 12 L16 12 Z" />
+      <path d="M8 9 L16 9" />
+      <path d="M10 4 L10 14" />
+      <path d="M14 4 L14 14" />
+    </Icon>
+  )
+}
+
 export function IconLivePaint(props: IconProps) {
   return (
     <Icon {...props}>

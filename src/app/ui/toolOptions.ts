@@ -16,8 +16,8 @@ import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'pen' | 'shapeBuilder' | 'livePaint' | 'text' | 'hand' | 'zoom'
-export type ToolGroupId = 'select' | 'lasso' | 'pen' | 'shapeBuilder' | 'livePaint' | 'shape' | 'type' | 'hand' | 'artboard'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'pen' | 'shapeBuilder' | 'livePaint' | 'width' | 'text' | 'hand' | 'zoom'
+export type ToolGroupId = 'select' | 'lasso' | 'pen' | 'shapeBuilder' | 'livePaint' | 'width' | 'shape' | 'type' | 'hand' | 'artboard'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
 
@@ -62,6 +62,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
   // Shape Builder keeps Illustrator's Shift+M and its own slot.
   { id: 'shapeBuilder', label: 'Shape Builder Tool', members: [{ tool: 'shapeBuilder', label: 'Shape Builder Tool', action: 'tool.shapeBuilder' }] },
   { id: 'livePaint', label: 'Live Paint Bucket', members: [{ tool: 'livePaint', label: 'Live Paint Bucket', action: 'tool.livePaint' }] },
+  { id: 'width', label: 'Width Tool', members: [{ tool: 'width', label: 'Width Tool', action: 'tool.width' }] },
   {
     id: 'shape',
     label: 'Shape Tool',

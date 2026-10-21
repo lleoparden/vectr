@@ -27,7 +27,7 @@ no Bézier path node yet, so the pen, anchors, Pathfinder, width profiles, and c
 | 5.2 Pen tool | #138 | **Done**: click for a corner, drag for a smooth anchor, close on the first anchor, rubber-band preview, Escape to cancel, one undo entry per path |
 | 5.3 Anchor and segment editing | #139 | **Done**: anchors and handles select and drag under rotation/scale, shift-click picks a set, arrows nudge it, add/delete/convert/join/average all have exact inverses and Object ▸ Path entries |
 | 5.4 Pathfinder and Shape Builder | #140 | **Unite/Intersect/Subtract/Exclude ship** via Skia path ops over flattened polygons, with Object ▸ Pathfinder and one-undo batches. Remaining: Live Paint (region-based Shape Builder shipped) |
-| 5.5 Width profiles (#103) | #141 | **Profile model, outline rendering, presets, and hit testing ship** (format v7); the Width tool and profiled alignment/dashes remain |
+| 5.5 Width profiles (#103) | #141 | **Complete in scope**: profile model (format v7), outline rendering, hit band, presets, and the Shift+W Width tool; limits (per-anchor editing, flattened profile curves, no profiled alignment/dashes) are in the catalog |
 | 5.6 Compound paths, offset, and live shapes | #142 | **Simplify, Outline Stroke (open paths), and compound paths (format v6, even-odd holes) ship**; live shape reshaping remains; Simplify, both Outline Stroke forms, compound paths, and Offset Path with its dialog ship |
 
 Every slice owes the usual evidence (typecheck, full suite, build, packaged steps) plus a fixture for the

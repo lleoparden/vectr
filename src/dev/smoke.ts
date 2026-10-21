@@ -1045,10 +1045,11 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 8 &&
+    slots.length === 9 &&
       document.querySelector('[data-tool-slot="pen"]') !== null &&
       document.querySelector('[data-tool-slot="shapeBuilder"]') !== null &&
       document.querySelector('[data-tool-slot="livePaint"]') !== null &&
+      document.querySelector('[data-tool-slot="width"]') !== null &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
@@ -2295,6 +2296,27 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     'Width Profile writes one multiplier per anchor',
     profileValues !== null && profileValues.length === 3 && Math.abs(profileValues[1] - 1) < 1e-6,
     profileValues === null ? 'no profile' : profileValues.map((value) => value.toFixed(2)).join(', '),
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
+  // 23. Width tool: dragging away from an anchor widens it, one undo entry.
+  document.querySelector<HTMLButtonElement>('[data-tool-slot="width"]')?.click()
+  await settle(100)
+  const widthViewport = documentStore.getState().viewport
+  const widthRect = canvas.getBoundingClientRect()
+  const widthAt = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: widthRect.left + x * widthViewport.zoom + widthViewport.panX, clientY: widthRect.top + y * widthViewport.zoom + widthViewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', widthAt(1400, 300, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointermove', widthAt(1400, 338, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', widthAt(1400, 338, 0)))
+  await settle(150)
+  const widened = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name === 'Profile fixture')
+  const widenedProfile = widened !== undefined && widened.type === 'path' ? (widened.style.stroke?.widthProfile ?? null) : null
+  record(
+    'the Width tool widens the nearest anchor',
+    widenedProfile !== null && widenedProfile[0] > 1 && Math.abs(widenedProfile[1] - 1) < 1e-6,
+    widenedProfile === null ? 'no profile' : widenedProfile.map((value) => value.toFixed(2)).join(', '),
   )
   documentStore.undo()
   await settle(100)

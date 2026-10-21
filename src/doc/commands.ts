@@ -18,7 +18,7 @@ import {
   removeNodes,
   replaceNode,
 } from './document.ts'
-import { segmentAt, splitCubicAt } from '../geom/path.ts'
+import { flattenPath, segmentAt, simplifyPoints, splitCubicAt } from '../geom/path.ts'
 import { localToScene, sceneToLocal, type PathEditCapture } from './pathEdit.ts'
 import { ALLOWED_IMAGE_MIME, MAX_ASSETS } from './assets.ts'
 import { validateDestination, validateRemovable, type ValidationCode } from './validate.ts'
@@ -62,6 +62,8 @@ export type Command =
   | { type: 'setSwatch'; swatchId: string; name?: string; color?: string; cmyk?: Cmyk | null; spot?: boolean }
   | { type: 'removeGuide'; guideId: string }
   | { type: 'setGuide'; guideId: string; position: number }
+  /** Replaces a path's anchors with a simplification of its flattened outline (Phase 5.6). */
+  | { type: 'simplifyPath'; nodeId: NodeId; tolerance: number }
   /** Moves the listed anchors to their mean point (Phase 5.3). */
   | { type: 'averagePathAnchors'; nodeId: NodeId; indices: number[] }
   /** Joins two open paths at their nearest endpoints into one open path (Phase 5.3). */
@@ -598,6 +600,33 @@ export function applyCommand(document: Document, command: Command): CommandResul
         }
       }
       const previous = { anchors: node.anchors.map((value) => ({ ...value })), closed: node.closed, fillRule: node.fillRule }
+      return {
+        ok: true,
+        document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),
+        inverse: { type: 'setPathAnchors', nodeId: command.nodeId, ...previous },
+      }
+    }
+
+    case 'simplifyPath': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (node.type !== 'path') return rejected('invalid-parent', `Node ${command.nodeId} is not a path.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (!Number.isFinite(command.tolerance) || command.tolerance < 0 || command.tolerance > 1000) {
+        return rejected('non-finite', 'Simplify needs a tolerance between 0 and 1000.')
+      }
+      // A closed path flattens with its first point repeated at the end; simplify the open polyline so
+      // the duplicated endpoint does not become a degenerate chord.
+      let polyline = flattenPath(node.anchors, node.closed)
+      if (node.closed && polyline.length > 1) {
+        const first = polyline[0]
+        const last = polyline[polyline.length - 1]
+        if (Math.hypot(first.x - last.x, first.y - last.y) < 1e-6) polyline = polyline.slice(0, -1)
+      }
+      const points = simplifyPoints(polyline, command.tolerance)
+      if (points.length < 2) return rejected('invalid-index', 'Simplify left too few anchors.')
+      const anchors = points.map((point) => ({ x: point.x, y: point.y, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false }))
+      const previous = { anchors: node.anchors.map((anchor) => ({ ...anchor })), closed: node.closed, fillRule: node.fillRule }
       return {
         ok: true,
         document: withRevision(replaceNode(document, command.nodeId, (current) => ({ ...current, anchors }))),

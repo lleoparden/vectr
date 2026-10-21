@@ -200,3 +200,35 @@ export function splitCubicAt(from: PathAnchor, to: PathAnchor, t: number): { lef
 function lerp(a: { x: number; y: number }, b: { x: number; y: number }, t: number): { x: number; y: number } {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
 }
+
+/** Perpendicular distance from a point to the segment a→b. */
+function pointToSegment(point: PathPoint, a: PathPoint, b: PathPoint): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const lengthSquared = dx * dx + dy * dy
+  if (lengthSquared === 0) return Math.hypot(point.x - a.x, point.y - a.y)
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared))
+  return Math.hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy))
+}
+
+/**
+ * Ramer-Douglas-Peucker: drops points whose distance from the surviving line is within tolerance,
+ * which turns a flattened curve into the few corners that carry its shape. The end points always
+ * survive, so a simplified path keeps its extent.
+ */
+export function simplifyPoints(points: PathPoint[], tolerance: number): PathPoint[] {
+  if (points.length <= 2) return points.map((point) => ({ ...point }))
+  let farthest = 0
+  let farthestDistance = 0
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const distance = pointToSegment(points[index], points[0], points[points.length - 1])
+    if (distance > farthestDistance) {
+      farthestDistance = distance
+      farthest = index
+    }
+  }
+  if (farthestDistance <= tolerance) return [{ ...points[0] }, { ...points[points.length - 1] }]
+  const left = simplifyPoints(points.slice(0, farthest + 1), tolerance)
+  const right = simplifyPoints(points.slice(farthest), tolerance)
+  return [...left.slice(0, -1), ...right]
+}

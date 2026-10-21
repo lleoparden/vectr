@@ -563,6 +563,13 @@ function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtra
   if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
 }
 
+/** Simplify: the selected path keeps its shape but loses redundant anchors. */
+export function simplifySelectedPath(): void {
+  const { selection } = documentStore.getState()
+  if (selection.length !== 1) return
+  documentStore.dispatch({ type: 'simplifyPath', nodeId: selection[0], tolerance: 1 }, 'simplify path')
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -1110,6 +1117,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'path.average':
       averageActiveAnchors()
+      return
+    case 'path.simplify':
+      simplifySelectedPath()
       return
     case 'path.unite':
       runPathfinder('unite')

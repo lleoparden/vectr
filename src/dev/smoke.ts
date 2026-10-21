@@ -2118,6 +2118,25 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   )
   documentStore.undo()
   await settle(100)
+  // 15. Simplify: a round path loses redundant anchors in one undoable step.
+  const roundAnchors = Array.from({ length: 60 }, (_, index) => {
+    const angle = (index / 60) * Math.PI * 2
+    return cornerAnchor(600 + 60 * Math.cos(angle), 600 + 60 * Math.sin(angle))
+  })
+  const roundPath = createPath('Round fixture', 0, 0, roundAnchors, { closed: true })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [roundPath] }, 'simplify fixture')
+  documentStore.setSelection([roundPath.id])
+  runEditorAction('path.simplify')
+  await settle(150)
+  const simplified = documentStore.getState().document.root.children.find((node) => node.id === roundPath.id)
+  const simplifiedCount = simplified !== undefined && simplified.type === 'path' ? simplified.anchors.length : 0
+  record(
+    'Simplify reduces a path without losing it',
+    simplified !== undefined && simplified.type === 'path' && simplifiedCount > 1 && simplifiedCount < roundAnchors.length,
+    `${simplifiedCount} anchors from ${roundAnchors.length}`,
+  )
+  documentStore.undo()
+  await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

@@ -1,6 +1,23 @@
 # Progress
 
 
+## Simplify (issue #142 area, first path cleanup verb)
+
+- **Object ▸ Path ▸ Simplify** replaces a path's anchors with a Ramer-Douglas-Peucker simplification of its
+  flattened outline, at a one-unit tolerance. Corners that carry real shape survive; sampled points that lie on a
+  line between their neighbours do not. One command, one undo entry, and the previous anchors come back exactly.
+- **Honest note:** simplify runs on the *open* polyline, because RDP has no closing segment. A coarsely drawn
+  polygon (a 12-gon) keeps all its corners - correctly, they are not redundant - while a densely sampled curve
+  loses its sampled points, which is the case the verb exists for.
+- **Evidence**: 331 unit tests (collinear points collapse, a real corner survives, the command reduces a 72-point
+  circle and its inverse restores the count) and **157 packaged steps**; the new step inserts a 60-point circle,
+  simplifies it in the packaged app, asserts the anchor count fell, and undoes.
+
+Still open from Phase 5: Live Paint and Shape Builder region segmentation (#140), width profiles (#141), and
+compound paths, offset, outline stroke, live shapes (#142).
+
+
+
 ## Curve-preserving booleans (issue #140, fifth part)
 
 - **Unite, Intersect, Subtract, and Exclude keep their curves.** The renderer now builds each selected shape as a

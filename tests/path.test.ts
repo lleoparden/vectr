@@ -14,7 +14,7 @@ import { containsLocalPoint, hitTest } from '../src/doc/hitTest.ts'
 import { validateDocument } from '../src/doc/validate.ts'
 import { deserializeDocument, serializeDocument } from '../src/file/serialize.ts'
 import { FORMAT_VERSION, SUPPORTED_FORMAT_VERSION_LIST, type Document, type PathNode } from '../src/doc/types.ts'
-import { cubicPoint, distanceToPolyline, flattenPath, pathBounds, type PathAnchor } from '../src/geom/path.ts'
+import { cubicPoint, distanceToPolyline, flattenPath, pathBounds, simplifyPoints, type PathAnchor } from '../src/geom/path.ts'
 
 const anchor = (x: number, y: number, outX = 0, outY = 0): PathAnchor => ({
   x,
@@ -229,4 +229,47 @@ test('a saved document with a curve reopens with format 5 and the same anchors',
     reopenedPath.anchors.map((value) => [value.x, value.y, value.inX, value.inY, value.outX, value.outY, value.smooth].map((n) => (n === 0 ? 0 : n))),
     path.anchors.map((value) => [value.x, value.y, value.inX, value.inY, value.outX, value.outY, value.smooth].map((n) => (n === 0 ? 0 : n))),
   )
+})
+
+test('simplify drops collinear points and keeps the end points', () => {
+  const points = [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 },
+    { x: 20, y: 0 },
+    { x: 30, y: 0 },
+  ]
+  assert.deepEqual(simplifyPoints(points, 0.5), [
+    { x: 0, y: 0 },
+    { x: 30, y: 0 },
+  ])
+})
+
+test('simplify keeps a point that is further out than the tolerance', () => {
+  const points = [
+    { x: 0, y: 0 },
+    { x: 10, y: 8 },
+    { x: 20, y: 0 },
+  ]
+  assert.equal(simplifyPoints(points, 0.5).length, 3)
+  assert.equal(simplifyPoints(points, 10).length, 2)
+})
+
+test('the simplify command reduces anchors and its inverse restores them exactly', () => {
+  // A densely sampled circle: neighbouring points are nearly collinear, so simplify has work to do.
+  const circle: PathAnchor[] = Array.from({ length: 72 }, (_, index) => {
+    const angle = (index / 72) * Math.PI * 2
+    return anchor(50 + 50 * Math.cos(angle), 50 + 50 * Math.sin(angle))
+  })
+  const path = createPath('Round', 0, 0, circle, { closed: true })
+  const { document, id } = documentWith(path)
+  const before = (findNode(document, id) as PathNode).anchors.length
+  const result = applyCommand(document, { type: 'simplifyPath', nodeId: id, tolerance: 1 })
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+  const simplified = findNode(result.document, id) as PathNode
+  assert.ok(simplified.anchors.length < before, `${simplified.anchors.length} of ${before}`)
+  const undone = applyCommand(result.document, result.inverse)
+  assert.equal(undone.ok, true)
+  if (!undone.ok) return
+  assert.equal((findNode(undone.document, id) as PathNode).anchors.length, before)
 })

@@ -5,7 +5,7 @@ import { createScaleTool } from "../src/tools/transform.ts"
 import type { ToolHost } from "../src/tools/types.ts"
 import type { NodeId, Transform } from "../src/doc/types.ts"
 
-function fakeHost(options: { box?: { x: number; y: number; width: number; height: number } | null; originals?: Array<[NodeId, Transform]>; rotation?: number } = {}) {
+function fakeHost(options: { box?: { x: number; y: number; width: number; height: number } | null; originals?: Array<[NodeId, Transform]>; rotation?: number; kind?: string } = {}) {
   const calls: string[] = []
   const originals = new Map<NodeId, Transform>(options.originals ?? [])
   const box = options.box === null ? null : (options.box ?? { x: 0, y: 0, width: 100, height: 100 })
@@ -18,11 +18,14 @@ function fakeHost(options: { box?: { x: number; y: number; width: number; height
         box,
         rotation: options.rotation ?? 0,
         centre,
-        nodes: [...originals].map(([id, transform]) => ({ id, transform, width: 100, height: 100 })),
+        nodes: [...originals].map(([id, transform]) => ({ id, kind: options.kind ?? 'path', transform, width: 100, height: 100 })),
       }
     },
     setNodeTransform: (nodeId: NodeId, transform: Transform) => {
       calls.push("set:" + nodeId + ":" + transform.x + "," + transform.y + ":" + transform.scaleX + "," + transform.scaleY)
+    },
+    resizeNode: (nodeId: NodeId, x: number, y: number, width: number, height: number) => {
+      calls.push("resize:" + nodeId + ":" + x + "," + y + ":" + width + "," + height)
     },
     scaleEnd: () => calls.push("end"),
     scaleCancel: () => calls.push("cancel"),
@@ -85,4 +88,23 @@ test("Escape cancels the transaction instead of committing it", () => {
   tool.cancel(host)
   assert.deepEqual(calls, ["begin", "cancel"])
   assert.equal(tool.isDragging(), false)
+})
+
+test('dragging a handle on one live rectangle reshapes it instead of scaling', () => {
+  const tool = createScaleTool('default')
+  const { host, calls } = fakeHost({ originals: [['node-1', zero]], kind: 'rect' })
+  tool.startHandle(host, 'se')
+  tool.moveHandle(host, { x: 200, y: 200 }, { constrain: false, fromCenter: false })
+  assert.deepEqual(calls, ['begin', 'resize:node-1:0,0:200,200'], 'width and height change, the transform stays untouched')
+  tool.endHandle(host)
+  assert.deepEqual(calls.slice(2), ['end'])
+})
+
+test('a rotated live shape falls back to the transform scale path', () => {
+  const tool = createScaleTool('default')
+  const rotated: Transform = { x: 0, y: 0, rotation: 30, scaleX: 1, scaleY: 1 }
+  const { host, calls } = fakeHost({ originals: [['node-1', rotated]], kind: 'rect', rotation: 30 })
+  tool.startHandle(host, 'se')
+  tool.moveHandle(host, { x: 200, y: 200 }, { constrain: false, fromCenter: false })
+  assert.ok(calls.some((call) => call.startsWith('set:')), 'a rotated shape scales rather than reshapes')
 })

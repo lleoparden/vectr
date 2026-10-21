@@ -1,6 +1,26 @@
 # Progress
 
 
+## Live shape reshaping (issue #142, final verb)
+
+- **A single parametric shape reshapes instead of scaling.** Dragging a selection handle on one rectangle,
+  ellipse, polygon, star, arc, or line now changes its **width and height** (and position) through a new
+  «resizeNode» command: the transform's scale stays 1, so stroke weight, dashes, and corner radius are not
+  stretched, and the shape is still a live rectangle rather than a scaled one.
+- **Rotated or pre-scaled nodes keep the old transform scale.** The frame maths for rotation lives in the scale
+  path, and mixing the two would have made a rotated shape jump; that boundary is deliberate and recorded.
+- **One undo entry per drag**, because the gesture already runs in a transaction; the command's inverse restores
+  width, height, and position exactly.
+- **Evidence**: 350 unit tests (the command's values and inverse, refusal of groups and non-positive sizes, the
+  tool picking reshape for a live rectangle and falling back to scale for a rotated one) and **158 packaged steps**
+  with the existing scale and rotation evidence still green.
+
+**Declared limits:** reshape applies to unrotated, unscaled parametric shapes; corner-radius live widgets remain the
+Properties/options field rather than a canvas handle; a compound path's own stroke still outlines only its first
+contour. With that, **Phase 5.6 is complete in scope** and #142 closes.
+
+
+
 ## The stress report is gone (owner request, 2026-10-21)
 
 - **The 1,000-shape stress report no longer runs at the end of the packaged suite.** «runEditorStress» and its call

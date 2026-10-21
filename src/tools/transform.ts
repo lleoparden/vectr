@@ -57,6 +57,27 @@ export function createScaleTool(cursor: string): ScaleTool {
       const inFrame = rotatePoint(point, centre, -rotation)
       const factors = scaleFactors(state.handle, box, inFrame, modifiers)
       const anchor = anchoredEdge(state.handle, box)
+      // A single parametric shape reshapes instead of scaling: width/height change, stroke weight and
+      // corner radius stay as authored (Phase 5.6 live shapes). Rotated or pre-scaled nodes fall back
+      // to the transform path, where the frame maths already handles them.
+      const live = nodes.length === 1 ? nodes[0] : null
+      const liveKinds = new Set(['rect', 'ellipse', 'polygon', 'star', 'arc', 'line'])
+      if (
+        live !== null &&
+        liveKinds.has(live.kind) &&
+        live.transform.rotation === 0 &&
+        Math.abs(live.transform.scaleX) === 1 &&
+        Math.abs(live.transform.scaleY) === 1
+      ) {
+        host.resizeNode(
+          live.id,
+          factors.anchor.x + (box.x - factors.anchor.x) * factors.sx,
+          factors.anchor.y + (box.y - factors.anchor.y) * factors.sy,
+          Math.abs(box.width * factors.sx),
+          Math.abs(box.height * factors.sy),
+        )
+        return
+      }
       for (const node of nodes) {
         const original = node.transform
         const centreNow = {

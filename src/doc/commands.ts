@@ -52,6 +52,8 @@ export type Command =
   | { type: 'renameNode'; nodeId: NodeId; name: string }
   /** Editable rounded corner on an existing rectangle (Phase 2.1, issue #64). */
   | { type: 'setCornerRadius'; nodeId: NodeId; cornerRadius: number }
+  /** Live shape reshape: width/height and position without converting or scaling (Phase 5.6). */
+  | { type: 'resizeNode'; nodeId: NodeId; x: number; y: number; width: number; height: number }
   /** Makes a direct child clip its group's other children, or releases the clip (issue #71). */
   | { type: 'setClip'; groupId: NodeId; clipChildId: NodeId | null }
   /** Guide lines are document data (issue #67); positions are scene units. */
@@ -718,6 +720,35 @@ export function applyCommand(document: Document, command: Command): CommandResul
           { type: 'setPathAnchors', nodeId: first.id, ...previous },
           { type: 'insertNodes', parentId: document.root.id, index, nodes: [second] },
         ]),
+      }
+    }
+
+    case 'resizeNode': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (isGroup(node)) return rejected('invalid-parent', 'A group has no size of its own.')
+      if (node.type === 'text' || node.type === 'image') {
+        return rejected('invalid-parent', `Node ${command.nodeId} is not a live shape.`)
+      }
+      if (![command.x, command.y, command.width, command.height].every((value) => Number.isFinite(value))) {
+        return rejected('non-finite', 'A resize needs finite numbers.')
+      }
+      if (command.width <= 0 || command.height <= 0) {
+        return rejected('non-positive-size', 'A resize needs a positive size.')
+      }
+      const previous = { x: node.transform.x, y: node.transform.y, width: node.width, height: node.height }
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) => ({
+            ...current,
+            width: command.width,
+            height: command.height,
+            transform: { ...current.transform, x: command.x, y: command.y },
+          })),
+        ),
+        inverse: { type: 'resizeNode', nodeId: command.nodeId, ...previous },
       }
     }
 

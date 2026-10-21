@@ -2197,6 +2197,22 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
       hitTest(documentStore.getState().document, { x: 825, y: 325 }) === compoundId,
     'hole misses, ring hits',
   )
+  // A cover rectangle intersected with the compound must come back as a compound again.
+  const cover = createRect('CP Cover', 780, 280, 240, 240)
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [cover] }, 'cover fixture')
+  documentStore.setSelection([compoundId, cover.id].filter((id): id is string => id !== null))
+  await settle(80)
+  runEditorAction('path.intersect')
+  await settle(150)
+  const intersected = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Pathfinder') && (((node as { subpaths?: unknown[] }).subpaths?.length ?? 0) > 0))
+  record(
+    'a boolean on a compound keeps the hole',
+    intersected !== undefined,
+    documentStore.getState().document.root.children.filter((node) => node.type === 'path').map((node) => node.name + ':' + String((node as { subpaths?: unknown[] }).subpaths?.length ?? 0)).join(', ') || 'no paths',
+  )
+  documentStore.undo()
+  await settle(120)
+  if (compoundId !== null) documentStore.setSelection([compoundId])
   runEditorAction('object.compoundRelease')
   await settle(150)
   const released = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Released'))

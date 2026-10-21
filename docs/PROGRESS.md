@@ -1,6 +1,24 @@
 # Progress
 
 
+## Compound-aware booleans (issue #142 depth)
+
+- **Compound paths are real operands now.** The curved boolean builder adds every contour of a compound path, and
+  it carries the node's fill rule into Skia (an even-odd path for holes). The result is grouped again: contours that
+  sit inside a larger one become its holes, so a boolean on a ring comes back as a ring, not as two filled paths.
+- **Nesting probes centroids, not first vertices.** A hole's first vertex lies on its own boundary, and a ray cast
+  from a boundary point is ambiguous; the centroid is unambiguously inside. That change is why the packaged
+  intersect stopped producing a single contour.
+- **Evidence**: 342 unit tests (a compound path survives an intersect with its hole, areas within 1% and 2%; the
+  nesting helper puts a hole in its container and keeps disjoint contours apart) and **163 packaged steps**; the
+  new step intersects a compound made in the app with a cover rectangle and asserts the result is still a compound,
+  then releases it back to two paths.
+
+Remaining on #142: **offset path**, **live shape reshaping**, and Outline Stroke for closed shapes (which now has
+the compound output it needs but still refuses them).
+
+
+
 ## Compound paths, and format v6 (issue #142)
 
 - **A path can hold several closed contours.** «PathNode.subpaths» is an optional list; the renderer builds every

@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { area, centroid, polygonContainsNonzero, polygonOf, polygonTouchesPath, signedArea, windingNumber } from '../src/ops/polygon.ts'
+import { area, centroid, nestPolygons, polygonContainsNonzero, polygonOf, polygonTouchesPath, signedArea, windingNumber } from '../src/ops/polygon.ts'
 import { cornerAnchor } from '../src/geom/path.ts'
 
 const square = [
@@ -65,4 +65,31 @@ test('a face is touched when the drag passes within tolerance of it', () => {
   ]
   assert.equal(polygonTouchesPath(square, far, 0.5), false)
   assert.equal(polygonTouchesPath(square, [{ x: -10, y: 4 }, { x: -10, y: 6 }], 3), false)
+})
+
+test('nesting puts a hole inside its container and keeps disjoint contours apart', () => {
+  const outer = [
+    { x: 0, y: 0 },
+    { x: 200, y: 0 },
+    { x: 200, y: 200 },
+    { x: 0, y: 200 },
+  ]
+  const inner = [
+    { x: 50, y: 50 },
+    { x: 150, y: 50 },
+    { x: 150, y: 150 },
+    { x: 50, y: 150 },
+  ]
+  const far = [
+    { x: 400, y: 400 },
+    { x: 450, y: 400 },
+    { x: 450, y: 450 },
+    { x: 400, y: 450 },
+  ]
+  const groups = nestPolygons([outer, inner, far])
+  assert.equal(groups.length, 2)
+  const withHole = groups.find((group) => group.holes.length === 1)
+  assert.ok(withHole !== undefined)
+  assert.equal(area(withHole.outer), 40000)
+  assert.equal(area(withHole.holes[0]), 10000)
 })

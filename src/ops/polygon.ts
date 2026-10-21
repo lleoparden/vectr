@@ -80,3 +80,58 @@ export function polygonTouchesPath(points: PathPoint[], path: PathPoint[], toler
   }
   return false
 }
+
+/** One outer contour with the contours that are holes inside it. */
+export type NestedContours = { outer: PathPoint[]; holes: PathPoint[][] }
+
+/**
+ * Groups boolean-result polygons into outer contours and holes: a contour whose first vertex lies
+ * inside another, larger contour becomes a hole of the smallest such container. Splitting a ring
+ * into two filled paths would paint the hole, which is the bug this prevents.
+ */
+export function nestPolygons(polygons: PathPoint[][]): NestedContours[] {
+  const sorted = polygons
+    .filter((polygon) => polygon.length >= 3)
+    .map((polygon) => ({ polygon, size: Math.abs(signedArea(polygon)) }))
+    .sort((left, right) => right.size - left.size)
+  const result: NestedContours[] = []
+  for (const entry of sorted) {
+    const probe = centroid(entry.polygon)
+    let parent: NestedContours | null = null
+    let parentSize = Infinity
+    for (const candidate of result) {
+      const candidateSize = Math.abs(signedArea(candidate.outer))
+      if (candidateSize < parentSize && polygonContainsNonzero(candidate.outer, probe)) {
+        parent = candidate
+        parentSize = candidateSize
+      }
+    }
+    if (parent === null) result.push({ outer: entry.polygon, holes: [] })
+    else parent.holes.push(entry.polygon)
+  }
+  return result
+}
+
+/** The same nesting decision, as indices, so a caller can keep each contour's anchors and handles. */
+export function nestPolygonIndices(polygons: PathPoint[][]): Array<{ outer: number; holes: number[] }> {
+  const order = polygons
+    .map((polygon, index) => ({ index, polygon, size: Math.abs(signedArea(polygon)) }))
+    .filter((entry) => entry.polygon.length >= 3)
+    .sort((left, right) => right.size - left.size)
+  const groups: Array<{ outer: number; holes: number[] }> = []
+  for (const entry of order) {
+    const probe = entry.polygon[0]
+    let parent: { outer: number; holes: number[] } | null = null
+    let parentSize = Infinity
+    for (const candidate of groups) {
+      const candidateSize = Math.abs(signedArea(polygons[candidate.outer]))
+      if (candidateSize < parentSize && polygonContainsNonzero(polygons[candidate.outer], probe)) {
+        parent = candidate
+        parentSize = candidateSize
+      }
+    }
+    if (parent === null) groups.push({ outer: entry.index, holes: [] })
+    else parent.holes.push(entry.index)
+  }
+  return groups
+}

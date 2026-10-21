@@ -43,7 +43,7 @@ import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from '../g
 import { isLocked, parentIdOf, type Command } from '../doc/commands.ts'
 import { nudgedAnchor } from '../doc/pathEdit.ts'
 import { createPath } from '../doc/document.ts'
-import { polygonTouchesPath } from '../ops/polygon.ts'
+import { nestPolygonIndices, polygonTouchesPath } from '../ops/polygon.ts'
 import type { Point } from '../geom/transform.ts'
 import { buildScene } from '../render/scene.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
@@ -607,10 +607,21 @@ function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtra
           const bounds = pathBounds(anchors, true)
           return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
         })
-      : renderer.booleanShapesCurved(shapes, mode).map((anchors, index) => {
-          const bounds = pathBounds(anchors, true)
-          return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: shapes[0].fill })
-        })
+      : (() => {
+          const contours = renderer.booleanShapesCurved(shapes, mode)
+          const groups = nestPolygonIndices(contours.map((contour) => contour.map((anchor) => ({ x: anchor.x, y: anchor.y }))))
+          return groups.map((group, index) => {
+            const anchors = contours[group.outer]
+            const subpaths = group.holes.map((hole) => contours[hole])
+            const bounds = pathBounds(anchors, true)
+            return createPath(`Pathfinder ${index + 1}`, bounds.x, bounds.y, anchors, {
+              closed: true,
+              fillRule: subpaths.length > 0 ? 'evenodd' : 'nonzero',
+              fill: shapes[0].fill,
+              subpaths,
+            })
+          })
+        })()
   if (nodes.length === 0) return
   const result = documentStore.dispatch(
     batchCommand([

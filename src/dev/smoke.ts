@@ -1045,9 +1045,10 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 7 &&
+    slots.length === 8 &&
       document.querySelector('[data-tool-slot="pen"]') !== null &&
       document.querySelector('[data-tool-slot="shapeBuilder"]') !== null &&
+      document.querySelector('[data-tool-slot="livePaint"]') !== null &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
@@ -2134,6 +2135,27 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     'Simplify reduces a path without losing it',
     simplified !== undefined && simplified.type === 'path' && simplifiedCount > 1 && simplifiedCount < roundAnchors.length,
     `${simplifiedCount} anchors from ${roundAnchors.length}`,
+  )
+  documentStore.undo()
+  await settle(100)
+  // 16. Live Paint: clicking the overlap fills exactly that region, leaving the shapes underneath.
+  const paintRects = [createRect('LP A', 300, 500, 120, 120), createRect('LP B', 360, 500, 120, 120)]
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: paintRects }, 'live paint fixture')
+  documentStore.setSelection([])
+  await settle(80)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }))
+  await settle(80)
+  const paintViewport = documentStore.getState().viewport
+  const paintRect = canvas.getBoundingClientRect()
+  const paintAt = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: paintRect.left + x * paintViewport.zoom + paintViewport.panX, clientY: paintRect.top + y * paintViewport.zoom + paintViewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', paintAt(400, 600, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', paintAt(400, 600, 0)))
+  await settle(150)
+  const painted = documentStore.getState().document.root.children.filter((node) => node.name.startsWith('Live Paint'))
+  record(
+    'Live Paint fills the overlap as its own path',
+    painted.length === 1 && documentStore.getState().document.root.children.filter((node) => node.name === 'LP A' || node.name === 'LP B').length === 2,
+    painted.length === 1 ? 'one painted region' : `${painted.length} regions`,
   )
   documentStore.undo()
   await settle(100)

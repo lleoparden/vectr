@@ -24,6 +24,7 @@ import type { ArtboardRect } from '../doc/artboards.ts'
 import { contentSignature } from './signature.ts'
 import { shaderColors } from './shaders.ts'
 import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
+import { polygonContains } from '../doc/hitTest.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -920,6 +921,12 @@ export class EditorRenderer {
   /** Unites a set of scene polygons, for the Shape Builder's touched regions. */
   unitePolygons(polygons: Polygon[]): Polygon[] {
     return booleanPolygons(this.kit, polygons, 'unite')
+  }
+
+  /** The divided face containing a scene point, for the Live Paint bucket (Phase 5.4). */
+  regionAt(shapes: SceneShape[], point: { x: number; y: number }): Polygon | null {
+    const faces = this.divideShapes(shapes)
+    return faces.find((face) => polygonContains(face, point)) ?? null
   }
 
   /** Divide: the selected shapes split into non-overlapping faces (Phase 5.4). */

@@ -412,7 +412,7 @@ test('layer rows follow the tree, respect collapse, and inherit flags', () => {
 })
 
 test('the palette groups the shape tools the way Illustrator does', () => {
-  assert.equal(TOOL_GROUPS.length, 7, 'seven palette slots: arrows, lasso, pen, shape builder, shapes, type, hand')
+  assert.equal(TOOL_GROUPS.length, 8, 'eight palette slots, including Live Paint')
   const shape = groupFor('rect')
   assert.equal(shape.id, 'shape')
   assert.equal(groupFor('ellipse').id, 'shape', 'every shape lives in one group')

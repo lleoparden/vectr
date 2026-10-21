@@ -11,7 +11,7 @@ import path from 'node:path'
 
 import CanvasKitInit from 'canvaskit-wasm'
 
-import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode } from '../src/render/boolean.ts'
+import { anchorsFromPath, booleanPaths, booleanPolygons, dividePolygons, type BooleanMode } from '../src/render/boolean.ts'
 import { flattenPath, type PathAnchor } from '../src/geom/path.ts'
 import { area } from '../src/ops/polygon.ts'
 
@@ -107,4 +107,26 @@ test('curved booleans keep cubics and match the analytic overlap of two circles'
   const analyticUnion = 2 * Math.PI * r * r - analyticOverlap
   const unionArea = area(flattenPath(unionAnchors[0], true))
   assert.ok(Math.abs(unionArea - analyticUnion) / analyticUnion < 0.01, `union ${unionArea} vs ${analyticUnion}`)
+})
+
+test('a compound path keeps its hole through a boolean', () => {
+  const outer = pathFromAnchors(circleAnchors(0, 0, 100))
+  const hole = pathFromAnchors(circleAnchors(0, 0, 40))
+  const compound = kit.Path.MakeFromOp(outer, hole, kit.PathOp.Difference)
+  outer.delete()
+  hole.delete()
+  assert.ok(compound !== null)
+  const cover = pathFromAnchors([
+    { x: -200, y: -200, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false },
+    { x: 200, y: -200, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false },
+    { x: 200, y: 200, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false },
+    { x: -200, y: 200, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false },
+  ])
+  const result = booleanPaths(kit, [compound, cover], 'intersect')
+  compound.delete()
+  cover.delete()
+  assert.equal(result.length, 2, 'outer and hole both survive as contours')
+  const areas = result.map((contour) => area(flattenPath(contour, true))).sort((a, b) => b - a)
+  assert.ok(Math.abs(areas[0] - Math.PI * 100 * 100) / (Math.PI * 100 * 100) < 0.01)
+  assert.ok(Math.abs(areas[1] - Math.PI * 40 * 40) / (Math.PI * 40 * 40) < 0.02)
 })

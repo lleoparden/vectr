@@ -898,6 +898,15 @@ export class EditorRenderer {
         cubicSegment(anchors[index], anchors[(index + 1) % anchors.length])
       }
       if (shape.closed) builder.close()
+      for (const contour of shape.subpaths ?? []) {
+        if (contour.length < 2) continue
+        const startPoint = point({ x: contour[0].x, y: contour[0].y })
+        builder.moveTo(startPoint.x, startPoint.y)
+        for (let index = 0; index < contour.length; index += 1) {
+          cubicSegment(contour[index], contour[(index + 1) % contour.length])
+        }
+        builder.close()
+      }
     } else if (shape.kind === 'ellipse') {
       const kappa = 0.5522847498
       // Four cubic quarters: right → bottom → left → top, in local unit coordinates.
@@ -927,7 +936,10 @@ export class EditorRenderer {
       for (const vertex of polygon.slice(1)) builder.lineTo(vertex.x, vertex.y)
       builder.close()
     }
-    return builder.detach()
+    const path = builder.detach()
+    // Path ops fill by nonzero; a compound's hole needs its even-odd rule carried into the path.
+    if (shape.fillRule === 'evenodd') path.setFillType(this.kit.FillType.EvenOdd)
+    return path
   }
 
   /** Unites a set of scene polygons, for the Shape Builder's touched regions. */

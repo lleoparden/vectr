@@ -8,6 +8,7 @@ import { createHandTool } from './hand.ts'
 import { createLassoTool } from './lasso.ts'
 import { createPenTool } from './pen.ts'
 import { createSelectTool } from './select.ts'
+import { createShapeBuilderTool } from './shapeBuilder.ts'
 import { createShapeTool } from './shapes.ts'
 import { createTypeTool } from './type.ts'
 import { createZoomTool } from './zoom.ts'
@@ -20,6 +21,7 @@ export const TOOL_CURSORS = {
   hand: 'grab',
   lasso: 'crosshair',
   pen: 'crosshair',
+  shapeBuilder: 'crosshair',
   rect: 'crosshair',
   roundedRect: 'crosshair',
   arc: 'crosshair',
@@ -40,6 +42,7 @@ export function createToolStateMachines(): Record<StateMachineToolId, Tool> {
     hand: createHandTool(TOOL_CURSORS.hand),
     lasso: createLassoTool({ cursor: TOOL_CURSORS.lasso }),
     pen: createPenTool(TOOL_CURSORS.pen),
+    shapeBuilder: createShapeBuilderTool(TOOL_CURSORS.shapeBuilder),
     rect: createShapeTool('rect', TOOL_CURSORS.rect),
     roundedRect: createShapeTool('roundedRect', TOOL_CURSORS.roundedRect),
     arc: createShapeTool('arc', TOOL_CURSORS.arc),

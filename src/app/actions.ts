@@ -524,14 +524,22 @@ export function averageActiveAnchors(): void {
 /** Joins two selected open paths at their nearest endpoints, in one undo entry. */
 /** Applies a Pathfinder mode to the selection: one batched command, one undo entry. */
 export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclude'): void {
-  const { document, selection } = documentStore.getState()
+  pathfinderOn(documentStore.getState().selection, mode)
+}
+
+/** Shape Builder: the objects a drag crossed are united, or removed from the rest with Alt. */
+export function shapeBuilder(ids: NodeId[], subtract: boolean): void {
+  pathfinderOn(ids, subtract ? 'subtract' : 'unite')
+}
+
+function pathfinderOn(targetIds: NodeId[], mode: 'unite' | 'intersect' | 'subtract' | 'exclude'): void {
+  const { document } = documentStore.getState()
   const renderer = getActiveRenderer()
-  if (renderer === null || selection.length < 2) return
+  if (renderer === null || targetIds.length < 2) return
   const scene = buildScene(document)
-  const shapes = scene.shapes.filter((shape) => selection.includes(shape.id))
+  const shapes = scene.shapes.filter((shape) => targetIds.includes(shape.id))
   if (shapes.length < 2) return
   const polygons = renderer.booleanPolygonsForShapes(shapes, mode)
-  console.log('[pathfinder-debug] ' + JSON.stringify({ selection: selection.length, shapes: shapes.length, polygons: polygons.length, kinds: shapes.map((shape) => shape.kind) }))
   if (polygons.length === 0) return
   const nodes = polygons.map((polygon, index) => {
     const anchors = polygon.map((point) => cornerAnchor(point.x, point.y))
@@ -541,11 +549,10 @@ export function runPathfinder(mode: 'unite' | 'intersect' | 'subtract' | 'exclud
   const result = documentStore.dispatch(
     batchCommand([
       { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes },
-      { type: 'removeNodes', nodeIds: selection },
+      { type: 'removeNodes', nodeIds: targetIds },
     ]),
     'pathfinder',
   )
-  console.log('[pathfinder-debug] dispatch ' + JSON.stringify(result.ok ? 'ok' : { code: result.code, message: result.message }))
   if (result.ok) documentStore.setSelection(nodes.map((node) => node.id))
 }
 
@@ -1054,6 +1061,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'tool.pen':
       documentStore.setTool('pen')
+      return
+    case 'tool.shapeBuilder':
+      documentStore.setTool('shapeBuilder')
       return
     case 'tool.rect':
     case 'tool.roundedRect':

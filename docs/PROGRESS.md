@@ -1,6 +1,24 @@
 # Progress
 
 
+## Curve-preserving booleans (issue #140, fifth part)
+
+- **Unite, Intersect, Subtract, and Exclude keep their curves.** The renderer now builds each selected shape as a
+  scene-space Skia path with real cubics (paths from their anchors and handles, ellipses as four cubics, rounded
+  rectangles as arcs, polygons and stars as lines), combines them with path ops, and reads the result back through
+  «toCmds» as anchors with handles. «booleanShapesCurved» is the same seam Pathfinder already used, so the action
+  did not grow a second code path.
+- **Divide stays flattened on purpose**: it needs a finite set of polygons to trim, and its faces are a
+  topological split rather than an outline. That is stated in its own note.
+- **Evidence**: 328 unit tests — two circles of radius 50 overlapping by half intersect to 3070.9 against an
+  analytic 3070.9 (within 1%), the union matches the analytic 12637, and the result contains nonzero handles,
+  proving the curves survived — and **156 packaged steps**; the new step unites two ellipses in the packaged app
+  and asserts the result path carries smooth handles.
+
+Still open on #140: Live Paint and Shape Builder region segmentation.
+
+
+
 ## Divide (issue #140, fourth part)
 
 - **Divide** splits the selected shapes into non-overlapping faces: each new shape is intersected with every

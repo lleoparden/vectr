@@ -11,7 +11,8 @@ import path from 'node:path'
 
 import CanvasKitInit from 'canvaskit-wasm'
 
-import { booleanPolygons, dividePolygons, type BooleanMode } from '../src/render/boolean.ts'
+import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode } from '../src/render/boolean.ts'
+import { flattenPath, type PathAnchor } from '../src/geom/path.ts'
 import { area } from '../src/ops/polygon.ts'
 
 const wasm = path.join(process.cwd(), 'node_modules', 'canvaskit-wasm', 'bin', 'canvaskit.wasm')
@@ -63,4 +64,47 @@ test('divide splits two overlapping squares into three non-overlapping faces', (
   const areas = faces.map((face) => area(face)).sort((a, b) => a - b)
   assert.deepEqual(areas.map((value) => Math.round(value)), [2500, 7500, 7500])
   assert.ok(Math.abs(areas.reduce((sum, value) => sum + value, 0) - 17500) < 1e-6, 'faces cover the union exactly once')
+})
+
+/** A circle as four cubic anchors, in scene coordinates. */
+function circleAnchors(cx: number, cy: number, r: number): PathAnchor[] {
+  const k = 0.5522847498 * r
+  return [
+    { x: cx + r, y: cy, inX: 0, inY: -k, outX: 0, outY: k, smooth: true },
+    { x: cx, y: cy + r, inX: k, inY: 0, outX: -k, outY: 0, smooth: true },
+    { x: cx - r, y: cy, inX: 0, inY: k, outX: 0, outY: -k, smooth: true },
+    { x: cx, y: cy - r, inX: -k, inY: 0, outX: k, outY: 0, smooth: true },
+  ]
+}
+
+function pathFromAnchors(anchors: PathAnchor[]) {
+  const builder = new kit.PathBuilder()
+  builder.moveTo(anchors[0].x, anchors[0].y)
+  for (let index = 0; index < anchors.length; index += 1) {
+    const a = anchors[index]
+    const b = anchors[(index + 1) % anchors.length]
+    builder.cubicTo(a.x + a.outX, a.y + a.outY, b.x + b.inX, b.y + b.inY, b.x, b.y)
+  }
+  builder.close()
+  return builder.detach()
+}
+
+test('curved booleans keep cubics and match the analytic overlap of two circles', () => {
+  const r = 50
+  const d = 50
+  const first = pathFromAnchors(circleAnchors(0, 0, r))
+  const second = pathFromAnchors(circleAnchors(d, 0, r))
+  const overlapAnchors = booleanPaths(kit, [first, second], 'intersect')
+  const unionAnchors = booleanPaths(kit, [first, second], 'unite')
+  first.delete()
+  second.delete()
+  assert.equal(overlapAnchors.length, 1)
+  const curved = overlapAnchors[0].some((anchor) => anchor.inX !== 0 || anchor.outX !== 0 || anchor.inY !== 0 || anchor.outY !== 0)
+  assert.ok(curved, 'the intersection keeps its curves')
+  const analyticOverlap = 2 * r * r * Math.acos(d / (2 * r)) - (d / 2) * Math.sqrt(4 * r * r - d * d)
+  const overlapArea = area(flattenPath(overlapAnchors[0], true))
+  assert.ok(Math.abs(overlapArea - analyticOverlap) / analyticOverlap < 0.01, `overlap ${overlapArea} vs ${analyticOverlap}`)
+  const analyticUnion = 2 * Math.PI * r * r - analyticOverlap
+  const unionArea = area(flattenPath(unionAnchors[0], true))
+  assert.ok(Math.abs(unionArea - analyticUnion) / analyticUnion < 0.01, `union ${unionArea} vs ${analyticUnion}`)
 })

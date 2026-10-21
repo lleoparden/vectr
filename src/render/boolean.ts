@@ -11,6 +11,7 @@
 import type { CanvasKit, Path, PathOp } from 'canvaskit-wasm'
 
 import type { Point } from '../geom/transform.ts'
+import { type PathAnchor } from '../geom/path.ts'
 
 export type BooleanMode = 'unite' | 'intersect' | 'subtract' | 'exclude'
 
@@ -168,4 +169,86 @@ function area(polygon: Polygon): number {
     sum += a.x * b.y - b.x * a.y
   }
   return Math.abs(sum / 2)
+}
+
+/** Reads a Skia path back as anchor lists, preserving lines, quadratics, and cubics. */
+export function anchorsFromPath(path: Path): PathAnchor[][] {
+  const commands = path.toCmds()
+  const result: PathAnchor[][] = []
+  let current: PathAnchor[] = []
+  let index = 0
+  const read = (count: number): number[] => {
+    const values = Array.from(commands.slice(index, index + count))
+    index += count
+    return values
+  }
+  const push = (anchor: PathAnchor): void => {
+    current.push(anchor)
+  }
+  while (index < commands.length) {
+    const verb = commands[index]
+    index += 1
+    if (verb === 0) {
+      if (current.length >= 2) result.push(current)
+      const [x, y] = read(2)
+      current = [{ x, y, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false }]
+    } else if (verb === 1) {
+      const [x, y] = read(2)
+      push({ x, y, inX: 0, inY: 0, outX: 0, outY: 0, smooth: false })
+    } else if (verb === 2) {
+      const [qx, qy, x, y] = read(4)
+      const from = current[current.length - 1]
+      if (from !== undefined) {
+        from.outX = (2 / 3) * (qx - from.x)
+        from.outY = (2 / 3) * (qy - from.y)
+      }
+      push({ x, y, inX: (2 / 3) * (qx - x), inY: (2 / 3) * (qy - y), outX: 0, outY: 0, smooth: true })
+    } else if (verb === 3) {
+      const [cx, cy, x, y] = read(5)
+      // A conic has no exact cubic form; its endpoint is kept and the handles approximate it.
+      const from = current[current.length - 1]
+      if (from !== undefined) {
+        from.outX = (2 / 3) * (cx - from.x)
+        from.outY = (2 / 3) * (cy - from.y)
+      }
+      push({ x, y, inX: (2 / 3) * (cx - x), inY: (2 / 3) * (cy - y), outX: 0, outY: 0, smooth: true })
+    } else if (verb === 4) {
+      const [c1x, c1y, c2x, c2y, x, y] = read(6)
+      const from = current[current.length - 1]
+      if (from !== undefined) {
+        from.outX = c1x - from.x
+        from.outY = c1y - from.y
+      }
+      push({ x, y, inX: c2x - x, inY: c2y - y, outX: 0, outY: 0, smooth: true })
+    } else if (verb === 5) {
+      if (current.length >= 2) result.push(current)
+      current = []
+    }
+  }
+  if (current.length >= 2) result.push(current)
+  return result
+}
+
+/** Boolean of already-built paths, returning anchor lists that keep their curves. */
+export function booleanPaths(kit: CanvasKit, paths: Path[], mode: BooleanMode): PathAnchor[][] {
+  if (paths.length < 2) return paths.flatMap((path) => anchorsFromPath(path))
+  let accumulator: Path | null = null
+  try {
+    for (let index = 1; index < paths.length; index += 1) {
+      const left: Path = accumulator ?? paths[0]
+      const combined: Path | null =
+        mode === 'exclude'
+          ? xorPaths(kit, left, paths[index])
+          : kit.Path.MakeFromOp(left, paths[index], opFor(kit, mode))
+      if (accumulator !== null) accumulator.delete()
+      if (combined === null) {
+        accumulator = null
+        return []
+      }
+      accumulator = combined
+    }
+    return accumulator === null ? [] : anchorsFromPath(accumulator)
+  } finally {
+    accumulator?.delete()
+  }
 }

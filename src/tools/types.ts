@@ -63,6 +63,8 @@ export type ToolHost = {
   setShapePreview(preview: ShapePreview | null): void
   /** The selected single path's geometry for anchor editing, or null (Phase 5.3). */
   pathEditCapture(): PathEditCapture | null
+  /** Collects the objects a Shape Builder drag crossed and combines them. */
+  applyShapeBuilder(ids: NodeId[], subtract: boolean): void
   /** Records the anchors Direct Selection picked; additive adds to the set (Shift-click). */
   selectAnchor(nodeId: NodeId, index: number, additive: boolean): void
   /** Clears the anchor selection. */

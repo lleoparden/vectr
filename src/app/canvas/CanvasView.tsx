@@ -16,7 +16,7 @@ import { isGroup, isText, type NodeId, type Transform } from '../../doc/types.ts
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
-import { addGuide, moveGuide, placeImage, removeGuide, runEditorAction } from '../actions.ts'
+import { addGuide, moveGuide, placeImage, removeGuide, runEditorAction, shapeBuilder } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { AnchorOverlay } from './AnchorOverlay.tsx'
 import { PathPreview } from './PathPreview.tsx'
@@ -475,6 +475,7 @@ export function CanvasView() {
       },
       setShapePreview: (preview) => setOverlay(preview),
       setPenDraft: (draft) => setPenDraft(draft),
+      applyShapeBuilder: (ids, subtract) => shapeBuilder(ids, subtract),
       pathEditCapture: () => {
         const { selection, document } = documentStore.getState()
         if (selection.length !== 1) return null

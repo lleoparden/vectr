@@ -16,8 +16,8 @@ import { findNode, worldBounds, type ShapeKind } from '../../doc/document.ts'
 import { isGroup, isText, type Document, type NodeId } from '../../doc/types.ts'
 import type { CreationDefaults } from '../../state/workspaceStore.ts'
 
-export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'pen' | 'text' | 'hand' | 'zoom'
-export type ToolGroupId = 'select' | 'lasso' | 'pen' | 'shape' | 'type' | 'hand' | 'artboard'
+export type ToolId = ShapeKind | 'select' | 'directSelect' | 'lasso' | 'pen' | 'shapeBuilder' | 'text' | 'hand' | 'zoom'
+export type ToolGroupId = 'select' | 'lasso' | 'pen' | 'shapeBuilder' | 'shape' | 'type' | 'hand' | 'artboard'
 
 export type ToolMember = { tool: ToolId; label: string; action: EditorActionId }
 
@@ -59,6 +59,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
   { id: 'lasso', label: 'Lasso Tool', members: [{ tool: 'lasso', label: 'Lasso Tool', action: 'tool.lasso' }] },
   // The Pen keeps Illustrator's P key and its own slot; anchor editing arrives with 5.3.
   { id: 'pen', label: 'Pen Tool', members: [{ tool: 'pen', label: 'Pen Tool', action: 'tool.pen' }] },
+  // Shape Builder keeps Illustrator's Shift+M and its own slot.
+  { id: 'shapeBuilder', label: 'Shape Builder Tool', members: [{ tool: 'shapeBuilder', label: 'Shape Builder Tool', action: 'tool.shapeBuilder' }] },
   {
     id: 'shape',
     label: 'Shape Tool',

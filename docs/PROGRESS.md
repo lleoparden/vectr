@@ -1,6 +1,23 @@
 # Progress
 
 
+## Shape Builder (issue #140, third part)
+
+- **A fourteenth tool** on Illustrator's **Shift+M**: drag across objects and they are combined with the tool
+  itself (Alt subtracts the crossed objects from the rest). The drag samples the hit test every four screen
+  pixels, so a thin shape cannot slip between samples, and the marquee shows what the gesture is covering.
+- **Same boolean core as Pathfinder**: the gathered ids go through «pathfinderOn», so the result is one path per
+  subject, one undo entry, and the same declared flattening limits.
+- **Declared limit:** this is a drag-based Shape Builder, not Illustrator's region segmentation - it merges what
+  you drag across rather than detecting separately clickable regions. Recorded in the catalog.
+- **Evidence**: 326 unit tests (a drag across two objects unites, Alt subtracts, one object does nothing, a
+  repeated shape is collected once, cancel clears) and **154 packaged steps**; the new step selects the tool
+  from the palette, drags across two rectangles, and asserts one path replaced both.
+
+Still open on #140: Divide/Live Paint, region segmentation, and curve-preserving results.
+
+
+
 ## The Pathfinder panel (issue #140, second part)
 
 - **A real panel**, docked with Align and Transform and reachable from the Window menu: Unite, Intersect,

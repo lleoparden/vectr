@@ -1045,14 +1045,15 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   const lassoSlot = document.querySelector<HTMLButtonElement>('[data-tool-slot="lasso"]')
   record(
     'the palette groups the arrow pair and the shape tools into slots with flyouts',
-    slots.length === 6 &&
+    slots.length === 7 &&
       document.querySelector('[data-tool-slot="pen"]') !== null &&
+      document.querySelector('[data-tool-slot="shapeBuilder"]') !== null &&
       selectFlyout !== null &&
       shapeFlyout !== null &&
       shapeSlot?.title?.includes('Shape Tool') === true &&
       lassoSlot?.title === 'Lasso Tool (Q)' &&
       document.querySelector('[data-tool-slot="hand"]') !== null,
-    `${slots.length} slots, pen ${document.querySelector('[data-tool-slot="pen"]') === null ? 'missing' : 'present'}, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
+    `${slots.length} slots, pen ${document.querySelector('[data-tool-slot="pen"]') === null ? 'missing' : 'present'}, shape builder ${document.querySelector('[data-tool-slot="shapeBuilder"]') === null ? 'missing' : 'present'}, arrow flyout ${selectFlyout === null ? 'missing' : 'present'}, shape flyout ${shapeFlyout === null ? 'missing' : 'present'}, lasso ${JSON.stringify(lassoSlot?.title)}`,
   )
 
   // 2. Clicking the Type tool must change the bar to the Type tool's controls.
@@ -2068,6 +2069,25 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B').length === 2,
     'originals back',
   )
+  // 12. Shape Builder: a drag across both rectangles combines them with the tool itself.
+  document.querySelector<HTMLButtonElement>('[data-tool-slot="shapeBuilder"]')?.click()
+  await settle(100)
+  const viewport = documentStore.getState().viewport
+  const canvasRect = canvas.getBoundingClientRect()
+  const at = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: canvasRect.left + x * viewport.zoom + viewport.panX, clientY: canvasRect.top + y * viewport.zoom + viewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', at(120, 120, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointermove', at(180, 180, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointermove', at(220, 220, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', at(220, 220, 0)))
+  await settle(150)
+  const built = documentStore.getState().document.root.children.filter((node) => node.type === 'path' && node.name.startsWith('Pathfinder'))
+  record(
+    'Shape Builder combines the shapes a drag crosses',
+    built.length === 1 && documentStore.getState().document.root.children.filter((node) => node.name === 'PF A' || node.name === 'PF B').length === 0,
+    built.length === 1 ? 'one path from two shapes' : `${built.length} results`,
+  )
+  documentStore.undo()
+  await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
   await settle(60)
 

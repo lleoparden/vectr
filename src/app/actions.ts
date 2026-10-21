@@ -730,6 +730,11 @@ export function releaseCompoundPath(): void {
 }
 
 /** Offset Path: copies the selection at a fixed distance, one undo entry (Phase 5.6). */
+export function applyOffsetPath(distance: number): void {
+  workspaceStore.setOffsetDialogOpen(false)
+  offsetSelection(distance)
+}
+
 export function offsetSelection(distance = 10): void {
   const { document, selection } = documentStore.getState()
   const renderer = getActiveRenderer()
@@ -1330,7 +1335,8 @@ export function runEditorAction(id: EditorActionId): void {
       simplifySelectedPath()
       return
     case 'path.offsetPath':
-      offsetSelection()
+      workspaceStore.setOffsetDistance(10)
+      workspaceStore.setOffsetDialogOpen(true)
       return
     case 'path.outlineStroke':
       outlineStrokeSelection()

@@ -2259,13 +2259,23 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   documentStore.setSelection([offsetSource.id])
   await settle(80)
   runEditorAction('path.offsetPath')
+  await settle(120)
+  const offsetDialog = document.querySelector('[data-offset-dialog="open"]')
+  const offsetField = document.querySelector<HTMLInputElement>('input[aria-label="Offset distance"]')
+  if (offsetField !== null) {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(offsetField, '20')
+    offsetField.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  await settle(60)
+  document.querySelector<HTMLButtonElement>('[data-offset-action="apply"]')?.click()
   await settle(150)
   const offsetCopy = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Offset'))
   const offsetBounds = offsetCopy === undefined ? null : worldBounds(documentStore.getState().document, offsetCopy.id)
   record(
-    'Offset Path copies the outline at the offset distance',
-    offsetBounds !== null && Math.abs(offsetBounds.width - 120) < 1 && documentStore.getState().document.root.children.some((node) => node.id === offsetSource.id),
-    offsetBounds === null ? 'no offset' : `${Math.round(offsetBounds.width)} wide, original kept`,
+    'Offset Path asks for a distance and copies the outline',
+    offsetDialog !== null && offsetBounds !== null && Math.abs(offsetBounds.width - 140) < 1 && documentStore.getState().document.root.children.some((node) => node.id === offsetSource.id),
+    offsetBounds === null ? 'no offset' : `${Math.round(offsetBounds.width)} wide at distance 20, original kept`,
   )
   documentStore.undo()
   await settle(100)

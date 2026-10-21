@@ -11,6 +11,7 @@
 import { useEffect } from 'react'
 import { AboutDialog } from './shell/AboutDialog.tsx'
 import { CrashRecoveryDialog } from './shell/CrashRecoveryDialog.tsx'
+import { OffsetPathDialog } from './shell/OffsetPathDialog.tsx'
 import { PreferencesDialog } from './shell/PreferencesDialog.tsx'
 import { UnsavedChangesDialog } from './shell/UnsavedChangesDialog.tsx'
 import { CanvasView } from './canvas/CanvasView.tsx'
@@ -72,6 +73,7 @@ export function App() {
       <UnsavedChangesDialog />
       <CrashRecoveryDialog />
       <PreferencesDialog />
+      <OffsetPathDialog />
     </>
   )
 }

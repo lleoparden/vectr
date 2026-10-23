@@ -45,15 +45,6 @@ export const TOOL_GROUPS: ToolGroup[] = [
       { tool: 'directSelect', label: 'Direct Selection Tool', action: 'tool.directSelect' },
     ],
   },
-  {
-    id: 'hand',
-    label: 'Hand Tool',
-    // Illustrator pairs the Hand and the Zoom in one slot; Z reaches the zoom, H the hand.
-    members: [
-      { tool: 'hand', label: 'Hand Tool', action: 'tool.hand' },
-      { tool: 'zoom', label: 'Zoom Tool', action: 'tool.zoom' },
-    ],
-  },
 
   // The Lasso keeps Illustrator's own palette slot and its Q key rather than joining the arrows.
   { id: 'lasso', label: 'Lasso Tool', members: [{ tool: 'lasso', label: 'Lasso Tool', action: 'tool.lasso' }] },
@@ -77,6 +68,15 @@ export const TOOL_GROUPS: ToolGroup[] = [
     ],
   },
   { id: 'type', label: 'Type Tool', members: [{ tool: 'text', label: 'Type Tool', action: 'tool.text' }] },
+  {
+    id: 'hand',
+    label: 'Hand Tool',
+    // Illustrator pairs the Hand and the Zoom in one slot; Z reaches the zoom, H the hand.
+    members: [
+      { tool: 'hand', label: 'Hand Tool', action: 'tool.hand' },
+      { tool: 'zoom', label: 'Zoom Tool', action: 'tool.zoom' },
+    ],
+  },
   // Illustrator's Hand tool keeps its own slot and its H chord; Space reaches it temporarily.
 ]
 
@@ -167,6 +167,36 @@ export function toolOptionsModel(input: ToolOptionsInput): ToolOptionControl[] {
       {
         kind: 'hint',
         text: 'Click for a corner, drag for a smooth anchor. Click the first anchor to close, Enter to finish, Escape to cancel.',
+      },
+    ]
+  }
+
+  if (tool === 'shapeBuilder') {
+    return [
+      { kind: 'label', text: 'Shape Builder Tool' },
+      {
+        kind: 'hint',
+        text: 'Drag across regions to unite them, Alt-drag to remove them. Click one region to merge just that face; untouched faces stay as their own paths.',
+      },
+    ]
+  }
+
+  if (tool === 'livePaint') {
+    return [
+      { kind: 'label', text: 'Live Paint Bucket' },
+      {
+        kind: 'hint',
+        text: 'Click a region to fill it with the current fill. The painted region becomes its own path above the artwork, so it stays editable.',
+      },
+    ]
+  }
+
+  if (tool === 'width') {
+    return [
+      { kind: 'label', text: 'Width Tool' },
+      {
+        kind: 'hint',
+        text: 'Press on a stroked path, then drag away from the nearest anchor to widen it or toward it to narrow. One undo entry per drag.',
       },
     ]
   }

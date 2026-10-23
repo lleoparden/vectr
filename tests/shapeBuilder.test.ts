@@ -14,6 +14,10 @@ import type { ToolHost, ToolPoint } from '../src/tools/types.ts'
 function harness(hits: Record<string, string>) {
   const applied: Array<{ ids: string[]; subtract: boolean; pathLength: number; tolerance: number }> = []
   const host = {
+    hitTestAll: (scene: { x: number; y: number }) => {
+      const id = hits[Math.round(scene.x) + ',' + Math.round(scene.y)]
+      return id === undefined ? [] : [id]
+    },
     hitTest: (scene: { x: number; y: number }) => hits[Math.round(scene.x) + ',' + Math.round(scene.y)] ?? null,
     setMarquee: () => {},
     zoomFactor: () => 1,
@@ -69,4 +73,16 @@ test('the same object crossed twice is only collected once', () => {
   tool.onPointerMove(host, point(60, 10), none)
   tool.onPointerUp(host, point(60, 10), none)
   assert.deepEqual(applied[0].ids.sort(), ['a', 'b'])
+})
+
+test('clicking one spot collects every shape under it, not only the topmost', () => {
+  const { host, applied } = harness({ '50,50': 'a' })
+  // An overlap: the host's all-hits method returns both shapes for the same point.
+  ;(host as unknown as { hitTestAll: (scene: { x: number; y: number }) => string[] }).hitTestAll = () => ['a', 'b']
+  const tool = createShapeBuilderTool('crosshair')
+  tool.onPointerDown(host, point(50, 50), none)
+  tool.onPointerUp(host, point(50, 50), none)
+  assert.equal(applied.length, 1)
+  assert.deepEqual(applied[0].ids.sort(), ['a', 'b'], 'a click on the overlap is a region gesture')
+  assert.equal(applied[0].pathLength, 1)
 })

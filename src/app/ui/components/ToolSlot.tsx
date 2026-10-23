@@ -36,7 +36,7 @@ export function ToolSlot({
       onContextMenu={onContextMenu}
       data-ui-tool-slot
       className={`flex items-center justify-center rounded-ui ${
-        active ? 'bg-accent text-white shadow-[0_1px_5px_rgba(124,108,245,0.38)]' : 'text-ink-muted hover:bg-chrome-hover hover:text-ink'
+        active ? 'bg-accent text-ink shadow-[0_1px_5px_rgba(169,74,74,0.38)]' : 'text-ink-muted hover:bg-chrome-hover hover:text-ink'
       }`}
       style={{ width: size, height: size }}
     >

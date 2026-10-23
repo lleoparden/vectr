@@ -3,6 +3,9 @@ import { App } from './app/App.tsx'
 import { BenchmarkApp } from './bench/BenchmarkApp.tsx'
 import { runEditorSmoke, runFileRoundTrip, runMemoryReport, runShapeToolsReport, runTextEntryReport, runToolOptionsReport } from './dev/smoke.ts'
 import { documentStore } from './state/documentStore.ts'
+import { createEllipse, createPath, createRect, findNode, insertNodes } from './doc/document.ts'
+import { hitTest } from './doc/hitTest.ts'
+import { runEditorAction } from './app/actions.ts'
 import './styles.css'
 
 // The editor is the product; the benchmark harness stays reachable for recorded
@@ -11,6 +14,21 @@ const search = new URLSearchParams(window.location.search)
 const isBenchmark = search.has('benchmark')
 
 createRoot(document.getElementById('root')!).render(isBenchmark ? <BenchmarkApp /> : <App />)
+
+// A debug handle for scripted reproduction (`?debug`), used by the harness and by hand when a
+// gesture misbehaves; it never exists in a normal launch.
+if (search.has('debug')) {
+  ;(window as unknown as { __vectrDebug: unknown }).__vectrDebug = {
+    documentStore,
+    createRect,
+    createEllipse,
+    createPath,
+    findNode,
+    insertNodes,
+    hitTest,
+    runEditorAction,
+  }
+}
 
 // `?smoke` runs the scripted acceptance pass and logs JSON lines for the packaged
 // evidence run (`electron . --smoke`); `?smoke=stress` adds the text, UI, path, and memory reports.

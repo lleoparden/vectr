@@ -32,6 +32,8 @@ export type MarqueeRect = { x: number; y: number; width: number; height: number 
 export type ToolHost = {
   selection(): NodeId[]
   /** Resolves a scene point to a node; `deep` reaches the leaf, like the white arrow. */
+  /** Every fill-bearing node under a scene point, so region tools see overlaps. */
+  hitTestAll(point: Point): NodeId[]
   hitTest(scene: Point, deep: boolean): NodeId | null
   select(id: NodeId): void
   toggleSelection(id: NodeId): void

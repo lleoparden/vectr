@@ -43,6 +43,7 @@ import { actualSize, canvasCenter, fitArtboard, fitRect, zoomByStep } from '../g
 import { isLocked, parentIdOf, type Command } from '../doc/commands.ts'
 import { nudgedAnchor } from '../doc/pathEdit.ts'
 import { createPath } from '../doc/document.ts'
+import { polygonContains } from '../doc/hitTest.ts'
 import { nestPolygonIndices, polygonTouchesPath } from '../ops/polygon.ts'
 import type { Point } from '../geom/transform.ts'
 import { buildScene } from '../render/scene.ts'
@@ -550,11 +551,26 @@ export function paintRegionAt(point: Point): void {
   if (shapes.length === 0) return
   const face = renderer.regionAt(shapes, point)
   if (face === null) return
+  // The bucket paints with the current fill: a single selected object carries it, otherwise the
+  // tool's creation default does. That is why a colour chosen on the selection is what lands.
+  const current = documentStore.getState()
+  const selected = current.selection.length === 1 ? findNode(document, current.selection[0]) : null
+  const paintFill = selected !== null && selected.type !== 'group' ? selected.style.fill : workspaceStore.getState().creationDefaults.shape.fill
+  // One shape under the pointer: recolour it rather than stacking an identical path on top.
+  if (shapes.length === 1) {
+    const target = findNode(document, shapes[0].id)
+    if (target === null || target.type === 'group') return
+    documentStore.dispatch(
+      { type: 'setStyle', nodeId: target.id, style: { ...target.style, fill: paintFill } },
+      'live paint',
+    )
+    return
+  }
   const anchors = face.map((vertex) => cornerAnchor(vertex.x, vertex.y))
   const bounds = pathBounds(anchors, true)
   const defaults = workspaceStore.getState().creationDefaults
   const existing = document.root.children.filter((node) => node.name.startsWith('Live Paint')).length
-  const node = createPath(`Live Paint ${existing + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: defaults.shape.fill })
+  const node = createPath(`Live Paint ${existing + 1}`, bounds.x, bounds.y, anchors, { closed: true, fill: paintFill })
   const result = documentStore.dispatch(
     { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes: [node] },
     'live paint',
@@ -571,7 +587,9 @@ export function shapeBuilder(ids: NodeId[], subtract: boolean, path: Point[], to
   if (shapes.length < 1) return
   const faces = renderer.divideShapes(shapes)
   if (faces.length === 0) return
-  const touched = faces.filter((face) => polygonTouchesPath(face, path, tolerance))
+  const touched = faces.filter(
+    (face) => path.some((point) => polygonContains(face, point)) || polygonTouchesPath(face, path, tolerance),
+  )
   if (touched.length === 0) return
   const rest = faces.filter((face) => !touched.includes(face))
   const polygons = subtract ? rest : [...renderer.unitePolygons(touched), ...rest]

@@ -1,6 +1,18 @@
 # Progress
 
 
+## Phase 6 evidence checklist (2026-10-23)
+
+- **`docs/PHASE6_REA_CHECKLIST.md`** sorts every Phase 6 capability into artifact evidence, oracle needed, or
+  documented-only before any probe exists. Nine items need behaviour (point/area text metrics, text on a path,
+  threading, style precedence, tabs/justify, vertical progression, missing-font substitution, text-to-outline),
+  one is editing interaction (documented + observed, explicitly no fixture), and one is the artifact contract.
+- **Probe discipline is stated up front:** pin Illustrator's version in every fixture, convert points to CSS pixels
+  explicitly, one probe per question, timeouts with kill-and-retry, committed JSON fixtures that the unit suite
+  reads without Illustrator, and stated tolerances (0.5 pt bounds, 0.1 pt anchors, 1% of font size for text).
+- **Legal flag kept visible:** the oracle is black-box observation; the Adobe EULA's automation/competitive-use terms
+  still need a read before the oracle becomes a permanent fixture source.
+
 ## The artifact check became a script (2026-10-23)
 
 - **`npm run verify:artifact`** reads the ASAR with no new dependency, asserts the ASAR's version equals

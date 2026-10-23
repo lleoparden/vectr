@@ -1059,7 +1059,7 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   )
 
   // 2. Clicking the Type tool must change the bar to the Type tool's controls.
-  document.querySelector<HTMLButtonElement>('[data-tool-slot="text"]')?.click()
+  document.querySelector<HTMLButtonElement>('[data-tool-slot="type"]')?.click()
   await settle(120)
   record(
     'the options bar changes with the active tool',
@@ -2398,6 +2398,29 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     centredText !== undefined && centredText.type === 'text' && Math.abs(anchorAfter - anchorBefore) < 1e-6 && centredText.align === 'center',
     centredText === undefined || centredText.type !== 'text' ? 'no text' : `anchor ${anchorAfter.toFixed(2)}, ${centredText.align}`,
   )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
+  // 27. Area text: dragging with the Type tool authors a fixed frame that wraps.
+  documentStore.setTool('text')
+  await settle(100)
+  const areaViewport = documentStore.getState().viewport
+  const areaRect = canvas.getBoundingClientRect()
+  const areaAt = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: areaRect.left + x * areaViewport.zoom + areaViewport.panX, clientY: areaRect.top + y * areaViewport.zoom + areaViewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', areaAt(1900, 300, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointermove', areaAt(2050, 420, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', areaAt(2050, 420, 0)))
+  await settle(200)
+  const areaTool = documentStore.getState().tool
+  const areaNode = documentStore.getState().document.root.children.find((node) => node.type === 'text' && node.textType === 'area')
+  record(
+    'an area frame is created by dragging the Type tool',
+    areaNode !== undefined && areaNode.type === 'text' && Math.abs(areaNode.width - 150) < 1 && Math.abs(areaNode.height - 120) < 1,
+    areaNode === undefined || areaNode.type !== 'text' ? `no area text (tool=${areaTool}, children=${documentStore.getState().document.root.children.length})` : `${Math.round(areaNode.width)}x${Math.round(areaNode.height)} frame`,
+  )
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  await settle(100)
   documentStore.undo()
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))

@@ -846,7 +846,10 @@ export function applyCommand(document: Document, command: Command): CommandResul
       if (command.text.length > MAX_TEXT_LENGTH) {
         return rejected('invalid-index', `Text is longer than ${MAX_TEXT_LENGTH} characters.`)
       }
-      const box = textBox(command.text, node.fontSize, node.lineHeight, command.width, command.height)
+      const box =
+        node.textType === 'area'
+          ? { width: node.width, height: node.height }
+          : textBox(command.text, node.fontSize, node.lineHeight, command.width, command.height)
       return {
         ok: true,
         document: withRevision(
@@ -882,7 +885,10 @@ export function applyCommand(document: Document, command: Command): CommandResul
       if (fontFamily.length === 0 || fontFamily.length > 128) {
         return rejected('invalid-index', 'A font family name must be between 1 and 128 characters.')
       }
-      const box = textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height)
+      const box =
+        node.textType === 'area'
+          ? { width: node.width, height: node.height }
+          : textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height)
       // Illustrator's point-text insertion anchor stays put when the alignment changes: left keeps the
       // left edge, centre the centre, right the right edge. Derive the anchor from the old alignment and
       // place the new box so that same anchor is preserved (Phase 6.1, fixture point-text-align).

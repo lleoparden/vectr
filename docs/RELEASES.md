@@ -2,31 +2,26 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. This patch makes the Phase 5
-tools behave the way the panel says they do, and finishes the icon and interface pass that shipped with 0.5.0.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. Phase 6 has begun: this patch
+adds **area text** and the first point-text parity work, and moves the native format to **v8**.
 
 ### What changed
 
-- **Shape Builder works on overlaps.** It used to see only the topmost object under the pointer, so a drag across two
-  shapes collected one and replaced it with an identical path — which looks like nothing happened. It now collects
-  **every** shape under each point. A click on an overlap merges exactly that region and leaves the untouched faces as
-  their own paths.
-- **Live Paint paints with your current fill.** It used the creation default, which on a new document matches the
-  shapes, so painting looked dead. The bucket now uses a single selected object's fill (falling back to the creation
-  default), and on a lone shape it recolours that shape instead of stacking an identical path on top.
-- **The Phase 5 icons are redrawn.** Pen, Shape Builder, Live Paint, and Width had been drawn on a 24-unit grid while
-  the icon viewBox is 16, so their strokes were clipped — Width read as a bare vertical line. All four are now simple
-  forms inside the grid.
-- **Palette and status fit Illustrator.** Hand sits at the foot of the palette instead of second, the active slot's
-  shadow is the rose accent rather than a leftover purple, the status bar prints Pen, Shape Builder, Live Paint, and
-  Width by name, and each of those tools has an options-bar hint.
+- **Area text.** Drag with the Type tool to author a fixed text frame. Text wraps inside its width at word
+  boundaries (long words break by character), lines past the frame height are clipped, and content or style edits
+  keep the authored box. A click still places point text, exactly like Illustrator's Type tool.
+- **Point-text parity.** Changing left/centre/right alignment now keeps the **insertion anchor** fixed and moves the
+  box around it, and the measured box uses Illustrator's **ink height** (ascent + descent + leading per extra line)
+  instead of `lines × leading`. Undo restores the exact position, not just the alignment.
+- **Format v8.** `textType: 'area'` is optional, so v1–v7 documents open unchanged; older builds refuse v8 rather
+  than drawing area text as point text.
 
 ### What is in this build
 
-Everything from **0.5.0**: paths with curves, Pen, anchor editing, curve-preserving Pathfinder, Divide, Shape
-Builder, Live Paint, compound paths, Simplify, Outline Stroke, Offset Path, live shape reshaping, and width profiles
-with the Shift+W Width tool — plus transforms, rotation, gradients, blend modes, artboards, layers, text, images,
-autosave, and crash recovery.
+Everything from **0.5.1** — paths, Pen, anchor editing, curve-preserving Pathfinder, Divide, Shape Builder, Live
+Paint, compound paths, Simplify, Outline Stroke, Offset Path, live shapes, width profiles with the Width tool, and
+the Phase 5 tool fixes — plus point/area text with in-place editing, transforms, gradients, blend modes, artboards,
+layers, images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -59,9 +54,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 356 unit tests, UI standards
+npm test           # layer check, 373 unit tests, UI standards
 npm run build
-npm run smoke      # 162 packaged steps, six reports
+npm run smoke      # 164 packaged steps, six reports
 ```
 
 </details>
@@ -69,20 +64,23 @@ npm run smoke      # 162 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Live Paint paints regions, not edges**, and each painted region is its own path rather than a live-paint group.
-- **Divide, Shape Builder, and Live Paint use flattened faces**; the four boolean modes keep curves.
-- **Outline Stroke does not outline a compound's own stroke.**
-- **Width profiles are per anchor**, not per point; curves are flattened, and alignment/dashes are not applied to a
-  profiled stroke. The Width tool edits the nearest anchor.
-- **Live shape reshaping** applies to unrotated, unscaled parametric shapes; corner-radius widgets are a field.
+- **Area text has no inset, columns, threading, or overflow indicator**, and its frame is not resized by handles
+  yet; content edits keep the authored box and overflow is clipped.
+- **Point-text insertion is stored as the box's top-left**, not Illustrator's baseline; alignment reproduces the
+  anchor behaviour without redefining `transform.y`.
+- Text on a path, character/paragraph styles, tabs, vertical type, and text-to-outline are Phase 6 work that has
+  its evidence recorded but not its features.
+- Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
+  anchor with flattened curves, and a compound's own stroke is not outlined.
 
 </details>
 
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **356 unit tests**, production build, and **162 packaged steps** across six reports.
-- New packaged steps click an overlap with Shape Builder and assert three resulting faces, and repaint a lone rose
-  rectangle with a contrasting bucket fill; both then undo.
+- Typecheck, layer check, **373 unit tests**, production build, and **164 packaged steps** across six reports.
+- New packaged step drags with the Type tool and asserts the resulting **150×120 area frame**.
+- The Illustrator fixtures under `tests/fixtures/illustrator/` (recorded on 27.3.1) back the area-capacity and
+  alignment assertions; the unit suite reads them without Illustrator installed.
 
 </details>

@@ -171,6 +171,8 @@ const CONTRACT = {
 const SINCE = {
   hitTestAll: '0.5.1',
   pointInShape: '0.5.1',
+  placeAreaText: '0.5.2',
+  textType: '0.5.2',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

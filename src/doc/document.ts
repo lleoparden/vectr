@@ -322,6 +322,8 @@ export type TextOptions = {
   fill?: string
   width?: number
   height?: number
+  /** 'area' keeps the supplied width/height and wraps inside it (Phase 6.2). */
+  textType?: 'point' | 'area'
 }
 
 /**
@@ -358,6 +360,7 @@ export function createText(name: string, x: number, y: number, text: string, opt
     height: options.height ?? box.height,
     fontSize,
     fontFamily: options.fontFamily ?? DEFAULT_FONT_FAMILY,
+    ...(options.textType === 'area' ? { textType: 'area' as const } : {}),
     align: options.align ?? 'left',
     lineHeight,
     style: createStyle(options.fill ?? '#1e1e23'),

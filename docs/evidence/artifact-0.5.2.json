@@ -1,0 +1,195 @@
+{
+  "tool": "verify-artifact",
+  "generatedAt": "2026-10-23T17:19:15.116Z",
+  "asar": {
+    "path": "L:\\vectr\\release\\win-unpacked\\resources\\app.asar",
+    "version": "0.5.2",
+    "sha256": "e8e2e9913262457097899b1e2896a608d4a3a6876622a873435280f091c828ca",
+    "bytes": 50846392
+  },
+  "expectedVersion": "0.5.2",
+  "bundle": {
+    "path": "dist/assets/index-D3FKcGZ7.js",
+    "sha256": "acb190579a79a61ce3b2465dea78bd720db6671111f085dac8fe6e996dbc4788",
+    "bytes": 733714
+  },
+  "checks": [
+    {
+      "name": "repository and artifact versions match",
+      "ok": true,
+      "detail": "artifact 0.5.2, expected 0.5.2"
+    },
+    {
+      "name": "phase-1-4 edit.undo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 edit.redo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 file.save",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.group",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.ungroup",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.makeClip",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.alignLeft",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.select",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.rect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.ellipse",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.text",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.pen",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.shapeBuilder",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.livePaint",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.width",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.addAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.deleteAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.join",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.unite",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.intersect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.subtract",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.exclude",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.divide",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.simplify",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.offsetPath",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.outlineStroke",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.profileBulge",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 setWidthProfile",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundMake",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundRelease",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "hitTestAll (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "pointInShape (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "placeAreaText (since 0.5.2)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "textType (since 0.5.2)",
+      "ok": true,
+      "detail": "present as expected"
+    }
+  ],
+  "passed": true,
+  "failures": []
+}

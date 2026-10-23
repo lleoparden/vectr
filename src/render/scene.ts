@@ -18,6 +18,7 @@ export type SceneText = {
   fontSize: number
   fontFamily: string
   align: TextAlign
+  textType: 'point' | 'area'
   lineHeight: number
 }
 
@@ -175,6 +176,7 @@ function walkShapes(
           fontFamily: node.fontFamily,
           align: node.align,
           lineHeight: node.lineHeight,
+          textType: node.textType === 'area' ? 'area' : 'point',
         }
       : null,
     clip,

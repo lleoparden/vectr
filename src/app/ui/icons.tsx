@@ -96,11 +96,10 @@ export function IconLasso(props: IconProps) {
 export function IconWidth(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M3 6 L8 6 L8 12 L3 12 Z" />
-      <path d="M16 6 L21 6 L21 12 L16 12 Z" />
-      <path d="M8 9 L16 9" />
-      <path d="M10 4 L10 14" />
-      <path d="M14 4 L14 14" />
+      <path d="M5.4 1.6 L10.6 1.6 L8.9 8 L10.6 14.4 L5.4 14.4 L7.1 8 Z" />
+      <path d="M1 8 L15 8" />
+      <path d="M2.6 6.4 L1 8 L2.6 9.6" />
+      <path d="M13.4 6.4 L15 8 L13.4 9.6" />
     </Icon>
   )
 }
@@ -108,9 +107,9 @@ export function IconWidth(props: IconProps) {
 export function IconLivePaint(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M4 6 L8 2 L13 7 L9 11 Z" />
-      <path d="M4 6 L9 11" />
-      <path d="M12 11 c1.6 0 2.6 1 2.6 2.2 c0 1.4 -1.6 2.3 -2.6 3.3 c-1 -1 -2.6 -1.9 -2.6 -3.3 c0 -1.2 1 -2.2 2.6 -2.2 Z" />
+      <path d="M6.1 1.8 L12.2 7.9 L8.1 12 L2 5.9 Z" />
+      <path d="M4 3.9 L10.1 10" />
+      <path d="M11.6 9.6 C12.4 9.6 13 10.2 13 11 C13 11.9 12 12.6 11.6 13.2 C11.1 12.6 10.2 11.9 10.2 11 C10.2 10.2 10.8 9.6 11.6 9.6 Z" />
     </Icon>
   )
 }
@@ -118,8 +117,9 @@ export function IconLivePaint(props: IconProps) {
 export function IconShapeBuilder(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M3 8 a5 5 0 0 1 10 0 a5 5 0 0 1 -10 0" />
-      <path d="M8 3 a5 5 0 0 1 0 10 a5 5 0 0 1 0 -10" />
+      <rect x="1.8" y="1.8" width="7.4" height="7.4" rx="1" />
+      <rect x="6.8" y="6.8" width="7.4" height="7.4" rx="1" />
+      <path d="M9.6 3.1 L11.8 3.1 M10.7 2 L10.7 4.2" />
     </Icon>
   )
 }
@@ -127,9 +127,10 @@ export function IconShapeBuilder(props: IconProps) {
 export function IconPen(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M3 13 L5.2 12.2 L12.4 5 L11 3.6 L3.8 10.8 Z" />
-      <path d="M10.2 4.8 L11.8 6.4" />
-      <circle cx="7" cy="9" r="0.5" fill="currentColor" stroke="none" />
+      <path d="M8 1.6 L12.2 8.6 L8 14.4 L3.8 8.6 Z" />
+      <path d="M5.6 8 L10.4 8" />
+      <path d="M8 1.6 L8 8" />
+      <circle cx="8" cy="10.8" r="0.9" />
     </Icon>
   )
 }

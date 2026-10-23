@@ -1,6 +1,28 @@
 # Progress
 
 
+## Phase 5 tool fixes and UI pass (owner report, 2026-10-23)
+
+- **Shape Builder now sees overlaps.** The tool asked the host for the *topmost* hit at each sample, so a drag
+  that crossed two shapes from one side collected only one and then replaced it with an identical path - which
+  reads as nothing happening. The host gained «hitTestAll», and the tool collects **every** fill-bearing shape
+  under each sample. A click on an overlap now merges just the clicked face and leaves the untouched faces as
+  their own paths (three paths from two rectangles), because the region test also accepts a point *inside* the
+  face rather than only near its vertices.
+- **Live Paint paints with the current fill.** It used the creation default, which on a fresh document is the same
+  rose as the shapes themselves, so painting looked dead. The bucket now takes a single selected object's fill
+  (falling back to the creation default), and on a lone shape it **recolours that shape** instead of stacking an
+  identical path on top.
+- **The Phase 5 icons were clipped.** Pen, Shape Builder, Live Paint, and Width were drawn on a 24-unit grid while
+  the icon component's viewBox is 16, so strokes ran off the edge and Width read as a bare vertical line. All four
+  are redrawn inside 16 units with simpler forms, and the palette now follows Illustrator's order with Hand at the
+  foot. The active slot's shadow lost its leftover purple for the rose accent.
+- **Status bar and options bar caught up:** Pen, Shape Builder, Live Paint, and Width print their names instead of
+  camelCase ids, and each has an options-bar hint describing its gesture and its limits.
+- **Evidence**: 356 unit tests (including a click collecting both shapes under one point) and **162 packaged
+  steps**; new packaged steps click an overlap and assert three faces, and repaint a lone rose rectangle with a
+  contrasting bucket fill.
+
 ## The Width tool, and Phase 5 closed (issue #141)
 
 - **Shift+W is the Width tool.** Press on a stroked path, drag away from the nearest anchor to widen it, toward it

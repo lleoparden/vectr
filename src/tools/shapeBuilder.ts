@@ -21,8 +21,9 @@ export function createShapeBuilderTool(cursor: string): Tool {
 
   const collect = (host: ToolHost, point: ToolPoint): void => {
     pushPath(point)
-    const hit = host.hitTest(point.scene, true)
-    if (hit !== null && !crossed.includes(hit)) crossed = [...crossed, hit]
+    for (const id of host.hitTestAll(point.scene)) {
+      if (!crossed.includes(id)) crossed.push(id)
+    }
     host.setMarquee(marqueeRect({ x: start?.x ?? point.scene.x, y: start?.y ?? point.scene.y }, point.scene))
   }
 
@@ -32,8 +33,9 @@ export function createShapeBuilderTool(cursor: string): Tool {
     for (let index = 1; index <= steps; index += 1) {
       const t = index / steps
       const scene = { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }
-      const hit = host.hitTest(scene, true)
-      if (hit !== null && !crossed.includes(hit)) crossed = [...crossed, hit]
+      for (const id of host.hitTestAll(scene)) {
+        if (!crossed.includes(id)) crossed.push(id)
+      }
     }
   }
 

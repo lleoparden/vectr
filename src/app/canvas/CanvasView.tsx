@@ -355,6 +355,14 @@ export function CanvasView() {
   function toolHost(): ToolHost {
     return {
       selection: () => documentStore.getState().selection,
+      hitTestAll: (scene: Point) => {
+        const document = documentStore.getState().document
+        const renderer = getActiveRenderer()
+        if (renderer === null) return []
+        return buildScene(document)
+          .shapes.filter((shape) => renderer.pointInShape(shape, scene))
+          .map((shape) => shape.id)
+      },
       hitTest: (scene, deep) => {
         const document = documentStore.getState().document
         const isolated = workspaceStore.getState().isolatedGroupId

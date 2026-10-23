@@ -998,6 +998,18 @@ export class EditorRenderer {
     return offsetPoints.map((point) => ({ x: point.x, y: point.y }))
   }
 
+  /** True when a scene point is inside the shape's fill, honouring a compound's even-odd hole. */
+  pointInShape(shape: SceneShape, point: { x: number; y: number }): boolean {
+    if (shape.kind === 'text' || shape.kind === 'image' || shape.kind === 'line') return false
+    if (shape.kind === 'path' && shape.anchors !== null) {
+      const contours = [shape.anchors, ...(shape.subpaths ?? [])].map((contour) => flattenPath(contour, true))
+      const hits = contours.filter((contour) => polygonContains(contour, point)).length
+      return shape.fillRule === 'evenodd' ? hits % 2 === 1 : hits > 0
+    }
+    const polygon = this.scenePolygon(shape)
+    return polygon.length >= 3 && polygonContains(polygon, point)
+  }
+
   /** A shape's outline as a scene polygon, for compound-path contours (Phase 5.6). */
   outlineFillForShape(shape: SceneShape): Polygon | null {
     const polygon = this.scenePolygon(shape)

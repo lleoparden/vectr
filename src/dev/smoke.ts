@@ -1505,8 +1505,8 @@ export async function runToolOptionsReport(): Promise<SmokeReport> {
   // The palette order: the Hand belongs directly under the selection tools.
   const toolSlotOrder = Array.from(document.querySelectorAll('[data-tool-slot]')).map((slot) => slot.getAttribute('data-tool-slot'))
   record(
-    'the Hand tool sits directly under the selection tools',
-    toolSlotOrder.indexOf('hand') === toolSlotOrder.indexOf('select') + 1,
+    'the Hand tool sits at the foot of the palette, as in Illustrator',
+    toolSlotOrder.indexOf('hand') === toolSlotOrder.length - 1 && toolSlotOrder.indexOf('select') === 0,
     'order ' + toolSlotOrder.join(', '),
   )
 
@@ -2143,6 +2143,8 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   const paintRects = [createRect('LP A', 300, 500, 120, 120), createRect('LP B', 360, 500, 120, 120)]
   documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: paintRects }, 'live paint fixture')
   documentStore.setSelection([])
+  const originalDefaults = workspaceStore.getState().creationDefaults.shape
+  workspaceStore.setCreationDefaults({ shape: { ...originalDefaults, fill: '#4F7CFF' } })
   await settle(80)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }))
   await settle(80)
@@ -2319,6 +2321,56 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     widenedProfile === null ? 'no profile' : widenedProfile.map((value) => value.toFixed(2)).join(', '),
   )
   documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
+  // 24. Shape Builder click: the overlap becomes one region and the untouched faces stay paths.
+  const sbA = createRect('SB Click A', 1600, 300, 120, 120)
+  const sbB = createRect('SB Click B', 1660, 340, 120, 120)
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [sbA, sbB] }, 'shape builder click fixture')
+  documentStore.setSelection([sbA.id, sbB.id])
+  await settle(80)
+  document.querySelector<HTMLButtonElement>('[data-tool-slot="shapeBuilder"]')?.click()
+  await settle(100)
+  const sbViewport = documentStore.getState().viewport
+  const sbRect = canvas.getBoundingClientRect()
+  const sbAt = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: sbRect.left + x * sbViewport.zoom + sbViewport.panX, clientY: sbRect.top + y * sbViewport.zoom + sbViewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', sbAt(1690, 380, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', sbAt(1690, 380, 0)))
+  await settle(180)
+  const sbFaces = documentStore.getState().document.root.children.filter((node) => node.name.startsWith('Shape Builder'))
+  record(
+    'Shape Builder click merges the one region',
+    sbFaces.length === 3,
+    `${sbFaces.length} faces from a clicked overlap`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
+  // 25. Live Paint on a lone shape: the fill changes rather than an identical path landing on top.
+  const lone = createRect('LP Lone', 1800, 300, 120, 120)
+  ;(lone as { style: { fill: string } }).style.fill = '#A94A4A'
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [lone] }, 'live paint lone fixture')
+  documentStore.setSelection([])
+  await settle(80)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }))
+  await settle(80)
+  const loneViewport = documentStore.getState().viewport
+  const loneRect = canvas.getBoundingClientRect()
+  const loneAt = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: loneRect.left + x * loneViewport.zoom + loneViewport.panX, clientY: loneRect.top + y * loneViewport.zoom + loneViewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', loneAt(1850, 350, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', loneAt(1850, 350, 0)))
+  await settle(150)
+  const repainted = documentStore.getState().document.root.children.find((node) => node.id === lone.id)
+  const expectedFill = '#4F7CFF'
+  record(
+    'Live Paint recolours a lone shape',
+    repainted !== undefined && repainted.type !== 'group' && repainted.style.fill === expectedFill,
+    repainted === undefined || repainted.type === 'group' ? 'no shape' : repainted.style.fill,
+  )
+  documentStore.undo()
+  workspaceStore.setCreationDefaults({ shape: originalDefaults })
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 

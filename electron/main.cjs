@@ -143,16 +143,22 @@ function createWindow() {
     },
   })
 
+  const debugQuery = process.argv.some(
+    (argument) => argument.startsWith('--exec=') || argument.startsWith('--screenshot='),
+  )
+    ? { debug: '1' }
+    : {}
   mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), {
     query: isBenchmark
       ? {
           benchmark: '1',
           ...(contentsArgument ? { contents: contentsArgument.slice('--contents='.length) } : {}),
           ...(candidateArgument ? { candidate: candidateArgument.slice('--candidate='.length) } : {}),
+          ...debugQuery,
         }
       : smokeValue !== null
-        ? { smoke: smokeValue }
-        : {},
+        ? { smoke: smokeValue, ...debugQuery }
+        : debugQuery,
   })
 
   // Forward renderer diagnostics so a failed or hung benchmark is visible on stdout.

@@ -26,6 +26,12 @@ const TOOL_NAMES: Record<string, string> = {
   star: 'Star',
   arc: 'Arc',
   text: 'Type',
+  pen: 'Pen',
+  shapeBuilder: 'Shape Builder',
+  livePaint: 'Live Paint Bucket',
+  width: 'Width',
+  hand: 'Hand',
+  zoom: 'Zoom',
 }
 
 function Dot({ tone }: { tone: 'saved' | 'dirty' }) {

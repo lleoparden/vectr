@@ -3,7 +3,7 @@ import { App } from './app/App.tsx'
 import { BenchmarkApp } from './bench/BenchmarkApp.tsx'
 import { runEditorSmoke, runFileRoundTrip, runMemoryReport, runShapeToolsReport, runTextEntryReport, runToolOptionsReport } from './dev/smoke.ts'
 import { documentStore } from './state/documentStore.ts'
-import { createEllipse, createPath, createRect, findNode, insertNodes } from './doc/document.ts'
+import { createEllipse, createPath, createRect, createText, findNode, insertNodes } from './doc/document.ts'
 import { hitTest } from './doc/hitTest.ts'
 import { runEditorAction } from './app/actions.ts'
 import './styles.css'
@@ -23,6 +23,7 @@ if (search.has('debug')) {
     createRect,
     createEllipse,
     createPath,
+    createText,
     findNode,
     insertNodes,
     hitTest,

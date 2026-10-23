@@ -2374,6 +2374,34 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 26. Point-text alignment: the insertion anchor stays fixed while the box moves.
+  const anchorText = createText('Align fixture', 1700, 520, 'Anchor', { fontSize: 16, lineHeight: 19.2 })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [anchorText] }, 'align fixture')
+  documentStore.setSelection([anchorText.id])
+  await settle(80)
+  const beforeAlign = documentStore.getState().document.root.children.find((node) => node.id === anchorText.id)
+  const anchorOf = (node: LayerNode) =>
+    node.type !== 'text'
+      ? 0
+      : node.align === 'left'
+        ? node.transform.x
+        : node.align === 'center'
+          ? node.transform.x + node.width / 2
+          : node.transform.x + node.width
+  const anchorBefore = beforeAlign === undefined ? 0 : anchorOf(beforeAlign)
+  runEditorAction('type.alignCenter')
+  await settle(120)
+  const centredText = documentStore.getState().document.root.children.find((node) => node.id === anchorText.id)
+  const anchorAfter = centredText === undefined ? -1 : anchorOf(centredText)
+  record(
+    'alignment keeps the text anchor fixed',
+    centredText !== undefined && centredText.type === 'text' && Math.abs(anchorAfter - anchorBefore) < 1e-6 && centredText.align === 'center',
+    centredText === undefined || centredText.type !== 'text' ? 'no text' : `anchor ${anchorAfter.toFixed(2)}, ${centredText.align}`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

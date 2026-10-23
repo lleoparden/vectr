@@ -95,6 +95,8 @@ export type Command =
       lineHeight: number
       width?: number
       height?: number
+      /** Optional box left edge; used by the inverse so an alignment change restores the exact x. */
+      x?: number
     }
   /** Places an image and registers its asset in one undoable step (issue #17). */
   | { type: 'placeImage'; parentId: NodeId; index: number; node: ImageNode; asset: AssetRef }
@@ -881,6 +883,22 @@ export function applyCommand(document: Document, command: Command): CommandResul
         return rejected('invalid-index', 'A font family name must be between 1 and 128 characters.')
       }
       const box = textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height)
+      // Illustrator's point-text insertion anchor stays put when the alignment changes: left keeps the
+      // left edge, centre the centre, right the right edge. Derive the anchor from the old alignment and
+      // place the new box so that same anchor is preserved (Phase 6.1, fixture point-text-align).
+      const anchorX =
+        node.align === 'left'
+          ? node.transform.x
+          : node.align === 'center'
+            ? node.transform.x + node.width / 2
+            : node.transform.x + node.width
+      const nextX =
+        command.x ??
+        (command.align === 'left'
+          ? anchorX
+          : command.align === 'center'
+            ? anchorX - box.width / 2
+            : anchorX - box.width)
       return {
         ok: true,
         document: withRevision(
@@ -892,6 +910,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
                   fontFamily,
                   align: command.align,
                   lineHeight: command.lineHeight,
+                  transform: { ...current.transform, x: nextX },
                   ...box,
                 }
               : current,
@@ -906,6 +925,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
           lineHeight: node.lineHeight,
           width: node.width,
           height: node.height,
+          x: node.transform.x,
         },
       }
     }

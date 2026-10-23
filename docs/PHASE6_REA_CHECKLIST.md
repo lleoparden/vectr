@@ -23,7 +23,7 @@ clauses before relying on the oracle as a permanent fixture source.
 
 | # | Capability | Evidence | Why | Concrete probe / id |
 | --- | --- | --- | --- | --- |
-| 6.1 | Point text model: baseline, line height, alignment, measured box | **O** | Our `estimateTextSize` approximates; Illustrator's measured box and baseline are the ground truth | Create point text at 12/18/24 pt, three alignments; read `geometricBounds`, `baseline`, `textRange.characterAttributes.size/leading`, `position` |
+| 6.1 | Point text model: baseline, line height, alignment, measured box | **O**, partly done | Alignment half is implemented against `point-text-align.json`; baseline-as-anchor and ascent+descent height remain | Fixtures `point-text.json` and `point-text-align.json`; compare box height model and insertion anchor |
 | 6.2 | Area text: width/height box, overflow, inset | **O** | Overflow and padding rules decide the model; docs do not give numbers | Area frame 100x60 with 200 words; read `geometricBounds`, `textRange.lines.length`, `rowCount`, `columnCount`, `firstBaselineOffset` |
 | 6.3 | Text on a path: start offset, alignment, orientation, flipping | **O** | Start offset and side-of-path rules are behavioural | Path circle + straight line; `textPath.startOffset` 0/50/100%; read `textPath` properties and rendered bounds |
 | 6.4 | Threading: linked frames, overflow chain | **O** | Link order and what happens on resize is behavioural | Two frames linked via `nextFrame`; shrink the first; read where the second begins and what overflows |
@@ -73,7 +73,8 @@ All recorded on **Illustrator 27.3.1** (name and version stored in every fixture
 
 | Fixture | Probe | What it pins |
 | --- | --- | --- |
-| `point-text.json` | 12/18/24 pt point text | leading is exactly 1.2 x size; box grows with size; position is the anchor |
+| `point-text.json` | 12/18/24 pt point text | leading is exactly 1.2 x size; box grows with size; anchor is the baseline |
+| `point-text-align.json` | 24 pt text, left/centre/right | the anchor stays at x=200; only the box moves (left 200..375, centre 112.5..287.5, right 25..200) |
 | `area-text.json` | 200x200 area frame, 40 sentences | 14 visible lines, box stays 200x200; `firstBaselineOffset` and `overflows` are **not exposed** by this scripting version |
 | `text-on-path.json` | 280 pt straight path | kind PATHTEXT, flat box; `textPath.startOffset/side/orientation` read as **undefined** - not exposed |
 | `threading.json` | two linked area frames | `nextFrame` links them (linked=1); frame `contents` returns the text **visible in that frame** (200 vs 800 chars), not the whole story |

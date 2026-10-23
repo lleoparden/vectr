@@ -1,6 +1,19 @@
 # Progress
 
 
+## Phase 6.1, first piece: alignment keeps the insertion anchor (2026-10-23)
+
+- **Alignment now moves the point-text box around a fixed anchor**, which is what Illustrator does: a
+  probe (`point-text-align.json`) shows left/centre/right bounds all sharing x=200 at 24 pt and only the box
+  moving (200..375, 112.5..287.5, 25..200). `setTextStyle` derives the anchor from the *old* alignment and places
+  the new box so it stays put; the inverse carries an explicit `x`, so undo restores the exact position, not just
+  the alignment.
+- **The fixture is part of the test set:** `tests/textAlign.test.ts` covers left → centre → right → left and the
+  inverse; the packaged run adds one step asserting the anchor is unchanged after centre alignment (**163 steps**).
+- **Not claimed yet:** the insertion anchor is still the box's top-left, not Illustrator's baseline; the box
+  height still uses `lines x lineHeight` rather than ascent+descent+(n-1)·leading. Those are the remaining 6.1
+  items, recorded rather than implied.
+
 ## Eight Illustrator probes recorded (2026-10-23)
 
 - **Oracle coverage:** point text, area text, text on a path, threading, styles, tabs, vertical type,

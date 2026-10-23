@@ -1,6 +1,23 @@
 # Progress
 
 
+## Phase 6.2: area text (2026-10-23)
+
+- **Area text is a real text type now.** `TextNode.textType: 'area'` (optional, format v8) is an authored frame:
+  content wraps inside its width at word boundaries (long words break by character) and lines past the frame
+  height are clipped instead of growing the box, which is Illustrator's behaviour. Content and style edits keep
+  the authored box; only the drag that creates it says how big it is.
+- **The Type tool does both gestures**: a click places point text, a drag draws an area frame (marquee preview
+  while dragging) and opens the editor inside it. The frame is fixed at creation, like Illustrator's.
+- **Wrapping is pure and tested:** `src/doc/textWrap.ts` takes a measure callback, so the rule is testable without
+  a canvas; the renderer supplies the real font metrics and clips drawing to the frame.
+- **Evidence:** 373 unit tests (wrap at spaces, long-word breaks, paragraph breaks, area frame preservation through
+  `setText` and `setTextStyle`, the Illustrator area fixture's 14-line capacity with the partially clipped line) and
+  **164 packaged steps**, including a drag with the Type tool creating a 150x120 frame.
+- **Declared limits:** no inset, no column/row counts, no threading between frames, and no overflow indicator; the
+  frame cannot be resized by its handles yet (that is a live-shape style resize, not content). Format v8 is optional
+  so v1-v7 files open unchanged.
+
 ## Phase 6.1, second piece: the text box is the ink box (2026-10-23)
 
 - **Point-text bounds now follow Illustrator's model**: ascent + descent for the first line and the leading for

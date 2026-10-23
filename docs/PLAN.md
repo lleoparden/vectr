@@ -33,6 +33,21 @@ no Bézier path node yet, so the pen, anchors, Pathfinder, width profiles, and c
 Every slice owes the usual evidence (typecheck, full suite, build, packaged steps) plus a fixture for the
 geometry it introduces. Booleans owe property tests on area and winding, not eyeballing.
 
+## Phase 6 - Type (in progress)
+
+Epic scope in [MASTER_PLAN.md](MASTER_PLAN.md): point and area text, text on a path, threading, character and
+paragraph styles, tabs, vertical type, missing-font substitution, and text-to-outline. Evidence rules and the
+Illustrator oracle are in [PHASE6_REA_CHECKLIST.md](PHASE6_REA_CHECKLIST.md).
+
+| Slice | State |
+| --- | --- |
+| 6.1 Point text model | Alignment anchor and ink-height bounds ship; baseline-as-anchor remains |
+| 6.2 Area text | **Ships**: authored frame, word wrapping, clipped overflow, drag-created (format v8) |
+| 6.3 Text on a path | Not started |
+| 6.4 Threading | Not started |
+| 6.5 Styles, 6.6 Tabs, 6.7 Vertical | Not started (tabs API gap recorded) |
+| 6.8 Missing fonts, 6.9 Outlining | Fixtures recorded |
+
 ## Phase 2 history (complete, for reference)
 
 The Phase 2 slices shipped across #75-#102 and are audited in `docs/PROGRESS.md`. Their records stay in this

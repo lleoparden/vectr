@@ -20,8 +20,8 @@ function compoundFixture(): { document: ReturnType<typeof createDocument>; id: s
   return { document, id: path.id }
 }
 
-test('the file format is 7 and a compound path validates', () => {
-  assert.equal(FORMAT_VERSION, 7)
+test('the file format is 8 and a compound path validates', () => {
+  assert.equal(FORMAT_VERSION, 8)
   const { document, id } = compoundFixture()
   const node = document.root.children[0] as PathNode
   assert.equal(node.id, id)

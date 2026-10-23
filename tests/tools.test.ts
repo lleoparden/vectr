@@ -46,6 +46,7 @@ function fakeHost(options: { hits?: Record<string, NodeId>; selection?: NodeId[]
     setShapePreview: (preview) => calls.push("preview:" + (preview === null ? "null" : preview.kind + "@" + preview.current.x + "," + preview.current.y + (preview.shift ? ":shift" : ""))),
     commitShape: (toolId, start, end, shift) => calls.push("shape:" + toolId + ":" + start.x + "," + start.y + ">" + end.x + "," + end.y + (shift ? ":shift" : "")),
     placeText: (scene) => calls.push("text:" + scene.x + "," + scene.y),
+    placeAreaText: (rect) => calls.push("area:" + rect.x + "," + rect.y + "," + rect.width + "," + rect.height),
     scaleBegin: () => null,
     setNodeTransform: (id) => calls.push("set:" + id),
     scaleEnd: () => calls.push("scaleEnd"),
@@ -253,9 +254,19 @@ test("cancelling a shape drag leaves no object behind", () => {
   assert.deepEqual(calls, ["preview:star@1,1", "preview:null"])
 })
 
-test("the Type tool places text where the click landed", () => {
+test("a Type click places point text where the pointer went down", () => {
   const tool = createTypeTool("text")
   const { host, calls } = fakeHost()
   tool.onPointerDown(host, point(42, 84))
-  assert.deepEqual(calls, ["text:42,84"])
+  tool.onPointerUp(host, point(42, 84))
+  assert.deepEqual(calls, ["marquee:null", "marquee:null", "text:42,84"])
+})
+
+test("a Type drag draws an area frame and places area text in it", () => {
+  const tool = createTypeTool("text")
+  const { host, calls } = fakeHost()
+  tool.onPointerDown(host, point(40, 80))
+  tool.onPointerMove(host, point(160, 180))
+  tool.onPointerUp(host, point(160, 180))
+  assert.deepEqual(calls, ["marquee:null", "marquee:40,80,120,100", "marquee:null", "area:40,80,120,100"])
 })

@@ -233,6 +233,9 @@ export function validateDocument(document: Document): ValidationResult {
       // Text carries its own metrics (issue #16); a corrupt font size or leading would break
       // measurement, so document boundaries check them too.
       if (isText(node)) {
+    if (node.textType !== undefined && node.textType !== 'point' && node.textType !== 'area') {
+      return fail('invalid-index', `Text ${node.id} has an unknown text type.`, node.id)
+    }
         if (!Number.isFinite(node.fontSize) || node.fontSize <= 0 || node.fontSize > 1000) {
           return fail('non-finite', `Text node ${node.id} has an out-of-range font size.`, node.id)
         }

@@ -26,6 +26,7 @@ import { shaderColors } from './shaders.ts'
 import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { polygonContains } from '../doc/hitTest.ts'
 import { flattenedWithWidths, offsetRing, offsetSide, strokeOutline, strokeRing, variableOutline, variableRing } from '../geom/offset.ts'
+import { wrapText } from '../doc/textWrap.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -568,7 +569,16 @@ export class EditorRenderer {
     const paint = this.paintFor('fill', shape.fill, 0, shape.opacity)
     // Skia's ascent is negative above the baseline, so `-ascent` is the baseline offset.
     const baseline = -font.getMetrics().ascent
-    const lines = text.content.split('\n')
+    const lines =
+      text.textType === 'area'
+        ? wrapText(text.content, shape.width, (line) => this.measureLine(font, line))
+        : text.content.split('\n')
+    // Area text is a fixed frame: wrapping happens inside it and anything past the height is clipped,
+    // which is Illustrator's area-text behaviour rather than growing the box.
+    if (text.textType === 'area') {
+      recording.save()
+      recording.clipRect(this.kit.XYWHRect(0, 0, shape.width, shape.height), this.kit.ClipOp.Intersect, true)
+    }
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index]
       if (line.length === 0) continue
@@ -577,6 +587,7 @@ export class EditorRenderer {
         text.align === 'center' ? (shape.width - width) / 2 : text.align === 'right' ? shape.width - width : 0
       recording.drawText(line, left, index * text.lineHeight + baseline, paint, font)
     }
+    if (text.textType === 'area') recording.restore()
   }
 
   /**

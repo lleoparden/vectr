@@ -14,9 +14,9 @@ export type { PathAnchor }
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 7
-/** Versions this build still opens. v7 adds width profiles to strokes (Phase 5.5). */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7]
+export const FORMAT_VERSION = 8
+/** Versions this build still opens. v8 adds area text (Phase 6.2). */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8]
 
 export type NodeId = string
 
@@ -215,6 +215,11 @@ export type TextAlign = 'left' | 'center' | 'right'
 export type TextNode = BaseNode & {
   type: 'text'
   text: string
+  /**
+   * 'point' (default) is an auto-sized text object; 'area' keeps the authored box and wraps inside it
+   * (Phase 6.2). Absent means point, so v1-v7 files need no migration.
+   */
+  textType?: 'point' | 'area'
   /** Measured box, so bounds, hit testing, and marquee selection work like any other leaf. */
   width: number
   height: number

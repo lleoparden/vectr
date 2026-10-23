@@ -96,6 +96,8 @@ export type ToolHost = {
   commitShape(toolId: string, start: Point, end: Point, shift: boolean): void
   /** Places a text object at a scene point and opens its editor. */
   placeText(scene: Point): void
+  /** Places area text in a scene rectangle and opens its editor (Phase 6.2). */
+  placeAreaText(rect: { x: number; y: number; width: number; height: number }): void
   /** Captures the selection's box, rotation, and transforms and opens the scale transaction. */
   scaleBegin(): ScaleCapture | null
   /** Captures the selection for a rotation when the pointer is on a rotation zone, else null. */

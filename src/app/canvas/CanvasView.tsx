@@ -631,6 +631,27 @@ export function CanvasView() {
       },
       widthEnd: () => documentStore.commitTransaction(),
       widthCancel: () => documentStore.abortTransaction(),
+      placeAreaText: (rect) => {
+        const document = documentStore.getState().document
+        const existing = document.root.children.filter((node) => node.type === 'text').length
+        const defaults = workspaceStore.getState().creationDefaults
+        const node = createText(`Text ${existing + 1}`, rect.x, rect.y, '', {
+          fill: defaults.textFill,
+          fontSize: defaults.textFontSize,
+          align: defaults.textAlign,
+          width: rect.width,
+          height: rect.height,
+          textType: 'area',
+        })
+        const result = documentStore.dispatch(
+          { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes: [node] },
+          'add area text',
+        )
+        if (result.ok) {
+          documentStore.setSelection([node.id])
+          setEditing({ nodeId: node.id, text: '' })
+        }
+      },
       placeText: (scene) => {
         const document = documentStore.getState().document
         const existing = document.root.children.filter((node) => node.type === 'text').length

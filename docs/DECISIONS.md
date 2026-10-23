@@ -2420,3 +2420,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   Vectr stores the box's top-left and reproduces the *alignment* behaviour (anchor x fixed) without redefining
   `transform.y`. Changing that meaning would touch the document format, the text tool, the Transform panel, and
   hit testing, so it stays a recorded divergences until a dedicated slice.
+
+## 2026-10-23 - Area text is an optional text type, not a new node kind
+
+- **One text node, a mode flag.** `textType?: 'point' | 'area'` keeps one style, one box, one hit test, and one
+  editing overlay; a separate node type would fork every command that already handles text. Absent means point, so
+  v1-v7 files open unchanged and format v8 only tells an older build that area text exists.
+- **The frame is authored.** Content and style edits never resize an area frame; clipping is the overflow model in
+  this slice, matching Illustrator's fixed frame without inventing an overflow indicator yet.
+- **Wrapping is pure.** The break rule lives in `src/doc/textWrap.ts` behind a measure callback, so it is tested
+  without Skia and the renderer supplies real metrics.

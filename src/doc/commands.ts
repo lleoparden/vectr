@@ -847,7 +847,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
         return rejected('invalid-index', `Text is longer than ${MAX_TEXT_LENGTH} characters.`)
       }
       const box =
-        node.textType === 'area'
+        node.textType === 'area' || node.textPath !== undefined
           ? { width: node.width, height: node.height }
           : textBox(command.text, node.fontSize, node.lineHeight, command.width, command.height)
       return {
@@ -886,7 +886,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
         return rejected('invalid-index', 'A font family name must be between 1 and 128 characters.')
       }
       const box =
-        node.textType === 'area'
+        node.textType === 'area' || node.textPath !== undefined
           ? { width: node.width, height: node.height }
           : textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height)
       // Illustrator's point-text insertion anchor stays put when the alignment changes: left keeps the

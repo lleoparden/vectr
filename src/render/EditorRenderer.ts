@@ -27,6 +27,7 @@ import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type P
 import { polygonContains } from '../doc/hitTest.ts'
 import { flattenedWithWidths, offsetRing, offsetSide, strokeOutline, strokeRing, variableOutline, variableRing } from '../geom/offset.ts'
 import { wrapText } from '../doc/textWrap.ts'
+import { layoutTextOnPath } from '../doc/textOnPath.ts'
 import { rotatePoint } from '../geom/transform.ts'
 import { flattenPath } from '../geom/path.ts'
 import CanvasKitInit, {
@@ -567,6 +568,20 @@ export class EditorRenderer {
     const font = this.fontFor(text.fontFamily, text.fontSize)
     if (font === null) return
     const paint = this.paintFor('fill', shape.fill, 0, shape.opacity)
+    if (text.textPath !== null) {
+      // Text on a path: each glyph is placed at its arc distance with the tangent angle, so curves
+      // turn the letters. The path is a copy in the text node's space (Phase 6.3).
+      const points = flattenPath(text.textPath, text.textPathClosed).map((entry) => ({ x: entry.x, y: entry.y }))
+      const glyphs = layoutTextOnPath(text.content, points, text.textPathClosed, (character) => this.measureLine(font, character))
+      for (const glyph of glyphs) {
+        recording.save()
+        recording.translate(glyph.x, glyph.y)
+        recording.rotate(glyph.angle, 0, 0)
+        recording.drawText(glyph.character, -glyph.advance / 2, 0, paint, font)
+        recording.restore()
+      }
+      return
+    }
     // Skia's ascent is negative above the baseline, so `-ascent` is the baseline offset.
     const baseline = -font.getMetrics().ascent
     const lines =

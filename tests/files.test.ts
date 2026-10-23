@@ -167,7 +167,7 @@ test('v2 image manifests gain an explicit full crop and no mask on open (and are
   assert.equal(parsed.ok, true, parsed.ok ? '' : parsed.message)
   if (!parsed.ok) return
   const reopened = parsed.document.root.children.find((node) => node.type === 'image')
-  assert.equal(parsed.document.formatVersion, 8)
+  assert.equal(parsed.document.formatVersion, 9)
   assert.deepEqual(reopened?.type === 'image' ? reopened.crop : null, { x: 0, y: 0, width: 1, height: 1 })
   assert.equal(reopened?.type === 'image' ? reopened.maskAssetId : undefined, null)
 })
@@ -203,7 +203,7 @@ test('unsupported versions, foreign files, and broken JSON are refused with reas
   const newer = deserializeDocument(JSON.stringify({ manifestVersion: 99, formatVersion: 1, root: {} }))
   assert.equal(newer.ok ? '' : newer.code, 'unsupported-manifest-version')
 
-  const futureFormat = deserializeDocument(JSON.stringify({ manifestVersion: 1, formatVersion: 9, root: {} }))
+  const futureFormat = deserializeDocument(JSON.stringify({ manifestVersion: 1, formatVersion: 10, root: {} }))
   assert.equal(futureFormat.ok ? '' : futureFormat.code, 'unsupported-format-version')
 
   const broken = deserializeDocument('{ not json')

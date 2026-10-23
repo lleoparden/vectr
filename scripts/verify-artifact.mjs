@@ -173,6 +173,7 @@ const SINCE = {
   pointInShape: '0.5.1',
   placeAreaText: '0.5.2',
   textType: '0.5.2',
+  textPath: '0.5.3',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

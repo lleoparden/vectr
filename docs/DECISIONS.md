@@ -2430,3 +2430,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   this slice, matching Illustrator's fixed frame without inventing an overflow indicator yet.
 - **Wrapping is pure.** The break rule lives in `src/doc/textWrap.ts` behind a measure callback, so it is tested
   without Skia and the renderer supplies real metrics.
+
+## 2026-10-23 - Text on a path copies the geometry instead of linking it
+
+- **Why copy:** a link needs the renderer to resolve another node's transform, rotation, and nesting, and the text
+  node's box would stop being its own. A copy keeps one transform per node, works inside the existing hit test and
+  editor, and is enough for the first slice. The cost - editing the original path later does not move the text - is
+  stated in the catalog and release notes rather than discovered.
+- **Why the box is the path bounds:** selection, marquee, and the editing overlay already use the node box; making
+  the box the path bounds keeps them correct even though the glyphs curve inside it.
+- **Format v9, optional.** `textPath` is absent for ordinary text, so older files open unchanged.

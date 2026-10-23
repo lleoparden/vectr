@@ -90,8 +90,9 @@ test('the measurement estimate grows with text, size, and lines', () => {
   const twoLines = estimateTextSize('abcd\nefgh', 10, 12)
   assert.ok(longer.width > one.width)
   assert.ok(bigger.width > one.width)
-  assert.equal(twoLines.height, 24)
-  assert.equal(one.height, 12)
+  // Ink height for the first line plus leading for the second: 10 + 12, not 2 x 12.
+  assert.equal(twoLines.height, 22)
+  assert.equal(one.height, 10)
   assert.ok(estimateTextSize('', 10, 12).width > 0, 'an empty text object still has a box to click')
 })
 

@@ -1,6 +1,17 @@
 # Progress
 
 
+## Phase 6.1, second piece: the text box is the ink box (2026-10-23)
+
+- **Point-text bounds now follow Illustrator's model**: ascent + descent for the first line and the leading for
+  each extra line, instead of `lines x lineHeight`. The renderer measures the font and returns that height; the
+  pre-render estimate uses one font size for the first line so a new text object already looks right.
+- **Checks:** the estimate test now pins 10 + 12 = 22 for two 10 pt lines with a 12 pt leading (single line 10),
+  and the packaged run is unchanged at **163 steps** (369 unit tests).
+- **Still open, explicitly:** the insertion anchor remains the box's top-left rather than Illustrator's baseline.
+  Converting it would change the meaning of `transform.y`, hit testing, the Transform panel, and the text tool's
+  placement, so it is a deliberate follow-up rather than a half-done change.
+
 ## Phase 6.1, first piece: alignment keeps the insertion anchor (2026-10-23)
 
 - **Alignment now moves the point-text box around a fixed anchor**, which is what Illustrator does: a

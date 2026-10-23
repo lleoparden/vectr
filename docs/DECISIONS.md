@@ -2410,3 +2410,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   silently ignored.
 - **Format v7, optional field.** Old files open unchanged; new files are refused by older builds rather than drawn
   with a uniform stroke.
+
+## 2026-10-23 - Text bounds are ink bounds, but the stored anchor is still top-left
+
+- **Bounds:** `height = ascent + descent + (lines-1) x leading` matches Illustrator's point-text geometric bounds
+  (its 12 pt fixture is 13.04 tall, not 14.4), so selection, hit testing, and the Transform panel agree with the
+  drawing rather than the leading.
+- **Anchor:** Illustrator stores the insertion point on the baseline and lets alignment move the box around it.
+  Vectr stores the box's top-left and reproduces the *alignment* behaviour (anchor x fixed) without redefining
+  `transform.y`. Changing that meaning would touch the document format, the text tool, the Transform panel, and
+  hit testing, so it stays a recorded divergences until a dedicated slice.

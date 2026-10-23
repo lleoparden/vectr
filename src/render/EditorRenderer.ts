@@ -365,7 +365,12 @@ export class EditorRenderer {
       if (line.length === 0) continue
       width = Math.max(width, this.measureLine(font, line))
     }
-    return { width: Math.max(1, width), height: Math.max(1, lines.length) * lineHeight }
+    // Illustrator's point-text bounds are the ink box: ascent + descent for the first line and the
+    // leading for every extra one, not lines x leading.
+    const metrics = font.getMetrics()
+    const inkHeight = metrics.descent - metrics.ascent
+    const height = inkHeight + (Math.max(1, lines.length) - 1) * lineHeight
+    return { width: Math.max(1, width), height: Math.max(1, height) }
   }
 
   /** Draws one frame and returns its submission time. */

@@ -331,7 +331,10 @@ export type TextOptions = {
 export function estimateTextSize(text: string, fontSize: number, lineHeight: number): { width: number; height: number } {
   const lines = text.split('\n')
   const longest = Math.max(1, ...lines.map((line) => line.length))
-  return { width: longest * fontSize * 0.55, height: Math.max(1, lines.length) * lineHeight }
+  // The box is the ink height (about one font size) plus leading for each extra line, which is how a
+  // design tool reports point-text bounds; the renderer replaces this with font metrics when it can.
+  const height = fontSize + (Math.max(1, lines.length) - 1) * lineHeight
+  return { width: longest * fontSize * 0.55, height: Math.max(1, height) }
 }
 
 /**

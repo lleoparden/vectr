@@ -23,7 +23,7 @@ clauses before relying on the oracle as a permanent fixture source.
 
 | # | Capability | Evidence | Why | Concrete probe / id |
 | --- | --- | --- | --- | --- |
-| 6.1 | Point text model: baseline, line height, alignment, measured box | **O**, partly done | Alignment half is implemented against `point-text-align.json`; baseline-as-anchor and ascent+descent height remain | Fixtures `point-text.json` and `point-text-align.json`; compare box height model and insertion anchor |
+| 6.1 | Point text model: baseline, line height, alignment, measured box | **O**, partly done | Alignment and the ascent+descent ink-box height are implemented; the baseline-as-anchor storage change remains | Fixtures `point-text.json` and `point-text-align.json`; compare box height model and insertion anchor |
 | 6.2 | Area text: width/height box, overflow, inset | **O** | Overflow and padding rules decide the model; docs do not give numbers | Area frame 100x60 with 200 words; read `geometricBounds`, `textRange.lines.length`, `rowCount`, `columnCount`, `firstBaselineOffset` |
 | 6.3 | Text on a path: start offset, alignment, orientation, flipping | **O** | Start offset and side-of-path rules are behavioural | Path circle + straight line; `textPath.startOffset` 0/50/100%; read `textPath` properties and rendered bounds |
 | 6.4 | Threading: linked frames, overflow chain | **O** | Link order and what happens on resize is behavioural | Two frames linked via `nextFrame`; shrink the first; read where the second begins and what overflows |

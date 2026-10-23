@@ -43,8 +43,15 @@ function Invoke-Probe {
     Get-Process Illustrator -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     return $null
   }
-  $result = Receive-Job $job
+  try {
+    $result = Receive-Job $job -ErrorAction Stop
+  } catch {
+    $result = $null
+  }
   Remove-Job $job -Force -ErrorAction SilentlyContinue
+  if ($null -eq $result) {
+    Get-Process Illustrator -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  }
   return $result
 }
 

@@ -67,21 +67,30 @@ Rules that fall out of the matrix:
 
 ## Recorded fixtures
 
-| Fixture | Probe | Illustrator | What it pins |
-| --- | --- | --- | --- |
-| `tests/fixtures/illustrator/point-text.json` | point text at 12/18/24 pt | 27.3.1 (Myriad Pro) | leading is exactly 1.2 x size, the measured box grows with size, position is the anchor, points convert at 4/3 px |
+All recorded on **Illustrator 27.3.1** (name and version stored in every fixture). The runner is
+`npm run oracle:illustrator -- -Probe <name> -Out <fixture>`; fixtures are committed and read by
+`tests/illustratorFixtures.test.ts`, so the suite never needs Illustrator.
 
-The runner is `npm run oracle:illustrator -- -Probe point-text -Out <fixture>` (Windows PowerShell). It
-launches Illustrator through COM, records the version with the result, waits at most 180 s, and kills and
-retries once if the instance hangs. The fixture is written without a BOM and read by
-`tests/illustratorFixtures.test.ts`, so the suite never needs Illustrator installed.
+| Fixture | Probe | What it pins |
+| --- | --- | --- |
+| `point-text.json` | 12/18/24 pt point text | leading is exactly 1.2 x size; box grows with size; position is the anchor |
+| `area-text.json` | 200x200 area frame, 40 sentences | 14 visible lines, box stays 200x200; `firstBaselineOffset` and `overflows` are **not exposed** by this scripting version |
+| `text-on-path.json` | 280 pt straight path | kind PATHTEXT, flat box; `textPath.startOffset/side/orientation` read as **undefined** - not exposed |
+| `threading.json` | two linked area frames | `nextFrame` links them (linked=1); frame `contents` returns the text **visible in that frame** (200 vs 800 chars), not the whole story |
+| `styles.json` | one character and one paragraph style | style size survives (21 pt), both names read back; applying a style to a range hung the first probe, so the fixture records creation, not application |
+| `tabs.json` | tab stops on a paragraph | the collection exists but `add()` is not a function and assignment fails with `Invalid enumeration value` - **tab stops are not scriptable** here |
+| `vertical-text.json` | `TextOrientation.VERTICAL` | settable; the box turns from 130x26 to 24x341 |
+| `missing-font.json` | a nonexistent family | setting it throws `No such element` and the applied font is unchanged; the substitute workflow is a **UI/reopen** path, not scriptable |
+| `outline-text.json` | `TextFrame.createOutline()` | works: two glyphs become **4 paths in 1 group** with recorded bounds |
 
-Two constraints learned while recording the first fixture:
+Constraints learned while recording:
 
-- **ExtendScript has no JSON object.** Probes return a compact delimited string and the test parses it; do
-  not assume `JSON.stringify` exists in the Illustrator scripting engine.
-- **Points are not pixels.** The fixture keeps Illustrator's point values and the test applies the 4/3
-  conversion; mixing the two would hide a tolerance bug.
+- **ExtendScript has no JSON object.** Probes return compact delimited strings and the tests parse them.
+- **Points are not pixels.** Fixtures keep Illustrator's points; tests convert at 4/3 px explicitly.
+- **A hung probe is real.** The first styles probe exceeded 180 s (applying a style to a range); the runner
+  killed Illustrator, the probe was narrowed, and the fixture records the narrower behaviour.
+- **Absent properties are evidence.** `firstBaselineOffset`, `overflows`, and `textPath.startOffset` are
+  recorded as absent rather than invented.
 
 ## What Phase 6 still needs from REA proper
 

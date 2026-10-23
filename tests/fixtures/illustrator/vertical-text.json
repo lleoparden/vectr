@@ -1,0 +1,9 @@
+{
+    "probe":  "vertical-text",
+    "recordedAt":  "2026-10-23T14:29:14.2944168Z",
+    "illustrator":  {
+                        "name":  "Adobe Illustrator",
+                        "version":  "27.3.1"
+                    },
+    "raw":  "orientation=TextOrientation.VERTICAL|set=set|horizontal=150,50.0439453125,280.8935546875,23.9560546875|vertical=138,29.9560546875,162,-311.1318359375"
+}

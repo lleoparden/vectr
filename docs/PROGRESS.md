@@ -1,6 +1,20 @@
 # Progress
 
 
+## Eight Illustrator probes recorded (2026-10-23)
+
+- **Oracle coverage:** point text, area text, text on a path, threading, styles, tabs, vertical type,
+  missing fonts, and text-to-outline now have committed fixtures recorded on **Illustrator 27.3.1**;
+  `tests/illustratorFixtures.test.ts` reads them (now **367 tests**) and the suite still needs no Illustrator.
+- **Behaviour pinned:** leading 1.2 x size; area frame stays 200x200 with 14 visible lines; threading links via
+  `nextFrame` and per-frame `contents` returns only that frame's visible text; `createOutline()` turns two glyphs
+  into 4 paths in 1 group; `TextOrientation.VERTICAL` is settable and turns a 130x26 box into 24x341.
+- **Absences recorded, not invented:** `firstBaselineOffset`, `overflows`, and `textPath.startOffset/side/orientation`
+  are not exposed in this scripting version; setting an absent font throws `No such element`; tab stops cannot be
+  added or assigned (the collection has no `add`, assignment rejects the enum), so tabs stay documentation + observation.
+- **Runner hardened:** a COM exception becomes a failed probe with kill-and-retry rather than aborting the run; the
+  first styles probe hung 180 s applying a style to a range and was narrowed and re-recorded.
+
 ## The Illustrator oracle has a runner and its first fixture (2026-10-23)
 
 - **`scripts/illustrator/run-probe.ps1`** drives the installed Illustrator through its own COM

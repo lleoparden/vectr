@@ -1,0 +1,9 @@
+{
+    "probe":  "text-on-path",
+    "recordedAt":  "2026-10-23T14:28:33.6969456Z",
+    "illustrator":  {
+                        "name":  "Adobe Illustrator",
+                        "version":  "27.3.1"
+                    },
+    "raw":  "TextType.PATHTEXT|20,120,300,120|undefined|undefined|undefined|280"
+}

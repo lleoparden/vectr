@@ -1,6 +1,22 @@
 # Progress
 
 
+## Phase 6.4: threaded text, first version (2026-10-23)
+
+- **Thread Text** (Type menu) links selected area frames and distributes the story's lines across them once: the
+  head keeps the whole `threadStory` plus `threadNextId`, and each frame stores the slice it displays. Capacities use
+  Illustrator's frame rule (height / leading, rounded up); lines past the last frame stay in the story but are not
+  displayed. One command, one undo entry, exact inverse.
+- **Pure distribution:** `src/doc/textThread.ts` (capacity and line slicing) is tested without a canvas; the action
+  supplies the measured wrapping via the renderer, so the same wrap rule as area text applies.
+- **Format v10:** `threadStory`/`threadNextId` are optional, so v1-v9 open unchanged.
+- **Evidence:** 381 unit tests (capacity rounding, distribution dropping display overflow, link command and inverse,
+  refusals for non-area/self links) and **166 packaged steps**, including a long story that fills a 3-line frame and
+  overflows into the second.
+- **Declared limits:** threading is **one-shot** - editing a frame afterwards does not reflow the others, only the
+  first-to-second link is recorded (extra selected frames are display targets), there is no overflow marker or unlink
+  UI, and the story is not edited through the overlay as a whole yet.
+
 ## Phase 6.3: text on a path (2026-10-23)
 
 - **Clicking a filled path with the Type tool starts text on it.** The text is centred along the path, each glyph is

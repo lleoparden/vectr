@@ -2,26 +2,25 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. Phase 6 continues: **text on a
-path** joins point and area text, and the native format moves to **v9**.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Threaded text** arrives as a
+one-shot distribution across area frames, and the native format moves to **v10**.
 
 ### What changed
 
-- **Text on a path.** Click a filled path with the Type tool and text is centred along it. Each glyph is placed at its
-  arc distance and rotated to the path's tangent, so letters turn around corners and curves. The text object's box is
-  the path's bounds, and content or style edits keep that box.
-- **One gesture, three text types.** A Type click on empty canvas places point text, a drag draws an area frame, and a
-  click on a path starts path text — Illustrator's Type tool in miniature.
-- **Format v9.** `textPath` is optional, so v1–v8 documents open unchanged; older builds refuse v9 rather than
-  drawing path text as flat text.
-- **Hardening:** a document file with a missing `transform` is now refused with a validation failure instead of
-  throwing, so a malformed file cannot crash the open path.
+- **Thread Text** (Type menu). Select two or more area text frames and the story's lines are distributed across them:
+  the head keeps the whole story plus a link to the next frame, and every frame shows its own slice. Capacities follow
+  Illustrator's rule — frame height divided by the leading, rounded up. Lines past the last frame stay in the story but
+  are not displayed. One command, one undo entry, exact inverse.
+- **Format v10.** `threadStory` and `threadNextId` are optional, so v1–v9 documents open unchanged; older builds refuse
+  v10 rather than dropping the link.
+- **Distribution is pure.** `src/doc/textThread.ts` decides capacity and slicing and is tested without a canvas; the
+  action supplies the measured wrapping, so threading uses the same break rule as area text.
 
 ### What is in this build
 
-Everything from **0.5.2** — paths, Pen, booleans, compound paths, Simplify/Outline/Offset, live shapes, width
-profiles with the Width tool, point and area text — plus transforms, gradients, blend modes, artboards, layers,
-images, autosave, and crash recovery.
+Everything from **0.5.3** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
+point text, area text, and text on a path — plus transforms, gradients, blend modes, artboards, layers, images,
+autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -54,9 +53,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 377 unit tests, UI standards
+npm test           # layer check, 381 unit tests, UI standards
 npm run build
-npm run smoke      # 165 packaged steps, six reports
+npm run smoke      # 166 packaged steps, six reports
 ```
 
 </details>
@@ -64,12 +63,11 @@ npm run smoke      # 165 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Path text is centred only**: no start offset, no side-of-path, no align-to-path controls, and the path geometry is
-  **copied into the text node** at creation, so editing the original path later does not move the text.
-- The path-text editing overlay is the path's rectangular bounds, not the glyph positions.
-- Area text still has no inset, columns, threading, or overflow indicator; point-text insertion is the box's
-  top-left rather than Illustrator's baseline.
-- Text on a path does not follow a compound path's separate contours; only the node's first path geometry is copied.
+- **Threading is one-shot**: editing a frame afterwards does not reflow the others, and there is no unlink UI. Only the
+  first-to-second link is recorded; additional selected frames are display targets.
+- Lines beyond the last threaded frame are retained in the story but not displayed, and there is no overflow marker.
+- Path text is centred only, with copied (not linked) geometry; area text has no inset, columns, or handle resize.
+- Point-text insertion remains the box's top-left rather than Illustrator's baseline.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
   anchor, and a compound's own stroke is not outlined.
 
@@ -78,9 +76,10 @@ npm run smoke      # 165 packaged steps, six reports
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **377 unit tests**, production build, and **165 packaged steps** across six reports.
-- New packaged step clicks a filled path with the Type tool and asserts a **160-wide path-text object**.
-- Unit tests pin glyph placement on a straight path (90/100/110 along 200), a vertical tangent, a closed square's
-  corners, path bounds preserved through edits, and rejection of a text path with one anchor.
+- Typecheck, layer check, **381 unit tests**, production build, and **166 packaged steps** across six reports.
+- New packaged step threads an 8-line story into two 3-line frames: the head shows 3 lines, the next frame receives
+  the overflow, and undo restores both.
+- Unit tests pin capacity rounding, distribution dropping display overflow, the link command and its inverse, and
+  refusals for non-area or self links.
 
 </details>

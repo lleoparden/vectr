@@ -239,6 +239,12 @@ export function validateDocument(document: Document): ValidationResult {
       return fail('invalid-index', `Text ${node.id} has an unknown text type.`, node.id)
     }
     if (node.textPath !== undefined) {
+      if (node.threadStory !== undefined && (typeof node.threadStory !== 'string' || node.threadStory.length > 100_000)) {
+        return fail('invalid-index', `Text ${node.id} has an unusable thread story.`, node.id)
+      }
+      if (node.threadNextId !== undefined && typeof node.threadNextId !== 'string') {
+        return fail('invalid-index', `Text ${node.id} has an unusable thread link.`, node.id)
+      }
       if (!Array.isArray(node.textPath.anchors) || node.textPath.anchors.length < 2) {
         return fail('invalid-index', `Text ${node.id} has a text path with fewer than two anchors.`, node.id)
       }

@@ -1,0 +1,9 @@
+{
+    "probe":  "threading",
+    "recordedAt":  "2026-10-23T14:29:13.4934324Z",
+    "illustrator":  {
+                        "name":  "Adobe Illustrator",
+                        "version":  "27.3.1"
+                    },
+    "raw":  "first=7|second=12|firstChars=200|secondChars=800|linked=1|firstBounds=20,260,180,160|secondBounds=20,140,180,-40"
+}

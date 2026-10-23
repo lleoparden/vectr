@@ -63,6 +63,26 @@ Rules that fall out of the matrix:
 6. **Append, do not rewrite.** A new Illustrator version adds a versioned fixture; it never overwrites the old
    one, so comparisons stay honest about which build produced which number.
 
+
+
+## Recorded fixtures
+
+| Fixture | Probe | Illustrator | What it pins |
+| --- | --- | --- | --- |
+| `tests/fixtures/illustrator/point-text.json` | point text at 12/18/24 pt | 27.3.1 (Myriad Pro) | leading is exactly 1.2 x size, the measured box grows with size, position is the anchor, points convert at 4/3 px |
+
+The runner is `npm run oracle:illustrator -- -Probe point-text -Out <fixture>` (Windows PowerShell). It
+launches Illustrator through COM, records the version with the result, waits at most 180 s, and kills and
+retries once if the instance hangs. The fixture is written without a BOM and read by
+`tests/illustratorFixtures.test.ts`, so the suite never needs Illustrator installed.
+
+Two constraints learned while recording the first fixture:
+
+- **ExtendScript has no JSON object.** Probes return a compact delimited string and the test parses it; do
+  not assume `JSON.stringify` exists in the Illustrator scripting engine.
+- **Points are not pixels.** The fixture keeps Illustrator's point values and the test applies the 4/3
+  conversion; mixing the two would hide a tolerance bug.
+
 ## What Phase 6 still needs from REA proper
 
 - **Artifact side:** add one id per shipped command, and a `SINCE` entry for any fix-only symbol, so

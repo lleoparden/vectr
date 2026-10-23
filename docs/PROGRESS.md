@@ -1,6 +1,22 @@
 # Progress
 
 
+## The Illustrator oracle has a runner and its first fixture (2026-10-23)
+
+- **`scripts/illustrator/run-probe.ps1`** drives the installed Illustrator through its own COM
+  automation, records `app.name`/`app.version` with every result, and enforces a 180 s timeout with one
+  kill-and-retry. It reads only the probe script and writes one JSON fixture; it never reads Adobe binaries.
+- **First probe, point text (6.1):** 12/18/24 pt recorded on **Illustrator 27.3.1** in Myriad Pro. Leading is
+  exactly **1.2 x size**, width grows with size, position is the anchor. The fixture is committed at
+  `tests/fixtures/illustrator/point-text.json` and `tests/illustratorFixtures.test.ts` reads it, so the unit
+  suite needs no Illustrator. Points are kept as points and converted at 4/3 px in the test, never implicitly.
+- **Two engine facts recorded:** ExtendScript has no JSON object (probes return delimited strings), and
+  PowerShell 5.1's `Set-Content -Encoding utf8` writes a BOM that breaks JSON.parse - the runner now writes
+  BOM-less UTF-8.
+- **Still open:** the Adobe EULA automation/competitive-use read, and the remaining eight probes in the
+  Phase 6 checklist (area text, text on a path, threading, styles, tabs/justify, vertical type, missing fonts,
+  text-to-outline).
+
 ## Phase 6 evidence checklist (2026-10-23)
 
 - **`docs/PHASE6_REA_CHECKLIST.md`** sorts every Phase 6 capability into artifact evidence, oracle needed, or

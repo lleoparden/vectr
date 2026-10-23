@@ -1,6 +1,20 @@
 # Progress
 
 
+## First REA pass: artifact verification, and the Illustrator boundary (2026-10-23)
+
+- **REA cannot observe Illustrator on this host.** Its native UI and native-code providers are macOS-only
+  (`Native macOS utilities require macOS`, checked 6.4.0 and 6.5.0), and no Ghidra/IDA/Hopper is installed for
+  static work. Illustrator is therefore a **behaviour oracle through its own scripting and observation**, not an
+  REA target; Adobe binaries are not decompiled. The full record is in `docs/REA.md`.
+- **REA did catch a real verification gap.** A first artifact scan found none of the Phase 5 symbols because
+  `release/win-unpacked` was stale at **0.4.0**. Reading the installed app instead showed **0.5.0**, with every
+  Phase 5 command id present but **without `hitTestAll`** - i.e. without the 0.5.1 Shape Builder fix, exactly as
+  the version implies.
+- **The reusable pass is recorded:** read the version from the asar, extract the renderer bundle, hash it, assert
+  the phase's required ids, then use the packaged smoke for behaviour. Artifact identity now has a receipt instead
+  of an assumption.
+
 ## Phase 5 tool fixes and UI pass (owner report, 2026-10-23)
 
 - **Shape Builder now sees overlaps.** The tool asked the host for the *topmost* hit at each sample, so a drag

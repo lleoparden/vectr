@@ -2450,6 +2450,39 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 29. Threading: a long story fills the first frame and overflows into the second.
+  const threadHead = createText('Thread head', 2400, 300, 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight', {
+    width: 160,
+    height: 60,
+    textType: 'area',
+    fontSize: 16,
+    lineHeight: 20,
+  })
+  const threadNext = createText('Thread next', 2400, 380, '', {
+    width: 160,
+    height: 60,
+    textType: 'area',
+    fontSize: 16,
+    lineHeight: 20,
+  })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [threadHead, threadNext] }, 'thread fixture')
+  documentStore.setSelection([threadHead.id, threadNext.id])
+  await settle(80)
+  runEditorAction('text.thread')
+  await settle(180)
+  const threadedHead = documentStore.getState().document.root.children.find((node) => node.id === threadHead.id)
+  const threadedNext = documentStore.getState().document.root.children.find((node) => node.id === threadNext.id)
+  const headLines = threadedHead !== undefined && threadedHead.type === 'text' ? threadedHead.text.split('\n').length : 0
+  const nextText = threadedNext !== undefined && threadedNext.type === 'text' ? threadedNext.text : ''
+  record(
+    'Thread Text distributes the overflow',
+    threadedHead !== undefined && threadedHead.type === 'text' && threadedHead.threadStory !== undefined && headLines === 3 && nextText.length > 0,
+    `head ${headLines} lines, next ${nextText.split('\n').length} lines`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

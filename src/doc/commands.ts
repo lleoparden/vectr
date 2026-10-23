@@ -84,6 +84,8 @@ export type Command =
   | { type: 'addArtboard'; artboard: Artboard; index: number }
   | { type: 'removeArtboard'; artboardId: string }
   | { type: 'setArtboard'; artboardId: string; name?: string; width?: number; height?: number }
+  /** Links an area-text head to the next frame and stores the whole story (Phase 6.4). */
+  | { type: 'setTextThread'; nodeId: NodeId; nextId: NodeId | null; story: string | null }
   /** Text content, with the measured box when the caller could measure (issue #16). */
   | { type: 'setText'; nodeId: NodeId; text: string; width?: number; height?: number }
   | {
@@ -864,6 +866,44 @@ export function applyCommand(document: Document, command: Command): CommandResul
           width: node.width,
           height: node.height,
         },
+      }
+    }
+
+    case 'setTextThread': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (!isText(node)) return rejected('invalid-parent', `Node ${command.nodeId} is not a text object.`)
+      if (node.textType !== 'area') return rejected('invalid-parent', 'Only area text can be threaded.')
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (command.nextId !== null) {
+        const next = findNode(document, command.nextId)
+        if (next === null || !isText(next) || next.textType !== 'area') {
+          return rejected('invalid-parent', 'The next frame must be area text.')
+        }
+        if (next.id === node.id) return rejected('invalid-parent', 'A frame cannot follow itself.')
+        if (command.story === null) return rejected('invalid-index', 'A thread needs its story.')
+        if (command.story.length > 100_000) return rejected('invalid-index', 'The story is too large.')
+      } else if (command.story !== null) {
+        return rejected('invalid-index', 'A frame without a next frame has no story.')
+      }
+      const previous = { nextId: node.threadNextId ?? null, story: node.threadStory ?? null }
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) => {
+            if (!isText(current)) return current
+            const next: typeof current = { ...current }
+            if (command.nextId === null) {
+              delete next.threadNextId
+              delete next.threadStory
+            } else {
+              next.threadNextId = command.nextId
+              next.threadStory = command.story ?? ''
+            }
+            return next
+          }),
+        ),
+        inverse: { type: 'setTextThread', nodeId: command.nodeId, nextId: previous.nextId, story: previous.story },
       }
     }
 

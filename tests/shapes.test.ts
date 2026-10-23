@@ -220,7 +220,7 @@ test('new shape kinds reach the scene, hit testing, and the file', () => {
   const parsed = deserializeDocument(first)
   assert.equal(parsed.ok, true)
   if (!parsed.ok) return
-  assert.equal(parsed.document.formatVersion, 9)
+  assert.equal(parsed.document.formatVersion, 10)
   const reopened = findNode(parsed.document, nodes[3].id)
   assert.equal(reopened?.type === 'arc' ? reopened.pie : null, true, 'the reopened arc is still a pie')
   const reopenedStar = findNode(parsed.document, nodes[2].id)

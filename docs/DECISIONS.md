@@ -2440,3 +2440,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
 - **Why the box is the path bounds:** selection, marquee, and the editing overlay already use the node box; making
   the box the path bounds keeps them correct even though the glyphs curve inside it.
 - **Format v9, optional.** `textPath` is absent for ordinary text, so older files open unchanged.
+
+## 2026-10-23 - Threading is a one-shot distribution, not a live text engine
+
+- **Why:** live reflow needs the renderer's measurements inside every text edit and a story owned by the chain rather
+  than by one frame. Distributing once, at the explicit Thread Text command, keeps the existing command/history path,
+  keeps each frame's box and slice in the document, and is fully reversible with one batch.
+- **What is stored:** the head keeps `threadStory` (the whole text) and `threadNextId`; each frame keeps the slice it
+  shows. That makes reopening exact and rendering unchanged.
+- **Cost, stated:** editing a frame after threading does not reflow the others, and extra selected frames are display
+  targets rather than a recorded chain. Both are in the catalog and release notes, not silently implied.

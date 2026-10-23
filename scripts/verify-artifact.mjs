@@ -174,6 +174,7 @@ const SINCE = {
   placeAreaText: '0.5.2',
   textType: '0.5.2',
   textPath: '0.5.3',
+  threadStory: '0.5.4',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

@@ -46,6 +46,8 @@ import { createPath } from '../doc/document.ts'
 import { polygonContains } from '../doc/hitTest.ts'
 import { nestPolygonIndices, polygonTouchesPath } from '../ops/polygon.ts'
 import type { Point } from '../geom/transform.ts'
+import { wrapText } from '../doc/textWrap.ts'
+import { distributeLines, frameCapacity } from '../doc/textThread.ts'
 import { buildScene } from '../render/scene.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
 import { batchCommand } from '../doc/commands.ts'
@@ -797,6 +799,35 @@ export function applyWidthProfile(preset: 'uniform' | 'taperStart' | 'taperEnd' 
   documentStore.dispatch({ type: 'setWidthProfile', nodeId: node.id, profile }, 'width profile')
 }
 
+/** Threads two or more selected area frames, distributing the story's lines across them once. */
+export function threadTextFrames(): void {
+  const { document, selection } = documentStore.getState()
+  const renderer = getActiveRenderer()
+  if (renderer === null) return
+  const frames = selection
+    .map((id) => findNode(document, id))
+    .filter((node) => node !== null && node.type === 'text' && node.textType === 'area')
+  if (frames.length < 2) return
+  const head = frames[0]
+  if (head === null || head.type !== 'text') return
+  const story = head.threadStory ?? head.text
+  const measure = (line: string): number =>
+    renderer.measureTextBox(head.fontFamily, head.fontSize, head.lineHeight, line)?.width ?? 0
+  const lines = wrapText(story, head.width, measure)
+  const capacities = frames.map((frame) => (frame === null || frame.type !== 'text' ? 1 : frameCapacity(frame.height, frame.lineHeight)))
+  const slices = distributeLines(lines, capacities)
+  const commands: Command[] = [
+    { type: 'setTextThread', nodeId: head.id, nextId: frames[1] === null ? null : frames[1].id, story },
+    ...frames.map((frame, index) => ({
+      type: 'setText' as const,
+      nodeId: frame === null ? head.id : frame.id,
+      text: (slices[index] ?? []).join('\n'),
+    })),
+  ]
+  const result = documentStore.dispatch(batchCommand(commands), 'thread text')
+  if (result.ok) documentStore.setSelection(frames.map((frame) => (frame === null ? head.id : frame.id)))
+}
+
 export function joinSelectedPaths(): void {
   const { selection } = documentStore.getState()
   if (selection.length !== 2) return
@@ -1007,6 +1038,12 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     const node = editor.selection.length === 1 ? findNode(editor.document, editor.selection[0]) : null
     if (node === null || node.type !== 'path' || node.style.stroke === null) return false
     return id === 'path.profileUniform' ? node.style.stroke.widthProfile !== undefined : true
+  }
+  case 'text.thread': {
+    const frames = editor.selection
+      .map((id) => findNode(editor.document, id))
+      .filter((node) => node !== null && node.type === 'text' && node.textType === 'area')
+    return frames.length >= 2
   }
   case 'path.offsetPath':
     return editor.selection.some((id) => {
@@ -1468,6 +1505,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.sizeDown':
       applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, -1) }), 'decrease size')
+      return
+    case 'text.thread':
+      threadTextFrames()
       return
     case 'type.alignLeft':
       applyTextStyle((node) => ({ ...node, align: 'left' }), 'align left')

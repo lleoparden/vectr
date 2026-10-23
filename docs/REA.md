@@ -70,3 +70,34 @@ automation surface instead of REA:
 The honest state: **REA is useful for our own artifacts and runtime, blocked for Illustrator on Windows,
 and legally off-limits for Adobe internals.** The next phase should be planned with that split stated up
 front, not discovered halfway through.
+
+## The artifact script
+
+`npm run verify:artifact` reads the ASAR directly (no new dependency), and is the concrete version of
+the rule above:
+
+- **Version identity is an assertion, not a print.** The version inside the ASAR must equal
+  `package.json`; a mismatch fails with "stale staging or the wrong artifact" - the exact failure that
+  started this pass.
+- **The phase contract is ids, not vibes.** `scripts/verify-artifact.mjs` lists the shipped command and
+  tool identifiers for phases 1-4 and 5, plus symbols that arrived in a fix release
+  (`hitTestAll` and `pointInShape` since **0.5.1**). Those are **forbidden before** that version and
+  required from it, so a 0.5.0 receipt records their absence on purpose. That is what makes the receipt
+  say "this is exactly 0.5.0", not "it contains paths".
+- **Both hashes are recorded:** the whole ASAR (app payload) and the renderer bundle. The ASAR hash
+  pins the app's contents; it does **not** pin the NSIS installer container, which is built around it.
+- **The default path is the fresh build** (`release/win-unpacked`), then the per-user install. An
+  installed copy may deliberately lag the tree; pass `--asar` to verify the other one.
+- **Receipts live in `docs/evidence/artifact-<version>.json`**, with the artifact path, both hashes,
+  every check, and the failure list. `docs/evidence/artifact-0.5.1.json` is the first one.
+
+```bash
+npm run verify:artifact                         # fresh staging, or installed if absent
+npm run verify:artifact -- --asar "C:\Users\...\Programs\vectr\resources\app.asar"
+npm run verify:artifact -- --receipt docs/evidence/artifact-0.5.1.json
+```
+
+When a phase adds an id, add it to the contract in the same pull request; when a fix introduces a
+symbol, add it to `SINCE` with the version that first shipped it. A contract that only grows
+"required" ids cannot prove absence, which is why `SINCE` exists.
+

@@ -1,6 +1,17 @@
 # Progress
 
 
+## The artifact check became a script (2026-10-23)
+
+- **`npm run verify:artifact`** reads the ASAR with no new dependency, asserts the ASAR's version equals
+  `package.json` (failing loudly on stale staging), hashes the whole ASAR and the renderer bundle, and checks a
+  per-phase contract of command/tool ids plus symbols that must be **absent before** a fix version. Receipts go to
+  `docs/evidence/artifact-<version>.json`.
+- **First receipts:** `artifact-0.5.1.json` passes on a freshly staged build (33 checks). The installed 0.5.0 fails
+  the version check and correctly reports `hitTestAll` as absent-before-0.5.1 - the two cases the script exists for.
+- **Scope stated:** the ASAR hash pins the app payload, not the NSIS container; and the default path prefers the
+  fresh staging over an installed copy, which may deliberately lag.
+
 ## First REA pass: artifact verification, and the Illustrator boundary (2026-10-23)
 
 - **REA cannot observe Illustrator on this host.** Its native UI and native-code providers are macOS-only

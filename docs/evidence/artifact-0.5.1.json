@@ -1,0 +1,185 @@
+{
+  "tool": "verify-artifact",
+  "generatedAt": "2026-10-23T14:22:27.873Z",
+  "asar": {
+    "path": "L:\\vectr\\release\\win-unpacked\\resources\\app.asar",
+    "version": "0.5.1",
+    "sha256": "9f951df7add8889915c0b9e305ee8822fc346b990d5e8ddc59c98e204b1044c0",
+    "bytes": 50842298
+  },
+  "expectedVersion": "0.5.1",
+  "bundle": {
+    "path": "dist/assets/index-x6yixnO5.js",
+    "sha256": "c50059710e7fe95d301c73c3a29bcd9457159e589a5f258ca6ada8044b700160",
+    "bytes": 729620
+  },
+  "checks": [
+    {
+      "name": "repository and artifact versions match",
+      "ok": true,
+      "detail": "artifact 0.5.1, expected 0.5.1"
+    },
+    {
+      "name": "phase-1-4 edit.undo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 edit.redo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 file.save",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.group",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.ungroup",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.makeClip",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.alignLeft",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.select",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.rect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.ellipse",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.text",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.pen",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.shapeBuilder",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.livePaint",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.width",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.addAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.deleteAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.join",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.unite",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.intersect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.subtract",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.exclude",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.divide",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.simplify",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.offsetPath",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.outlineStroke",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.profileBulge",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 setWidthProfile",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundMake",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundRelease",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "hitTestAll (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "pointInShape (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    }
+  ],
+  "passed": true,
+  "failures": []
+}

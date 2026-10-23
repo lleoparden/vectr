@@ -2,26 +2,26 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. Phase 6 has begun: this patch
-adds **area text** and the first point-text parity work, and moves the native format to **v8**.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. Phase 6 continues: **text on a
+path** joins point and area text, and the native format moves to **v9**.
 
 ### What changed
 
-- **Area text.** Drag with the Type tool to author a fixed text frame. Text wraps inside its width at word
-  boundaries (long words break by character), lines past the frame height are clipped, and content or style edits
-  keep the authored box. A click still places point text, exactly like Illustrator's Type tool.
-- **Point-text parity.** Changing left/centre/right alignment now keeps the **insertion anchor** fixed and moves the
-  box around it, and the measured box uses Illustrator's **ink height** (ascent + descent + leading per extra line)
-  instead of `lines × leading`. Undo restores the exact position, not just the alignment.
-- **Format v8.** `textType: 'area'` is optional, so v1–v7 documents open unchanged; older builds refuse v8 rather
-  than drawing area text as point text.
+- **Text on a path.** Click a filled path with the Type tool and text is centred along it. Each glyph is placed at its
+  arc distance and rotated to the path's tangent, so letters turn around corners and curves. The text object's box is
+  the path's bounds, and content or style edits keep that box.
+- **One gesture, three text types.** A Type click on empty canvas places point text, a drag draws an area frame, and a
+  click on a path starts path text — Illustrator's Type tool in miniature.
+- **Format v9.** `textPath` is optional, so v1–v8 documents open unchanged; older builds refuse v9 rather than
+  drawing path text as flat text.
+- **Hardening:** a document file with a missing `transform` is now refused with a validation failure instead of
+  throwing, so a malformed file cannot crash the open path.
 
 ### What is in this build
 
-Everything from **0.5.1** — paths, Pen, anchor editing, curve-preserving Pathfinder, Divide, Shape Builder, Live
-Paint, compound paths, Simplify, Outline Stroke, Offset Path, live shapes, width profiles with the Width tool, and
-the Phase 5 tool fixes — plus point/area text with in-place editing, transforms, gradients, blend modes, artboards,
-layers, images, autosave, and crash recovery.
+Everything from **0.5.2** — paths, Pen, booleans, compound paths, Simplify/Outline/Offset, live shapes, width
+profiles with the Width tool, point and area text — plus transforms, gradients, blend modes, artboards, layers,
+images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -54,9 +54,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 373 unit tests, UI standards
+npm test           # layer check, 377 unit tests, UI standards
 npm run build
-npm run smoke      # 164 packaged steps, six reports
+npm run smoke      # 165 packaged steps, six reports
 ```
 
 </details>
@@ -64,23 +64,23 @@ npm run smoke      # 164 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Area text has no inset, columns, threading, or overflow indicator**, and its frame is not resized by handles
-  yet; content edits keep the authored box and overflow is clipped.
-- **Point-text insertion is stored as the box's top-left**, not Illustrator's baseline; alignment reproduces the
-  anchor behaviour without redefining `transform.y`.
-- Text on a path, character/paragraph styles, tabs, vertical type, and text-to-outline are Phase 6 work that has
-  its evidence recorded but not its features.
+- **Path text is centred only**: no start offset, no side-of-path, no align-to-path controls, and the path geometry is
+  **copied into the text node** at creation, so editing the original path later does not move the text.
+- The path-text editing overlay is the path's rectangular bounds, not the glyph positions.
+- Area text still has no inset, columns, threading, or overflow indicator; point-text insertion is the box's
+  top-left rather than Illustrator's baseline.
+- Text on a path does not follow a compound path's separate contours; only the node's first path geometry is copied.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
-  anchor with flattened curves, and a compound's own stroke is not outlined.
+  anchor, and a compound's own stroke is not outlined.
 
 </details>
 
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **373 unit tests**, production build, and **164 packaged steps** across six reports.
-- New packaged step drags with the Type tool and asserts the resulting **150×120 area frame**.
-- The Illustrator fixtures under `tests/fixtures/illustrator/` (recorded on 27.3.1) back the area-capacity and
-  alignment assertions; the unit suite reads them without Illustrator installed.
+- Typecheck, layer check, **377 unit tests**, production build, and **165 packaged steps** across six reports.
+- New packaged step clicks a filled path with the Type tool and asserts a **160-wide path-text object**.
+- Unit tests pin glyph placement on a straight path (90/100/110 along 200), a vertical tangent, a closed square's
+  corners, path bounds preserved through edits, and rejection of a text path with one anchor.
 
 </details>

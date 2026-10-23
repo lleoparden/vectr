@@ -2425,6 +2425,31 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 28. Text on a path: clicking a filled path with the Type tool starts path text.
+  const pathForText = createPath('Path text host', 2200, 300, [cornerAnchor(0, 0), cornerAnchor(160, 0), cornerAnchor(160, 120), cornerAnchor(0, 120)], { closed: true })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [pathForText] }, 'path text host')
+  documentStore.setSelection([])
+  documentStore.setTool('text')
+  await settle(100)
+  const pathViewport = documentStore.getState().viewport
+  const pathRect = canvas.getBoundingClientRect()
+  const pathAt = (x: number, y: number, buttons: number) => ({ bubbles: true, clientX: pathRect.left + x * pathViewport.zoom + pathViewport.panX, clientY: pathRect.top + y * pathViewport.zoom + pathViewport.panY, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons })
+  canvas.dispatchEvent(new PointerEvent('pointerdown', pathAt(2280, 360, 1)))
+  canvas.dispatchEvent(new PointerEvent('pointerup', pathAt(2280, 360, 0)))
+  await settle(200)
+  const pathTextNode = documentStore.getState().document.root.children.find((node) => node.type === 'text' && node.textPath !== undefined)
+  record(
+    'clicking a path with the Type tool makes path text',
+    pathTextNode !== undefined && pathTextNode.type === 'text' && pathTextNode.textPath !== undefined && Math.abs(pathTextNode.width - 160) < 1,
+    pathTextNode === undefined || pathTextNode.type !== 'text' ? 'no path text' : `${Math.round(pathTextNode.width)}x${Math.round(pathTextNode.height)} path box`,
+  )
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  await settle(100)
+  documentStore.undo()
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

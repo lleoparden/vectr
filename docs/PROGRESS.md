@@ -1,6 +1,24 @@
 # Progress
 
 
+## Phase 6.3: text on a path (2026-10-23)
+
+- **Clicking a filled path with the Type tool starts text on it.** The text is centred along the path, each glyph is
+  placed at its arc distance and rotated by the tangent, and the text node's box is the path's bounds. The path
+  geometry is **copied into the text node** (`textPath`, format v9) so the text object travels with its shape; a
+  later edit to the original path is not linked yet, which is declared rather than implied.
+- **Layout is pure:** `src/doc/textOnPath.ts` walks a flattened polyline (measure per character, centred start,
+  wrap-around only when the path is closed) and returns glyph placements; the renderer draws each glyph rotated.
+  Unit tests cover a straight path (90/100/110 on a 200 path), a vertical tangent, and a closed square's corners.
+- **The box is fixed**, like area text: content and style edits keep the path bounds; validation rejects a text path
+  with fewer than two anchors or a non-finite one.
+- **Also fixed while here:** the validator crashed on a missing `transform` instead of returning a failure; it now
+  returns `false`, so a malformed file is refused cleanly.
+- **Evidence:** 377 unit tests and **165 packaged steps**, including a Type-tool click on a filled path that creates
+  a 160-wide path-text object.
+- **Declared limits:** centred only (no start offset, side, or alignment controls), the path is copied not linked, and
+  the editing overlay is the path's rectangular bounds rather than glyph positions.
+
 ## Phase 6.2: area text (2026-10-23)
 
 - **Area text is a real text type now.** `TextNode.textType: 'area'` (optional, format v8) is an authored frame:

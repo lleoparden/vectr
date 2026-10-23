@@ -38,7 +38,9 @@ export function fail(code: ValidationCode, message: string, nodeId?: NodeId): Va
 
 /** Finite, non-negative geometry. NaN/Infinity silently corrupts caches. */
 export function validTransform(node: LayerNode): boolean {
-  const { x, y, rotation, scaleX, scaleY } = node.transform
+  const transform = node.transform as LayerNode['transform'] | undefined
+  if (transform === null || typeof transform !== 'object') return false
+  const { x, y, rotation, scaleX, scaleY } = transform
   return [x, y, rotation, scaleX, scaleY].every((value) => Number.isFinite(value))
 }
 
@@ -235,6 +237,16 @@ export function validateDocument(document: Document): ValidationResult {
       if (isText(node)) {
     if (node.textType !== undefined && node.textType !== 'point' && node.textType !== 'area') {
       return fail('invalid-index', `Text ${node.id} has an unknown text type.`, node.id)
+    }
+    if (node.textPath !== undefined) {
+      if (!Array.isArray(node.textPath.anchors) || node.textPath.anchors.length < 2) {
+        return fail('invalid-index', `Text ${node.id} has a text path with fewer than two anchors.`, node.id)
+      }
+      for (const anchor of node.textPath.anchors) {
+        if (![anchor.x, anchor.y, anchor.inX, anchor.inY, anchor.outX, anchor.outY].every((value) => Number.isFinite(value))) {
+          return fail('non-finite', `Text ${node.id} has a non-finite text-path anchor.`, node.id)
+        }
+      }
     }
         if (!Number.isFinite(node.fontSize) || node.fontSize <= 0 || node.fontSize > 1000) {
           return fail('non-finite', `Text node ${node.id} has an out-of-range font size.`, node.id)

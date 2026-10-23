@@ -656,6 +656,35 @@ export function CanvasView() {
         const document = documentStore.getState().document
         const existing = document.root.children.filter((node) => node.type === 'text').length
         const defaults = workspaceStore.getState().creationDefaults
+        // Clicking a top-level path with the Type tool starts text on that path, as Illustrator does.
+        // The path geometry is copied into the text node, so a later path edit is not linked (declared).
+        const hit = hitTest(document, scene, { deep: true })
+        const pathNode = hit === null ? null : findNode(document, hit)
+        const isTopLevelPath =
+          pathNode !== null &&
+          pathNode.type === 'path' &&
+          pathNode.anchors.length >= 2 &&
+          document.root.children.some((node) => node.id === pathNode.id)
+        if (pathNode !== null && isTopLevelPath && pathNode.type === 'path') {
+          const onPath = createText(`Text ${existing + 1}`, pathNode.transform.x, pathNode.transform.y, '', {
+            fill: defaults.textFill,
+            fontSize: defaults.textFontSize,
+            align: defaults.textAlign,
+            width: pathNode.width,
+            height: pathNode.height,
+          })
+          onPath.transform = { ...pathNode.transform }
+          onPath.textPath = { anchors: pathNode.anchors.map((anchor) => ({ ...anchor })), closed: pathNode.closed }
+          const inserted = documentStore.dispatch(
+            { type: 'insertNodes', parentId: document.root.id, index: document.root.children.length, nodes: [onPath] },
+            'add path text',
+          )
+          if (inserted.ok) {
+            documentStore.setSelection([onPath.id])
+            setEditing({ nodeId: onPath.id, text: '' })
+          }
+          return
+        }
         const node = createText(`Text ${existing + 1}`, scene.x, scene.y, '', {
           // The Type tool's options apply to the object it is about to create.
           fill: defaults.textFill,

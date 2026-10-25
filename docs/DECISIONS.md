@@ -2459,3 +2459,14 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   CJK punctuation, tate-chu-yoko, and bidirectional runs. Those need shaping work we do not have; shipping an upright
   stack with the limit stated is more honest than a rotation that breaks mixed text.
 - **Format v11, optional.** Absent orientation means horizontal, so v1-v10 open unchanged.
+
+## 2026-10-25 - Glyph outlines come from our own TrueType reader
+
+- **Why not Skia:** CanvasKit's Font/Typeface/Paragraph expose metrics, glyph IDs, bounds, and intercepts - no
+  outline paths. Text-to-outline therefore needs the font bytes, and the renderer already fetches the bundled Inter
+  face, so it now keeps those bytes and hands them to the geometry layer.
+- **Why a small parser:** `cmap` + `loca`/`glyf` + `hmtx` is a bounded problem, testable without a GPU, and it keeps
+  outline generation in L0 where the rest of geometry lives. Variation axes are not applied; outlines use the default
+  master, which matches the only weight the editor draws today.
+- **Costs stated:** no kerning in the pen positions, vertical/path text skipped, and outlines are paths afterwards -
+  text editing ends at the command.

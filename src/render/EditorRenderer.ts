@@ -94,6 +94,7 @@ export class EditorRenderer {
   private readonly ownedPaths: Path[] = []
   /** One Skia font per family/size pair, bounded by the distinct sizes in the document. */
   private readonly fonts = new Map<string, Font>()
+  private fontBytes: Uint8Array | null = null
   private readonly substituted = new Set<string>()
   private typeface: Typeface | null = null
   /** Decoded images, one per asset id, disposed with the renderer. */
@@ -174,12 +175,18 @@ export class EditorRenderer {
         return
       }
       const buffer = await response.arrayBuffer()
+      this.fontBytes = new Uint8Array(buffer.slice(0))
       this.typeface = this.kit.Typeface.MakeTypefaceFromData(buffer)
       if (this.typeface === null) console.warn('[vectr-font] Inter could not be parsed; text will not be drawn.')
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause)
       console.warn(`[vectr-font] Inter could not be loaded: ${message}`)
     }
+  }
+
+  /** The raw bundled face, for Create Outlines; null until the font has loaded. */
+  readOutlineFont(): Uint8Array | null {
+    return this.fontBytes
   }
 
   /** The font for a family/size pair, substituting the bundled face and recording it. */

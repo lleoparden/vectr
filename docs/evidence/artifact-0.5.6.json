@@ -1,0 +1,215 @@
+{
+  "tool": "verify-artifact",
+  "generatedAt": "2026-10-25T15:40:45.169Z",
+  "asar": {
+    "path": "L:\\vectr\\release\\win-unpacked\\resources\\app.asar",
+    "version": "0.5.6",
+    "sha256": "5304360d0af5494af64aba8d99cb905629454fc2a561079477c33d1e46222fdd",
+    "bytes": 50863760
+  },
+  "expectedVersion": "0.5.6",
+  "bundle": {
+    "path": "dist/assets/index-sV7jGDxJ.js",
+    "sha256": "ca3fcf32a3c77de69dc848dd7c26ddd33b245946014401255882bf1becadb36c",
+    "bytes": 751082
+  },
+  "checks": [
+    {
+      "name": "repository and artifact versions match",
+      "ok": true,
+      "detail": "artifact 0.5.6, expected 0.5.6"
+    },
+    {
+      "name": "phase-1-4 edit.undo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 edit.redo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 file.save",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.group",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.ungroup",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.makeClip",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.alignLeft",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.select",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.rect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.ellipse",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.text",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.pen",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.shapeBuilder",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.livePaint",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.width",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.addAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.deleteAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.join",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.unite",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.intersect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.subtract",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.exclude",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.divide",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.simplify",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.offsetPath",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.outlineStroke",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.profileBulge",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 setWidthProfile",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundMake",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundRelease",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "hitTestAll (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "pointInShape (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "placeAreaText (since 0.5.2)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "textType (since 0.5.2)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "textPath (since 0.5.3)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "threadStory (since 0.5.4)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "orientation (since 0.5.5)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "type.createOutlines (since 0.5.6)",
+      "ok": true,
+      "detail": "present as expected"
+    }
+  ],
+  "passed": true,
+  "failures": []
+}

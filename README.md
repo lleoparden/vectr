@@ -15,7 +15,7 @@ A desktop-first vector design tool with Illustrator's conventions and its own co
 [![Tailwind](https://img.shields.io/badge/Tailwind-4.3-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Site](https://img.shields.io/badge/site-lleoparden.github.io%2Fvectr-A94A4A)](https://lleoparden.github.io/vectr/)
-[![Release](https://img.shields.io/badge/release-v0.5.4-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.5.1)
+[![Release](https://img.shields.io/badge/release-v0.5.5-orange)](https://github.com/lleoparden/vectr/releases/tag/v0.5.1)
 
 </div>
 
@@ -38,7 +38,7 @@ Nothing is borrowed: the icons, type, colours, copy, and code are Vectr's own. I
 - **Precision canvas** — Multiple artboards with size presets, rulers with re-stepping ticks, a grid under the artwork, and guides that snap, persist, and live in the file.
 - **Paint that behaves** — Fills, strokes with caps, joins, dashes, and inside/centre/outside alignment; linear and radial gradients with up to eight stops painting fill, stroke, or both; all sixteen blend modes on fills and strokes; named swatches with CMYK and spot definitions.
 - **Composition** — Vector clipping masks, isolation mode, nested groups, Arrange, Align and distribute, group/ungroup, duplicate, cut/copy/paste.
-- **Type and images** — Point text with in-place editing and missing-font reporting; **area text** with an authored frame, word wrapping, and clipped overflow (drag with the Type tool); **text on a path** by clicking a filled path with the Type tool; **threaded area frames** (Thread Text distributes overflow); embedded and linked images, relink, non-destructive crop, and raster alpha masks.
+- **Type and images** — Point text with in-place editing and missing-font reporting; **area text** with an authored frame, word wrapping, and clipped overflow (drag with the Type tool); **text on a path** by clicking a filled path with the Type tool; **threaded area frames** (Thread Text distributes overflow); **vertical text** (Type ▸ Vertical Type); embedded and linked images, relink, non-destructive crop, and raster alpha masks.
 - **Layers you can work in** — Reorder, rename, nest, lock and hide with inheritance, live thumbnails (nested rows either preview or say why not), a locate column for the group that owns the selection, and drag-into-group.
 - **A live interface** — Hover outlines from the same hit test the tools use, per-tool cursors, a rotation readout while dragging, and scrub-able number fields that accept arithmetic (`120+30`).
 - **Documents that hold** — A versioned native format with byte-stable saves, autosave for saved documents, crash recovery that restores the whole project folder with its images, and a close guard.

@@ -45,7 +45,8 @@ Illustrator oracle are in [PHASE6_REA_CHECKLIST.md](PHASE6_REA_CHECKLIST.md).
 | 6.2 Area text | **Ships**: authored frame, word wrapping, clipped overflow, drag-created (format v8) |
 | 6.3 Text on a path | **Ships**: Type-click a path, centred glyph layout with tangents, fixed bounds (format v9); copied geometry, no start offset |
 | 6.4 Threading | **Ships one-shot**: Thread Text distributes lines across area frames (format v10); live reflow and unlink remain |
-| 6.5 Styles, 6.6 Tabs, 6.7 Vertical | Not started (tabs API gap recorded) |
+| 6.5 Styles, 6.6 Tabs | Not started (tabs API gap recorded) |
+| 6.7 Vertical type | **Ships as an upright stack** (format v11); rotated glyphs and vertical punctuation remain |
 | 6.8 Missing fonts, 6.9 Outlining | Fixtures recorded |
 
 ## Phase 2 history (complete, for reference)

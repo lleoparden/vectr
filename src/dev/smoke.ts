@@ -2483,6 +2483,23 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 30. Vertical type: the toggle stacks characters and grows the box downward.
+  const verticalText = createText('Vertical fixture', 2600, 300, 'abc', { fontSize: 16, lineHeight: 19.2 })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [verticalText] }, 'vertical fixture')
+  documentStore.setSelection([verticalText.id])
+  await settle(80)
+  runEditorAction('type.orientation')
+  await settle(120)
+  const rotatedText = documentStore.getState().document.root.children.find((node) => node.id === verticalText.id)
+  record(
+    'Vertical Type stacks the characters',
+    rotatedText !== undefined && rotatedText.type === 'text' && rotatedText.orientation === 'vertical' && rotatedText.height > rotatedText.width,
+    rotatedText === undefined || rotatedText.type !== 'text' ? 'no text' : `${Math.round(rotatedText.width)}x${Math.round(rotatedText.height)} vertical`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

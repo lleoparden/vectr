@@ -84,6 +84,8 @@ export type Command =
   | { type: 'addArtboard'; artboard: Artboard; index: number }
   | { type: 'removeArtboard'; artboardId: string }
   | { type: 'setArtboard'; artboardId: string; name?: string; width?: number; height?: number }
+  /** Switches point text between horizontal and vertical (Phase 6.7). */
+  | { type: 'setTextOrientation'; nodeId: NodeId; orientation: 'horizontal' | 'vertical' }
   /** Links an area-text head to the next frame and stores the whole story (Phase 6.4). */
   | { type: 'setTextThread'; nodeId: NodeId; nextId: NodeId | null; story: string | null }
   /** Text content, with the measured box when the caller could measure (issue #16). */
@@ -200,8 +202,9 @@ function textBox(
   lineHeight: number,
   width?: number,
   height?: number,
+  orientation: 'horizontal' | 'vertical' = 'horizontal',
 ): { width: number; height: number } {
-  const estimate = estimateTextSize(text, fontSize, lineHeight)
+  const estimate = estimateTextSize(text, fontSize, lineHeight, orientation)
   const resolvedWidth = width !== undefined && Number.isFinite(width) && width > 0 ? width : estimate.width
   const resolvedHeight = height !== undefined && Number.isFinite(height) && height > 0 ? height : estimate.height
   return { width: resolvedWidth, height: resolvedHeight }
@@ -851,7 +854,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
       const box =
         node.textType === 'area' || node.textPath !== undefined
           ? { width: node.width, height: node.height }
-          : textBox(command.text, node.fontSize, node.lineHeight, command.width, command.height)
+          : textBox(command.text, node.fontSize, node.lineHeight, command.width, command.height, node.orientation)
       return {
         ok: true,
         document: withRevision(
@@ -866,6 +869,30 @@ export function applyCommand(document: Document, command: Command): CommandResul
           width: node.width,
           height: node.height,
         },
+      }
+    }
+
+    case 'setTextOrientation': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (!isText(node)) return rejected('invalid-parent', `Node ${command.nodeId} is not a text object.`)
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (command.orientation !== 'horizontal' && command.orientation !== 'vertical') {
+        return rejected('invalid-index', 'Unknown text orientation.')
+      }
+      const previous = node.orientation === 'vertical' ? 'vertical' : 'horizontal'
+      const box =
+        node.textType === 'area' || node.textPath !== undefined
+          ? { width: node.width, height: node.height }
+          : textBox(node.text, node.fontSize, node.lineHeight, undefined, undefined, command.orientation)
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) =>
+            isText(current) ? { ...current, orientation: command.orientation, ...box } : current,
+          ),
+        ),
+        inverse: { type: 'setTextOrientation', nodeId: command.nodeId, orientation: previous },
       }
     }
 
@@ -928,7 +955,7 @@ export function applyCommand(document: Document, command: Command): CommandResul
       const box =
         node.textType === 'area' || node.textPath !== undefined
           ? { width: node.width, height: node.height }
-          : textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height)
+          : textBox(node.text, command.fontSize, command.lineHeight, command.width, command.height, node.orientation)
       // Illustrator's point-text insertion anchor stays put when the alignment changes: left keeps the
       // left edge, centre the centre, right the right edge. Derive the anchor from the old alignment and
       // place the new box so that same anchor is preserved (Phase 6.1, fixture point-text-align).

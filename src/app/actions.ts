@@ -800,6 +800,21 @@ export function applyWidthProfile(preset: 'uniform' | 'taperStart' | 'taperEnd' 
 }
 
 /** Threads two or more selected area frames, distributing the story's lines across them once. */
+/** Toggles selected point text between horizontal and vertical, one undo entry. */
+export function toggleTextOrientation(): void {
+  const { document, selection } = documentStore.getState()
+  const texts = selection.map((id) => findNode(document, id)).filter((node) => node !== null && isText(node))
+  if (texts.length === 0) return
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('text orientation')
+  for (const node of texts) {
+    if (node === null || !isText(node)) continue
+    const orientation = node.orientation === 'vertical' ? 'horizontal' : 'vertical'
+    documentStore.dispatch({ type: 'setTextOrientation', nodeId: node.id, orientation }, 'text orientation')
+  }
+  if (own) documentStore.commitTransaction()
+}
+
 export function threadTextFrames(): void {
   const { document, selection } = documentStore.getState()
   const renderer = getActiveRenderer()
@@ -1039,6 +1054,11 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     if (node === null || node.type !== 'path' || node.style.stroke === null) return false
     return id === 'path.profileUniform' ? node.style.stroke.widthProfile !== undefined : true
   }
+  case 'type.orientation':
+    return editor.selection.some((id) => {
+      const node = findNode(editor.document, id)
+      return node !== null && isText(node)
+    })
   case 'text.thread': {
     const frames = editor.selection
       .map((id) => findNode(editor.document, id))
@@ -1505,6 +1525,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.sizeDown':
       applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, -1) }), 'decrease size')
+      return
+    case 'type.orientation':
+      toggleTextOrientation()
       return
     case 'text.thread':
       threadTextFrames()

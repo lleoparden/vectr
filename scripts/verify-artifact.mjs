@@ -175,6 +175,7 @@ const SINCE = {
   textType: '0.5.2',
   textPath: '0.5.3',
   threadStory: '0.5.4',
+  orientation: '0.5.5',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

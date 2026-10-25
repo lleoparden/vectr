@@ -223,9 +223,15 @@ export function CanvasView() {
       : null
 
   /** Measured box when the renderer has the font, otherwise the shared estimate. */
-  function textBoxFor(fontFamily: string, fontSize: number, lineHeight: number, text: string) {
-    const measured = getActiveRenderer()?.measureTextBox(fontFamily, fontSize, lineHeight, text) ?? null
-    return measured ?? estimateTextSize(text, fontSize, lineHeight)
+  function textBoxFor(
+    fontFamily: string,
+    fontSize: number,
+    lineHeight: number,
+    text: string,
+    orientation: 'horizontal' | 'vertical' = 'horizontal',
+  ) {
+    const measured = getActiveRenderer()?.measureTextBox(fontFamily, fontSize, lineHeight, text, orientation) ?? null
+    return measured ?? estimateTextSize(text, fontSize, lineHeight, orientation)
   }
 
   function startEditingText(nodeId: NodeId) {
@@ -254,7 +260,7 @@ export function CanvasView() {
       return
     }
     if (text === node.text) return
-    const box = textBoxFor(node.fontFamily, node.fontSize, node.lineHeight, text)
+    const box = textBoxFor(node.fontFamily, node.fontSize, node.lineHeight, text, node.orientation)
     documentStore.dispatch({ type: 'setText', nodeId, text, width: box.width, height: box.height }, 'edit text')
   }
 

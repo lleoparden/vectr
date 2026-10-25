@@ -117,6 +117,7 @@ export const MENU_BAR: MenuSpec[] = [
       command('type.alignCenter'),
       command('type.alignRight'),
             command('text.thread'),
+            command('type.orientation'),
       { kind: 'separator' },
       command('type.sizeUp'),
       command('type.sizeDown'),

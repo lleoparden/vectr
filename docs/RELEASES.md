@@ -2,25 +2,24 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Threaded text** arrives as a
-one-shot distribution across area frames, and the native format moves to **v10**.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Vertical text** joins point,
+area, path, and threaded text, and the native format moves to **v11**.
 
 ### What changed
 
-- **Thread Text** (Type menu). Select two or more area text frames and the story's lines are distributed across them:
-  the head keeps the whole story plus a link to the next frame, and every frame shows its own slice. Capacities follow
-  Illustrator's rule — frame height divided by the leading, rounded up. Lines past the last frame stay in the story but
-  are not displayed. One command, one undo entry, exact inverse.
-- **Format v10.** `threadStory` and `threadNextId` are optional, so v1–v9 documents open unchanged; older builds refuse
-  v10 rather than dropping the link.
-- **Distribution is pure.** `src/doc/textThread.ts` decides capacity and slicing and is tested without a canvas; the
-  action supplies the measured wrapping, so threading uses the same break rule as area text.
+- **Vertical Type** (Type menu). Select point text and toggle it vertical: characters stack downward one font size per
+  row, each line becomes a new column, and the box becomes columns wide by longest-column tall. Selecting several text
+  objects toggles them together as one undo entry, and area or path frames keep their authored box.
+- **Format v11.** `orientation` is optional, so v1–v10 documents open unchanged; older builds refuse v11 rather than
+  drawing vertical text horizontally.
+- **Measurement parity.** The renderer and the pre-render estimate share the same vertical rule (one font size per
+  character, one column per line), so the box does not jump after the first frame.
 
 ### What is in this build
 
-Everything from **0.5.3** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
-point text, area text, and text on a path — plus transforms, gradients, blend modes, artboards, layers, images,
-autosave, and crash recovery.
+Everything from **0.5.4** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
+point/area/path/threaded text — plus transforms, gradients, blend modes, artboards, layers, images, autosave, and
+crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -53,9 +52,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 381 unit tests, UI standards
+npm test           # layer check, 384 unit tests, UI standards
 npm run build
-npm run smoke      # 166 packaged steps, six reports
+npm run smoke      # 167 packaged steps, six reports
 ```
 
 </details>
@@ -63,10 +62,11 @@ npm run smoke      # 166 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Threading is one-shot**: editing a frame afterwards does not reflow the others, and there is no unlink UI. Only the
-  first-to-second link is recorded; additional selected frames are display targets.
-- Lines beyond the last threaded frame are retained in the story but not displayed, and there is no overflow marker.
-- Path text is centred only, with copied (not linked) geometry; area text has no inset, columns, or handle resize.
+- **Vertical Latin is stacked upright, not rotated** the way Illustrator rotates some scripts; vertical punctuation,
+  tate-chu-yoko, and bidirectional layout are not implemented, and the editing overlay stays a rectangle.
+- Area text has no inset, columns, or handle resize; path text is centred with copied geometry.
+- Threading is one-shot: editing afterwards does not redistribute, there is no unlink UI, and only the first link is
+  recorded.
 - Point-text insertion remains the box's top-left rather than Illustrator's baseline.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
   anchor, and a compound's own stroke is not outlined.
@@ -76,10 +76,10 @@ npm run smoke      # 166 packaged steps, six reports
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **381 unit tests**, production build, and **166 packaged steps** across six reports.
-- New packaged step threads an 8-line story into two 3-line frames: the head shows 3 lines, the next frame receives
-  the overflow, and undo restores both.
-- Unit tests pin capacity rounding, distribution dropping display overflow, the link command and its inverse, and
-  refusals for non-area or self links.
+- Typecheck, layer check, **384 unit tests**, production build, and **167 packaged steps** across six reports.
+- New packaged step toggles a point-text object vertical and asserts the box becomes taller than it is wide, then
+  undoes.
+- Unit tests pin the vertical column maths (`abc` at 16 → 16×48, `ab\nc` → 32×32), the toggle command and its
+  inverse, and area frames keeping their box.
 
 </details>

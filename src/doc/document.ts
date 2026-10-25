@@ -324,15 +324,25 @@ export type TextOptions = {
   height?: number
   /** 'area' keeps the supplied width/height and wraps inside it (Phase 6.2). */
   textType?: 'point' | 'area'
+  orientation?: 'horizontal' | 'vertical'
 }
 
 /**
  * Estimated box for a text node: the fallback used when no renderer is available to measure,
  * and the value the tests assert against. The renderer replaces it with exact metrics.
  */
-export function estimateTextSize(text: string, fontSize: number, lineHeight: number): { width: number; height: number } {
+export function estimateTextSize(
+  text: string,
+  fontSize: number,
+  lineHeight: number,
+  orientation: 'horizontal' | 'vertical' = 'horizontal',
+): { width: number; height: number } {
   const lines = text.split('\n')
   const longest = Math.max(1, ...lines.map((line) => line.length))
+  if (orientation === 'vertical') {
+    // Characters stack downward and each line becomes a new column; a character is one font size tall.
+    return { width: Math.max(1, lines.length * fontSize), height: Math.max(1, longest * fontSize) }
+  }
   // The box is the ink height (about one font size) plus leading for each extra line, which is how a
   // design tool reports point-text bounds; the renderer replaces this with font metrics when it can.
   const height = fontSize + (Math.max(1, lines.length) - 1) * lineHeight
@@ -347,7 +357,7 @@ export function estimateTextSize(text: string, fontSize: number, lineHeight: num
 export function createText(name: string, x: number, y: number, text: string, options: TextOptions = {}): TextNode {
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE
   const lineHeight = options.lineHeight ?? fontSize * DEFAULT_LINE_HEIGHT_RATIO
-  const box = estimateTextSize(text, fontSize, lineHeight)
+  const box = estimateTextSize(text, fontSize, lineHeight, options.orientation ?? 'horizontal')
   return {
     id: newId('text'),
     type: 'text',
@@ -360,6 +370,7 @@ export function createText(name: string, x: number, y: number, text: string, opt
     height: options.height ?? box.height,
     fontSize,
     fontFamily: options.fontFamily ?? DEFAULT_FONT_FAMILY,
+    ...(options.orientation === 'vertical' ? { orientation: 'vertical' as const } : {}),
     ...(options.textType === 'area' ? { textType: 'area' as const } : {}),
     align: options.align ?? 'left',
     lineHeight,

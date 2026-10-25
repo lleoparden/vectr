@@ -1,6 +1,20 @@
 # Progress
 
 
+## Phase 6.7: vertical type, first version (2026-10-23)
+
+- **Vertical Type** (Type menu) toggles selected point text between horizontal and vertical, one undo entry for the
+  selection. Characters stack downward one font size per row, each line becomes a new column, and the box becomes
+  columns wide and longest-column tall - matching the recording of Illustrator's vertical box (24x341 for a short
+  string at 24 pt, growing downward).
+- **Area and path frames keep their authored box**; only auto-sized point text is re-measured.
+- **Format v11:** `orientation` is optional, so v1-v10 open unchanged.
+- **Evidence:** 384 unit tests (column box maths, the toggle command and its inverse, area frames keeping their box)
+  and **167 packaged steps**, including a point text that turns vertical and grows taller than it is wide.
+- **Declared limits:** Latin glyphs are stacked **upright**, not rotated 90 degrees as Illustrator does for some
+  scripts; there is no vertical punctuation, tate-chu-yoko, or per-column alignment, and the editing overlay stays
+  a rectangle rather than a vertical caret.
+
 ## Phase 6.4: threaded text, first version (2026-10-23)
 
 - **Thread Text** (Type menu) links selected area frames and distributes the story's lines across them once: the

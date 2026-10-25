@@ -358,6 +358,7 @@ export class EditorRenderer {
     fontSize: number,
     lineHeight: number,
     text: string,
+    orientation: 'horizontal' | 'vertical' = 'horizontal',
   ): { width: number; height: number } | null {
     const font = this.fontFor(family, fontSize)
     if (font === null) return null
@@ -369,6 +370,13 @@ export class EditorRenderer {
     }
     // Illustrator's point-text bounds are the ink box: ascent + descent for the first line and the
     // leading for every extra one, not lines x leading.
+    if (orientation === 'vertical') {
+      // Characters stack downward, one font size per row, one column per line.
+      return {
+        width: Math.max(1, lines.length * fontSize),
+        height: Math.max(1, Math.max(...lines.map((line) => line.length), 1) * fontSize),
+      }
+    }
     const metrics = font.getMetrics()
     const inkHeight = metrics.descent - metrics.ascent
     const height = inkHeight + (Math.max(1, lines.length) - 1) * lineHeight
@@ -584,6 +592,16 @@ export class EditorRenderer {
     }
     // Skia's ascent is negative above the baseline, so `-ascent` is the baseline offset.
     const baseline = -font.getMetrics().ascent
+    if (text.orientation === 'vertical') {
+      const rows = text.content.split('\n')
+      for (let column = 0; column < rows.length; column += 1) {
+        const characters = Array.from(rows[column])
+        for (let row = 0; row < characters.length; row += 1) {
+          recording.drawText(characters[row], column * text.fontSize, row * text.fontSize + baseline, paint, font)
+        }
+      }
+      return
+    }
     const lines =
       text.textType === 'area'
         ? wrapText(text.content, shape.width, (line) => this.measureLine(font, line))

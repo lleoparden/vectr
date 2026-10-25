@@ -2450,3 +2450,12 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   shows. That makes reopening exact and rendering unchanged.
 - **Cost, stated:** editing a frame after threading does not reflow the others, and extra selected frames are display
   targets rather than a recorded chain. Both are in the catalog and release notes, not silently implied.
+
+## 2026-10-23 - Vertical type is an upright stack for now
+
+- **What ships:** `orientation: 'vertical'` stacks characters downward, one column per line, and re-measures
+  auto-sized point text; area and path frames keep their authored boxes. It is a real vertical layout, not a rotated box.
+- **Why not rotated glyphs:** Illustrator rotates Latin in some vertical contexts and uses script-specific rules for
+  CJK punctuation, tate-chu-yoko, and bidirectional runs. Those need shaping work we do not have; shipping an upright
+  stack with the limit stated is more honest than a rotation that breaks mixed text.
+- **Format v11, optional.** Absent orientation means horizontal, so v1-v10 open unchanged.

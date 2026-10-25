@@ -14,9 +14,9 @@ export type { PathAnchor }
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 10
-/** Versions this build still opens. v10 adds threaded text (Phase 6.4). */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+export const FORMAT_VERSION = 11
+/** Versions this build still opens. v11 adds vertical text (Phase 6.7). */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
 export type NodeId = string
 
@@ -229,6 +229,8 @@ export type TextNode = BaseNode & {
   threadStory?: string
   /** The next frame in the thread, when this one is linked to another. */
   threadNextId?: NodeId
+  /** 'vertical' stacks characters downward and starts a new column per line (Phase 6.7). */
+  orientation?: 'horizontal' | 'vertical'
   /** Measured box, so bounds, hit testing, and marquee selection work like any other leaf. */
   width: number
   height: number

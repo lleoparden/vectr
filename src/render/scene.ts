@@ -21,6 +21,7 @@ export type SceneText = {
   textType: 'point' | 'area'
   textPath: PathAnchor[] | null
   textPathClosed: boolean
+  orientation: 'horizontal' | 'vertical'
   lineHeight: number
 }
 
@@ -181,6 +182,7 @@ function walkShapes(
           textType: node.textType === 'area' ? 'area' : 'point',
           textPath: node.textPath === undefined ? null : node.textPath.anchors.map((anchor) => ({ ...anchor })),
           textPathClosed: node.textPath?.closed ?? false,
+          orientation: node.orientation === 'vertical' ? 'vertical' : 'horizontal',
         }
       : null,
     clip,

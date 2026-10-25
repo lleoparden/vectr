@@ -60,6 +60,7 @@ export const ACTION_IDS = [
   'path.offsetPath',
   'text.thread',
   'type.orientation',
+  'type.createOutlines',
   'path.profileUniform',
   'path.profileTaperStart',
   'path.profileTaperEnd',
@@ -169,6 +170,7 @@ export const ACTION_LABELS: Record<EditorActionId, string> = {
   'path.offsetPath': 'Offset Path',
   'text.thread': 'Thread Text',
   'type.orientation': 'Vertical Type',
+  'type.createOutlines': 'Create Outlines',
   'path.profileUniform': 'Uniform Width',
   'path.profileTaperStart': 'Taper Start',
   'path.profileTaperEnd': 'Taper End',
@@ -280,6 +282,7 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'type.alignLeft', chord: { key: 'l', ctrl: true, shift: true }, illustratorDefault: true },
   { id: 'type.alignCenter', chord: { key: 'c', ctrl: true, shift: true }, illustratorDefault: true },
   { id: 'type.alignRight', chord: { key: 'r', ctrl: true, shift: true }, illustratorDefault: true },
+  { id: 'type.createOutlines', chord: { key: 'o', ctrl: true, shift: true }, illustratorDefault: true },
 
   // Edit.
   // Edit (Illustrator's Preferences chord on Windows is Ctrl+K).

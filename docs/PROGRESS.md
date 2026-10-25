@@ -1,6 +1,21 @@
 # Progress
 
 
+## Phase 6.9: Create Outlines, with our own TrueType reader (2026-10-25)
+
+- **Type > Create Outlines (Ctrl+Shift+O)** replaces selected text with a compound path of its glyph outlines, using
+  the text's fill and baked scene-space geometry (rotation and scale are applied to the outline itself). One batch,
+  one undo entry.
+- **Why a parser:** CanvasKit exposes glyph metrics, IDs, and bounds but no glyph outlines (Font/Typeface/Paragraph
+  all checked). `src/geom/ttf.ts` reads the bundled Inter face directly: table directory, format 4/12 cmap,
+  loca/glyf (simple and composite glyphs), hmtx advances, and ascender; quadratic runs become cubic handles via the
+  2/3 control conversion.
+- **Evidence:** 387 unit tests (font parses with a cmap/ascender/glyphs, glyph contours convert to finite anchors,
+  Inter's S carries curve handles where its A is straight, advances scale with size and text) and **168 packaged
+  steps**, including a 48 pt "Ab" that becomes a path with recorded anchor/subpath counts.
+- **Declared limits:** outlines use the font's **default variation master** (no weight/width axes), ignore kerning,
+  only handle horizontal text (vertical and path text are skipped), and are no longer editable as text.
+
 ## Phase 6.7: vertical type, first version (2026-10-23)
 
 - **Vertical Type** (Type menu) toggles selected point text between horizontal and vertical, one undo entry for the

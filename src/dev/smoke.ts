@@ -2500,6 +2500,23 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 31. Create Outlines: text becomes a compound path of its glyph outlines.
+  const outlineSource = createText('Outline fixture', 2800, 300, 'Ab', { fontSize: 48, lineHeight: 57.6 })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [outlineSource] }, 'outline fixture')
+  documentStore.setSelection([outlineSource.id])
+  await settle(80)
+  runEditorAction('type.createOutlines')
+  await settle(400)
+  const outlinedText = documentStore.getState().document.root.children.find((node) => node.type === 'path' && node.name.startsWith('Outlines'))
+  record(
+    'Create Outlines replaces text with paths',
+    outlinedText !== undefined && outlinedText.type === 'path' && outlinedText.anchors.length > 2 && documentStore.getState().document.root.children.every((node) => node.id !== outlineSource.id),
+    outlinedText === undefined || outlinedText.type !== 'path' ? 'no outlines' : `${outlinedText.anchors.length} anchors + ${outlinedText.subpaths?.length ?? 0} subpaths`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

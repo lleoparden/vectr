@@ -47,6 +47,8 @@ import { polygonContains } from '../doc/hitTest.ts'
 import { nestPolygonIndices, polygonTouchesPath } from '../ops/polygon.ts'
 import type { Point } from '../geom/transform.ts'
 import { wrapText } from '../doc/textWrap.ts'
+import { localToScene } from '../doc/pathEdit.ts'
+import { parseTrueType, textOutlineContours, type TrueTypeFont } from '../geom/ttf.ts'
 import { distributeLines, frameCapacity } from '../doc/textThread.ts'
 import { buildScene } from '../render/scene.ts'
 import { getActiveRenderer } from '../render/activeRenderer.ts'
@@ -815,6 +817,77 @@ export function toggleTextOrientation(): void {
   if (own) documentStore.commitTransaction()
 }
 
+let outlineFontCache: TrueTypeFont | null = null
+
+function loadOutlineFont(): TrueTypeFont | null {
+  if (outlineFontCache !== null) return outlineFontCache
+  const bytes = getActiveRenderer()?.readOutlineFont() ?? null
+  if (bytes === null) return null
+  try {
+    outlineFontCache = parseTrueType(bytes)
+    return outlineFontCache
+  } catch {
+    return null
+  }
+}
+
+/** Create Outlines: replaces selected text with a compound path of its glyph outlines (Phase 6.9). */
+export function createTextOutlines(): void {
+  const state = documentStore.getState()
+  const targets = state.selection
+    .map((id) => findNode(state.document, id))
+    .filter((node) => node !== null && node.type === 'text' && node.textPath === undefined && node.orientation !== 'vertical')
+  if (targets.length === 0) return
+  const font = loadOutlineFont()
+  if (font === null) return
+  {
+    const current = documentStore.getState().document
+    const existing = current.root.children.filter((node) => node.name.startsWith('Outlines')).length
+    const commands: Command[] = []
+    const created: string[] = []
+    for (const node of targets) {
+      if (node === null || node.type !== 'text') continue
+      const live = findNode(current, node.id)
+      if (live === null || live.type !== 'text') continue
+      const contours = textOutlineContours(font, live.text, live.fontSize, live.lineHeight, live.align, live.width)
+      if (contours.length === 0) continue
+      const capture = { nodeId: live.id, anchors: [], transform: live.transform, width: live.width, height: live.height }
+      const toScene = (x: number, y: number) => localToScene({ x, y }, capture)
+      const sceneContours = contours.map((contour) =>
+        contour.map((anchor) => {
+          const point = toScene(anchor.x, anchor.y)
+          const inPoint = toScene(anchor.x + anchor.inX, anchor.y + anchor.inY)
+          const outPoint = toScene(anchor.x + anchor.outX, anchor.y + anchor.outY)
+          return {
+            x: point.x,
+            y: point.y,
+            inX: inPoint.x - point.x,
+            inY: inPoint.y - point.y,
+            outX: outPoint.x - point.x,
+            outY: outPoint.y - point.y,
+            smooth: anchor.smooth,
+          }
+        }),
+      )
+      const anchors = sceneContours[0]
+      const subpaths = sceneContours.slice(1)
+      const bounds = pathBounds(anchors, true)
+      const path = createPath(`Outlines ${existing + created.length + 1}`, bounds.x, bounds.y, anchors, {
+        closed: true,
+        fillRule: 'nonzero',
+        fill: live.style.fill,
+        subpaths,
+      })
+      commands.push({ type: 'insertNodes', parentId: current.root.id, index: current.root.children.length, nodes: [path] })
+      commands.push({ type: 'removeNodes', nodeIds: [live.id] })
+      created.push(path.id)
+    }
+    if (commands.length === 0) return
+    const result = documentStore.dispatch(batchCommand(commands), 'create outlines')
+    if (result.ok) documentStore.setSelection(created)
+  }
+}
+
 export function threadTextFrames(): void {
   const { document, selection } = documentStore.getState()
   const renderer = getActiveRenderer()
@@ -1054,6 +1127,11 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     if (node === null || node.type !== 'path' || node.style.stroke === null) return false
     return id === 'path.profileUniform' ? node.style.stroke.widthProfile !== undefined : true
   }
+  case 'type.createOutlines':
+    return editor.selection.some((id) => {
+      const node = findNode(editor.document, id)
+      return node !== null && node.type === 'text'
+    })
   case 'type.orientation':
     return editor.selection.some((id) => {
       const node = findNode(editor.document, id)
@@ -1525,6 +1603,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.sizeDown':
       applyTextStyle((node) => ({ ...node, fontSize: nextFontSize(node.fontSize, -1) }), 'decrease size')
+      return
+    case 'type.createOutlines':
+      createTextOutlines()
       return
     case 'type.orientation':
       toggleTextOrientation()

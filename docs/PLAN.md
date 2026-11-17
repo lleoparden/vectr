@@ -33,7 +33,7 @@ no Bézier path node yet, so the pen, anchors, Pathfinder, width profiles, and c
 Every slice owes the usual evidence (typecheck, full suite, build, packaged steps) plus a fixture for the
 geometry it introduces. Booleans owe property tests on area and winding, not eyeballing.
 
-## Phase 6 - Type (in progress)
+## Phase 6 - Type (complete in scope, 0.6.0)
 
 Epic scope in [MASTER_PLAN.md](MASTER_PLAN.md): point and area text, text on a path, threading, character and
 paragraph styles, tabs, vertical type, missing-font substitution, and text-to-outline. Evidence rules and the
@@ -45,8 +45,11 @@ Illustrator oracle are in [PHASE6_REA_CHECKLIST.md](PHASE6_REA_CHECKLIST.md).
 | 6.2 Area text | **Ships**: authored frame, word wrapping, clipped overflow, drag-created (format v8) |
 | 6.3 Text on a path | **Ships**: Type-click a path, centred glyph layout with tangents, fixed bounds (format v9); copied geometry, no start offset |
 | 6.4 Threading | **Live chain**: Thread Text links every frame, head edits reflow the chain, Reflow Thread on demand (format v12); unlink UI remains |
-| 6.5 Styles, 6.6 Tabs | Not started (tabs API gap recorded) |
+| 6.5 Styles | **Deferred exception**: per-range character/paragraph styles need a rich-text run model |
+| 6.6 Tabs | Documented-only: Illustrator's scripting API cannot set tab stops (recorded fixture) |
 | 6.7 Vertical type | **Ships as an upright stack** (format v11); rotated glyphs and vertical punctuation remain |
+| 6.9 Outlining | **Ships**: Create Outlines via a TrueType reader (default master, no kerning); horizontal text only |
+| 6.8 Missing fonts | **Ships**: detection plus a Resolve Missing Fonts dialog that substitutes with Inter in one undo |
 | 6.8 Missing fonts | **Ships**: detection plus a Resolve Missing Fonts dialog that substitutes with Inter in one undo |
 | 6.9 Outlining | **Ships**: Create Outlines via a TrueType reader (default master, no kerning); horizontal text only |
 

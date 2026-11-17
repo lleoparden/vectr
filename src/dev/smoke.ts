@@ -2540,6 +2540,26 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 33. Missing fonts: the dialog lists the family and the substitution is one undo entry.
+  const missingFontText = createText('Missing font fixture', 3000, 300, 'Missing', { fontFamily: 'Comic Sans MS' })
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [missingFontText] }, 'missing font fixture')
+  await settle(80)
+  runEditorAction('type.missingFonts')
+  await settle(120)
+  const missingDialog = document.querySelector('[data-missing-fonts-dialog="open"]')
+  const listed = document.querySelector('[data-missing-fonts-list]')?.textContent ?? ''
+  document.querySelector<HTMLButtonElement>('[data-missing-fonts-action="apply"]')?.click()
+  await settle(150)
+  const substituted = documentStore.getState().document.root.children.find((node) => node.id === missingFontText.id)
+  record(
+    'Resolve Missing Fonts substitutes with the bundled face',
+    missingDialog !== null && listed.includes('Comic Sans MS') && substituted !== undefined && substituted.type === 'text' && substituted.fontFamily === 'Inter',
+    substituted === undefined || substituted.type !== 'text' ? 'no text' : substituted.fontFamily,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

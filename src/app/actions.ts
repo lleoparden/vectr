@@ -47,6 +47,7 @@ import { polygonContains } from '../doc/hitTest.ts'
 import { nestPolygonIndices, polygonTouchesPath } from '../ops/polygon.ts'
 import type { Point } from '../geom/transform.ts'
 import { wrapText } from '../doc/textWrap.ts'
+import { availableFamilies, missingFontFamilies, textNodesWithMissingFonts } from '../doc/missingFonts.ts'
 import { localToScene } from '../doc/pathEdit.ts'
 import { parseTrueType, textOutlineContours, type TrueTypeFont } from '../geom/ttf.ts'
 import { distributeLines, frameCapacity } from '../doc/textThread.ts'
@@ -964,6 +965,31 @@ export function threadTextFrames(): void {
 }
 
 /** Reflow Thread: recompute the selected thread from its head (also used after editing a head). */
+/** Replaces every missing family with the bundled face, one undo entry (Phase 6.8). */
+export function substituteMissingFonts(): void {
+  const { document } = documentStore.getState()
+  const nodes = textNodesWithMissingFonts(document)
+  if (nodes.length === 0) return
+  const replacement = availableFamilies()[0] ?? 'Inter'
+  const commands: Command[] = nodes.map((node) => ({
+    type: 'setTextStyle',
+    nodeId: node.id,
+    fontSize: node.fontSize,
+    fontFamily: replacement,
+    align: node.align,
+    lineHeight: node.lineHeight,
+    width: node.width,
+    height: node.height,
+  }))
+  documentStore.dispatch(batchCommand(commands), 'substitute fonts')
+  workspaceStore.setMissingFontsOpen(false)
+}
+
+/** Resolve Missing Fonts… (Type menu): opens the substitution dialog when something is missing. */
+export function openMissingFontsDialog(): void {
+  workspaceStore.setMissingFontsOpen(true)
+}
+
 export function reflowSelectedThread(): void {
   const { document, selection } = documentStore.getState()
   if (selection.length !== 1) return
@@ -1205,6 +1231,8 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       const node = findNode(editor.document, id)
       return node !== null && isText(node)
     })
+  case 'type.missingFonts':
+    return missingFontFamilies(editor.document).length > 0
   case 'text.reflow': {
     const node = editor.selection.length === 1 ? findNode(editor.document, editor.selection[0]) : null
     return node !== null && node.type === 'text' && (node.threadStory !== undefined || node.threadHeadId !== undefined)
@@ -1681,6 +1709,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.orientation':
       toggleTextOrientation()
+      return
+    case 'type.missingFonts':
+      openMissingFontsDialog()
       return
     case 'text.reflow':
       reflowSelectedThread()

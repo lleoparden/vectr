@@ -179,6 +179,8 @@ const SINCE = {
   'type.createOutlines': '0.5.6',
   threadHeadId: '0.5.7',
   'text.reflow': '0.5.7',
+  'type.missingFonts': '0.5.8',
+  missingFontsOpen: '0.5.8',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

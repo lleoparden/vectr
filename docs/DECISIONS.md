@@ -2480,3 +2480,12 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   and the reflow runs inside the same transaction, so changing a head's text is one undo entry for the whole chain.
 - **Continuation edits stay local** until a reflow, which is the cost of keeping one story on the head without a
   separate text engine; it is stated in the catalog and release notes.
+
+## 2026-11-17 - Missing fonts substitute to the shipped face, with the families shown
+
+- **Why a list, not automatic substitution:** silently changing typography on open is worse than naming what is
+  missing. The dialog shows every affected family and makes the substitution one explicit undo entry.
+- **Why always Inter:** Vectr ships one face, and the renderer already draws it while reporting the substitution.
+  Offering a choice between one option would be a dead control; the limit is stated instead.
+- **Detection is pure and shared:** the same function drives the menu's enabled state, the dialog's list, and the
+  substitution command, so the app cannot disagree with the renderer about which families are unavailable.

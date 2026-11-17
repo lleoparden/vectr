@@ -1,6 +1,20 @@
 # Progress
 
 
+## Phase 6.8: the missing-font substitute workflow (2026-11-17)
+
+- **Detection is real now:** `src/doc/missingFonts.ts` walks the tree (groups included), compares text families
+  with the faces the app ships case-insensitively, and returns unique families plus the affected text objects. The
+  renderer's substitution warning and this dialog therefore agree about what is missing.
+- **Type > Resolve Missing Fonts...** opens a dialog listing the families and substituting them with the bundled
+  face in **one undo entry**. The menu item is only enabled when something is actually missing, and the dialog
+  reports the families explicitly rather than rewriting typography silently.
+- **Evidence:** 392 unit tests (unique/sorted/case-insensitive detection, nested groups, an all-Inter document, a
+  caller-supplied available list) and **170 packaged steps**, including a Comic Sans MS object resolved through the
+  dialog and undone.
+- **Declared limits:** Inter is the only face, so substitution always lands on Inter with no per-family choice; the
+  dialog lists families rather than per-object counts; and it does not open automatically when a file is loaded.
+
 ## Phase 6.4 upgrade: live thread reflow (2026-11-17)
 
 - **Threads are a chain now.** Thread Text records a link on every frame (heads get `threadStory` + `threadNextId`,

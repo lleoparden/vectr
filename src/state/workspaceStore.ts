@@ -66,6 +66,7 @@ export type WorkspaceState = {
   preferencesOpen: boolean
   offsetDialogOpen: boolean
   offsetDistance: number
+  missingFontsOpen: boolean
   /** What the shape and text tools draw with, and which shape member is showing. */
   creationDefaults: CreationDefaults
   /** The artboard the status bar, Fit Artboard, and new objects use; null means the first one. */
@@ -126,6 +127,7 @@ export class WorkspaceStore {
       preferencesOpen: false,
   offsetDialogOpen: false,
   offsetDistance: 10,
+  missingFontsOpen: false,
       creationDefaults: { ...INITIAL_CREATION_DEFAULTS },
       activeArtboardId: null,
       isolatedGroupId: null,
@@ -263,6 +265,10 @@ export class WorkspaceStore {
   }
 
   /** The Preferences dialog, opened from Edit ▸ Preferences. */
+  setMissingFontsOpen(missingFontsOpen: boolean) {
+    this.update({ missingFontsOpen })
+  }
+
   setOffsetDialogOpen(offsetDialogOpen: boolean) {
     this.update({ offsetDialogOpen })
   }

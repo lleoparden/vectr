@@ -177,6 +177,8 @@ const SINCE = {
   threadStory: '0.5.4',
   orientation: '0.5.5',
   'type.createOutlines': '0.5.6',
+  threadHeadId: '0.5.7',
+  'text.reflow': '0.5.7',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

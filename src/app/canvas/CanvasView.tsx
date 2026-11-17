@@ -17,7 +17,7 @@ import { isGroup, isText, type NodeId, type Transform } from '../../doc/types.ts
 import { mimeTypeForName } from '../../doc/assets.ts'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.tsx'
 import { canvasContextItems } from '../menus/contextMenus.ts'
-import { addGuide, moveGuide, paintRegionAt, placeImage, removeGuide, runEditorAction, shapeBuilder } from '../actions.ts'
+import { addGuide, moveGuide, paintRegionAt, placeImage, reflowThreadForNode, removeGuide, runEditorAction, shapeBuilder } from '../actions.ts'
 import { TextEditor, type TextEditorBox } from './TextEditor.tsx'
 import { AnchorOverlay } from './AnchorOverlay.tsx'
 import { PathPreview } from './PathPreview.tsx'
@@ -239,7 +239,7 @@ export function CanvasView() {
     const node = findNode(current, nodeId)
     if (node === null || !isText(node)) return
     documentStore.setSelection([nodeId])
-    setEditing({ nodeId, text: node.text })
+    setEditing({ nodeId, text: node.threadStory ?? node.text })
   }
 
   /**
@@ -259,8 +259,27 @@ export function CanvasView() {
       }
       return
     }
-    if (text === node.text) return
+    if (text === node.text && node.threadStory === undefined) return
     const box = textBoxFor(node.fontFamily, node.fontSize, node.lineHeight, text, node.orientation)
+    if (node.threadStory !== undefined) {
+      // Editing a thread head edits the whole story and reflows every frame in one undo entry.
+      documentStore.beginTransaction('edit text')
+      documentStore.dispatch(
+        { type: 'setTextThread', nodeId, nextId: node.threadNextId ?? null, story: text, headId: null },
+        'edit text',
+      )
+      documentStore.dispatch({ type: 'setText', nodeId, text, width: box.width, height: box.height }, 'edit text')
+      reflowThreadForNode(nodeId)
+      documentStore.commitTransaction()
+      return
+    }
+    if (node.threadHeadId !== undefined) {
+      // Editing a continuation changes its own slice only; the head story is left alone (declared).
+      documentStore.beginTransaction('edit text')
+      documentStore.dispatch({ type: 'setText', nodeId, text, width: box.width, height: box.height }, 'edit text')
+      documentStore.commitTransaction()
+      return
+    }
     documentStore.dispatch({ type: 'setText', nodeId, text, width: box.width, height: box.height }, 'edit text')
   }
 

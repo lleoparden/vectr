@@ -117,6 +117,7 @@ export const MENU_BAR: MenuSpec[] = [
       command('type.alignCenter'),
       command('type.alignRight'),
             command('text.thread'),
+            command('text.reflow'),
             command('type.orientation'),
             command('type.createOutlines'),
       { kind: 'separator' },

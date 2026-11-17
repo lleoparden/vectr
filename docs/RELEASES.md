@@ -2,23 +2,22 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Create Outlines** lands with
-our own TrueType reader, so text can become geometry for export.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Threaded text now reflows
+live**: editing a head redistributes the whole chain, and the native format moves to **v12**.
 
 ### What changed
 
-- **Create Outlines** (Type menu, **Ctrl+Shift+O**). Selected text becomes a compound path of its glyph outlines, drawn
-  with the text's fill and in the same place, size, and rotation. One command, one undo entry.
-- **A real TrueType reader.** CanvasKit exposes glyph metrics but not outlines, so `src/geom/ttf.ts` reads the bundled
-  Inter face directly: `cmap`, `loca`/`glyf` (simple and composite glyphs), `hmtx` advances, and ascender, with
-  quadratic curves converted to cubic handles. It is pure geometry and tested without a GPU.
-- **No new dependency, no Adobe internals.** The font is the one the editor already ships and draws with.
+- **Threads are a real chain.** Thread Text records a link on every frame (head: story + next; continuations: head id +
+  their own next), so a thread can reflow from one place instead of being frozen at the moment it was created.
+- **Edit the head, the chain reflows.** The inline editor loads the whole story for a head; committing it updates the
+  story and redistributes every frame's slice **in one undo entry**. **Type ▸ Reflow Thread** recomputes on demand.
+- **Format v12.** `threadHeadId` is optional, so v1–v11 documents open unchanged.
 
 ### What is in this build
 
-Everything from **0.5.5** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
-point/area/path/threaded/vertical text — plus transforms, gradients, blend modes, artboards, layers, images,
-autosave, and crash recovery.
+Everything from **0.5.6** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
+point/area/path/threaded/vertical text, and Create Outlines — plus transforms, gradients, blend modes, artboards,
+layers, images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -51,9 +50,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 387 unit tests, UI standards
+npm test           # layer check, 389 unit tests, UI standards
 npm run build
-npm run smoke      # 168 packaged steps, six reports
+npm run smoke      # 169 packaged steps, six reports
 ```
 
 </details>
@@ -61,12 +60,11 @@ npm run smoke      # 168 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Outlines use the font's default variation master** — weight/width axes are not applied — and **ignore kerning** in
-  pen positions.
-- Only **horizontal text** is outlined; vertical and path text are skipped rather than outlined wrongly.
-- Outlines are paths: **text editing ends** at the command, and the compound keeps nonzero winding for counters.
-- Vertical Latin remains an upright stack; area text has no inset/columns; threading is one-shot; point-text insertion
-  is the box's top-left rather than Illustrator's baseline.
+- **No unlink UI**; a continuation's own edit stays local until the next reflow, which then re-derives it from the head.
+- Capacity and wrapping use the **head's** font, size, and leading; lines past the last frame stay in the story but are
+  hidden, with no overflow marker.
+- Create Outlines uses the font's default variation master, ignores kerning, and only handles horizontal text.
+- Vertical Latin is an upright stack; area text has no inset/columns; point insertion is the box's top-left.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
   anchor, and a compound's own stroke is not outlined.
 
@@ -75,10 +73,9 @@ npm run smoke      # 168 packaged steps, six reports
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **387 unit tests**, production build, and **168 packaged steps** across six reports.
-- New packaged step outlines a 48 pt "Ab" and asserts the resulting path, then undoes.
-- Unit tests parse the bundled font (cmap, ascender, glyph count), check that contours convert to finite cubic anchors,
-  that Inter's curved **S** carries handles where its straight **A** does not, and that advance widths grow with text
-  and size.
+- Typecheck, layer check, **389 unit tests**, production build, and **169 packaged steps** across six reports.
+- New packaged step reflows a 12-line story into **3 + 6** visible lines across two frames, then undoes.
+- Unit tests cover chain links and their inverse, a last frame with no next, refusal of a continuation without a head,
+  and refusal of a head that also carries a head id.
 
 </details>

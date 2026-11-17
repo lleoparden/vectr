@@ -2460,7 +2460,7 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   })
   const threadNext = createText('Thread next', 2400, 380, '', {
     width: 160,
-    height: 60,
+    height: 120,
     textType: 'area',
     fontSize: 16,
     lineHeight: 20,
@@ -2512,6 +2512,29 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
     'Create Outlines replaces text with paths',
     outlinedText !== undefined && outlinedText.type === 'path' && outlinedText.anchors.length > 2 && documentStore.getState().document.root.children.every((node) => node.id !== outlineSource.id),
     outlinedText === undefined || outlinedText.type !== 'path' ? 'no outlines' : `${outlinedText.anchors.length} anchors + ${outlinedText.subpaths?.length ?? 0} subpaths`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
+  // 32. Reflow Thread: a longer story redistributes across the existing chain.
+  const longerStory = 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten\neleven\ntwelve'
+  documentStore.dispatch(
+    { type: 'setTextThread', nodeId: threadHead.id, nextId: threadNext.id, story: longerStory, headId: null },
+    'longer story',
+  )
+  documentStore.setSelection([threadHead.id])
+  await settle(80)
+  runEditorAction('text.reflow')
+  await settle(180)
+  const reflowedHead = documentStore.getState().document.root.children.find((node) => node.id === threadHead.id)
+  const reflowedNext = documentStore.getState().document.root.children.find((node) => node.id === threadNext.id)
+  const reflowedHeadLines = reflowedHead !== undefined && reflowedHead.type === 'text' ? reflowedHead.text.split('\n').length : 0
+  const reflowedNextLines = reflowedNext !== undefined && reflowedNext.type === 'text' ? reflowedNext.text.split('\n').length : 0
+  record(
+    'Reflow Thread refills the chain',
+    reflowedHeadLines === 3 && reflowedNextLines === 6,
+    `head ${reflowedHeadLines} lines, next ${reflowedNextLines} lines`,
   )
   documentStore.undo()
   await settle(100)

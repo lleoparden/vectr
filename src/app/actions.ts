@@ -888,32 +888,100 @@ export function createTextOutlines(): void {
   }
 }
 
+function collectThread(document: Parameters<typeof findNode>[0], headId: NodeId): TextNode[] {
+  const frames: TextNode[] = []
+  let current: TextNode | null = null
+  const head = findNode(document, headId)
+  if (head !== null && head.type === 'text') current = head
+  while (current !== null && frames.length < 64) {
+    frames.push(current)
+    const nextId = current.threadNextId
+    if (nextId === undefined) break
+    const next = findNode(document, nextId)
+    current = next !== null && next.type === 'text' ? next : null
+  }
+  return frames
+}
+
+/** Recomputes every frame's slice from the head's story; returns false when there is nothing to do. */
+function reflowThread(headId: NodeId, label: string): boolean {
+  const renderer = getActiveRenderer()
+  const { document } = documentStore.getState()
+  if (renderer === null) return false
+  const frames = collectThread(document, headId)
+  const head = frames[0]
+  if (head === undefined || head.threadStory === undefined) return false
+  const story = head.threadStory
+  const measure = (line: string): number =>
+    renderer.measureTextBox(head.fontFamily, head.fontSize, head.lineHeight, line)?.width ?? 0
+  const lines = wrapText(story, head.width, measure)
+  const capacities = frames.map((frame) => frameCapacity(frame.height, head.lineHeight))
+  const slices = distributeLines(lines, capacities)
+  const commands: Command[] = []
+  frames.forEach((frame, index) => {
+    const text = (slices[index] ?? []).join('\n')
+    if (text !== frame.text) commands.push({ type: 'setText', nodeId: frame.id, text })
+  })
+  if (commands.length === 0) return true
+  return documentStore.dispatch(batchCommand(commands), label).ok
+}
+
+/** Threads the selected area frames: records the chain and distributes the story. */
 export function threadTextFrames(): void {
   const { document, selection } = documentStore.getState()
   const renderer = getActiveRenderer()
   if (renderer === null) return
+  const order = document.root.children.map((node) => node.id)
   const frames = selection
     .map((id) => findNode(document, id))
-    .filter((node) => node !== null && node.type === 'text' && node.textType === 'area')
+    .filter((node): node is TextNode => node !== null && node.type === 'text' && node.textType === 'area')
+    .sort((left, right) => order.indexOf(left.id) - order.indexOf(right.id))
   if (frames.length < 2) return
   const head = frames[0]
-  if (head === null || head.type !== 'text') return
   const story = head.threadStory ?? head.text
   const measure = (line: string): number =>
     renderer.measureTextBox(head.fontFamily, head.fontSize, head.lineHeight, line)?.width ?? 0
   const lines = wrapText(story, head.width, measure)
-  const capacities = frames.map((frame) => (frame === null || frame.type !== 'text' ? 1 : frameCapacity(frame.height, frame.lineHeight)))
+  const capacities = frames.map((frame) => frameCapacity(frame.height, frame.lineHeight))
   const slices = distributeLines(lines, capacities)
   const commands: Command[] = [
-    { type: 'setTextThread', nodeId: head.id, nextId: frames[1] === null ? null : frames[1].id, story },
+    { type: 'setTextThread', nodeId: head.id, nextId: frames[1].id, story, headId: null },
+    ...frames.slice(1).map((frame, index) => ({
+      type: 'setTextThread' as const,
+      nodeId: frame.id,
+      nextId: frames[index + 2]?.id ?? null,
+      story: null,
+      headId: head.id,
+    })),
     ...frames.map((frame, index) => ({
       type: 'setText' as const,
-      nodeId: frame === null ? head.id : frame.id,
+      nodeId: frame.id,
       text: (slices[index] ?? []).join('\n'),
     })),
   ]
   const result = documentStore.dispatch(batchCommand(commands), 'thread text')
-  if (result.ok) documentStore.setSelection(frames.map((frame) => (frame === null ? head.id : frame.id)))
+  if (result.ok) documentStore.setSelection(frames.map((frame) => frame.id))
+}
+
+/** Reflow Thread: recompute the selected thread from its head (also used after editing a head). */
+export function reflowSelectedThread(): void {
+  const { document, selection } = documentStore.getState()
+  if (selection.length !== 1) return
+  const node = findNode(document, selection[0])
+  if (node === null || node.type !== 'text') return
+  const headId = node.threadHeadId ?? node.id
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('reflow thread')
+  reflowThread(headId, 'reflow thread')
+  if (own) documentStore.commitTransaction()
+}
+
+/** Called by the editor after a head's story changed; runs inside the caller's transaction. */
+export function reflowThreadForNode(nodeId: NodeId): void {
+  const { document } = documentStore.getState()
+  const node = findNode(document, nodeId)
+  if (node === null || node.type !== 'text') return
+  if (node.threadStory !== undefined) reflowThread(nodeId, 'reflow thread')
 }
 
 export function joinSelectedPaths(): void {
@@ -1137,6 +1205,10 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
       const node = findNode(editor.document, id)
       return node !== null && isText(node)
     })
+  case 'text.reflow': {
+    const node = editor.selection.length === 1 ? findNode(editor.document, editor.selection[0]) : null
+    return node !== null && node.type === 'text' && (node.threadStory !== undefined || node.threadHeadId !== undefined)
+  }
   case 'text.thread': {
     const frames = editor.selection
       .map((id) => findNode(editor.document, id))
@@ -1609,6 +1681,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.orientation':
       toggleTextOrientation()
+      return
+    case 'text.reflow':
+      reflowSelectedThread()
       return
     case 'text.thread':
       threadTextFrames()

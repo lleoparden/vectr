@@ -18,6 +18,8 @@ import {
   setSelectionGradient,
   setSelectionOpacity,
   setSelectionStroke,
+  toggleSelectionShadow,
+  updateSelectionShadow,
 } from '../actions.ts'
 import { ColorField, NumberField, PercentField, Readout, Section, SelectField, ToggleField } from '../ui/components/fields.tsx'
 import { EmptyState } from '../ui/components/EmptyState.tsx'
@@ -55,6 +57,7 @@ export function AppearancePanel() {
 
   const gradient = node.style.gradient ?? null
   const stroke = node.style.stroke
+  const shadow = node.style.effects?.find((effect) => effect.type === 'dropShadow') ?? null
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -98,6 +101,47 @@ export function AppearancePanel() {
           options={BLENDS}
           onChange={(mode) => setSelectionBlendMode(mode)}
         />
+      </Section>
+
+      <Section title="Effects">
+        <ToggleField label="Drop shadow" checked={shadow !== null} onChange={() => toggleSelectionShadow()} />
+        {shadow !== null && (
+          <>
+            <NumberField
+              label="X"
+              value={shadow.x}
+              min={-200}
+              max={200}
+              step={1}
+              suffix="px"
+              onChange={(x) => updateSelectionShadow({ x })}
+            />
+            <NumberField
+              label="Y"
+              value={shadow.y}
+              min={-200}
+              max={200}
+              step={1}
+              suffix="px"
+              onChange={(y) => updateSelectionShadow({ y })}
+            />
+            <NumberField
+              label="Blur"
+              value={shadow.blur}
+              min={0}
+              max={100}
+              step={1}
+              suffix="px"
+              onChange={(blur) => updateSelectionShadow({ blur })}
+            />
+            <PercentField
+              label="Opacity"
+              value={shadow.opacity}
+              onChange={(percent) => updateSelectionShadow({ opacity: percent / 100 })}
+            />
+            <ColorField label="Colour" value={shadow.color} onChange={(color) => updateSelectionShadow({ color })} />
+          </>
+        )}
       </Section>
 
       {isText(node) && (

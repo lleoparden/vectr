@@ -2560,6 +2560,24 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   await settle(100)
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
 
+  // 34. Drop shadow: the Appearance effect round-trips through the command path.
+  const shadowRect = createRect('Shadow fixture', 3200, 300, 120, 90)
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [shadowRect] }, 'shadow fixture')
+  documentStore.setSelection([shadowRect.id])
+  await settle(80)
+  runEditorAction('object.shadow')
+  await settle(120)
+  const shadowed = documentStore.getState().document.root.children.find((node) => node.id === shadowRect.id)
+  const shadow = shadowed !== undefined && shadowed.type !== 'group' ? (shadowed.style.effects?.[0] ?? null) : null
+  record(
+    'Drop Shadow is one undo entry',
+    shadow !== null && shadow.type === 'dropShadow' && shadow.blur > 0,
+    shadow === null ? 'no shadow' : `${shadow.x},${shadow.y} blur ${shadow.blur}`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
   return { passed: steps.every((step) => step.ok), steps }
 }
 

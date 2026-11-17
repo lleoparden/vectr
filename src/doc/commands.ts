@@ -27,6 +27,7 @@ import {
   isText,
   type Artboard,
   type Cmyk,
+  type Effect,
   type Guide,
   type Swatch,
   type AssetRef,
@@ -84,6 +85,8 @@ export type Command =
   | { type: 'addArtboard'; artboard: Artboard; index: number }
   | { type: 'removeArtboard'; artboardId: string }
   | { type: 'setArtboard'; artboardId: string; name?: string; width?: number; height?: number }
+  /** Replaces a node's appearance effects, or clears them (Phase 7.1). */
+  | { type: 'setEffects'; nodeId: NodeId; effects: Effect[] | null }
   /** Switches point text between horizontal and vertical (Phase 6.7). */
   | { type: 'setTextOrientation'; nodeId: NodeId; orientation: 'horizontal' | 'vertical' }
   /** Links an area-text head to the next frame and stores the whole story (Phase 6.4). */
@@ -876,6 +879,50 @@ export function applyCommand(document: Document, command: Command): CommandResul
           width: node.width,
           height: node.height,
         },
+      }
+    }
+
+    case 'setEffects': {
+      const node = findNode(document, command.nodeId)
+      if (node === null) return rejected('absent-node', `Node ${command.nodeId} does not exist.`)
+      if (isGroup(node)) return rejected('invalid-parent', 'A group has no effects of its own.')
+      if (node.type === 'text' || node.type === 'image') {
+        return rejected('invalid-parent', 'Effects are supported on vector shapes in this build.')
+      }
+      if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
+      if (command.effects !== null) {
+        if (!Array.isArray(command.effects) || command.effects.length > 8) {
+          return rejected('invalid-index', 'An effect stack holds at most eight effects.')
+        }
+        for (const effect of command.effects) {
+          if (effect.type !== 'dropShadow') return rejected('invalid-index', 'Only drop shadows exist in this build.')
+          if (![effect.x, effect.y, effect.blur, effect.opacity].every((value) => Number.isFinite(value))) {
+            return rejected('non-finite', 'A shadow needs finite numbers.')
+          }
+          if (effect.blur < 0 || effect.blur > 500 || effect.opacity < 0 || effect.opacity > 1) {
+            return rejected('invalid-index', 'A shadow is out of range.')
+          }
+        }
+      }
+      const previous = node.style.effects === undefined ? null : node.style.effects.map((effect) => ({ ...effect }))
+      return {
+        ok: true,
+        document: withRevision(
+          replaceNode(document, command.nodeId, (current) =>
+            isGroup(current)
+              ? current
+              : {
+                  ...current,
+                  style: (() => {
+                    const style = { ...current.style }
+                    if (command.effects === null) delete style.effects
+                    else style.effects = command.effects.map((effect) => ({ ...effect }))
+                    return style
+                  })(),
+                },
+          ),
+        ),
+        inverse: { type: 'setEffects', nodeId: command.nodeId, effects: previous },
       }
     }
 

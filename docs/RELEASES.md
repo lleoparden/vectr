@@ -2,29 +2,24 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Phase 6 (Type) is closed in
-scope**: point, area, path, threaded, and vertical text, Create Outlines, and missing-font resolution. The format is at
-**v12**.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Phase 7 begins with a real
+drop shadow**, stored in the document and rendered by Skia, and the native format moves to **v13**.
 
-### What changed in this phase
+### What changed
 
-- **Point text** with in-place editing, alignment that keeps the insertion anchor fixed, and ink-height bounds
-  (ascent + descent + leading), matching Illustrator's measured box rather than `lines × leading`.
-- **Area text**: drag with the Type tool to author a frame; text wraps at word boundaries, long words break by
-  character, overflow is clipped, and content/style edits keep the frame.
-- **Text on a path**: click a filled path with the Type tool; glyphs are centred along it and rotate to the tangent.
-- **Threaded text with live reflow**: Thread Text links area frames into a chain; editing the head's story
-  redistributes every frame in one undo, and Type ▸ Reflow Thread recomputes on demand.
-- **Vertical type**: an upright stack, one column per line, with area/path frames keeping their box.
-- **Create Outlines** (Ctrl+Shift+O) via **our own TrueType reader** — cmap, loca/glyf, hmtx, quadratic-to-cubic —
-  because CanvasKit exposes glyph metrics but not outlines.
-- **Resolve Missing Fonts**: lists absent families and substitutes them with Inter in one undo.
-- **Format evolution v8 → v12**, each field optional so older documents open unchanged.
+- **Drop shadow** on vector shapes: offset, blur, colour, and opacity, editable in the **Appearance** panel and
+  available from **Object ▸ Drop Shadow**. Every edit is one undo entry, and the effect is document data, not a paint
+  hack — it saves, reopens, and inverts exactly.
+- **Rendering is an appearance layer**: the shadow is drawn beneath the shape with Skia's drop-shadow image filter,
+  with its opacity folded into the colour. Two cache bugs were fixed to get there: effects now participate in the
+  bucket signature (the same class of bug the gradient cache had), and filters are kept alive across recording.
+- **Format v13**: `Style.effects` is optional, so older documents open unchanged.
 
 ### What is in this build
 
-Everything from **0.5.x** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles —
-plus transforms, gradients, blend modes, artboards, layers, images, autosave, and crash recovery.
+Everything from **0.6.0** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
+point/area/path/threaded/vertical text, Create Outlines, missing-font resolution — plus transforms, gradients, blend
+modes, artboards, layers, images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -57,9 +52,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 392 unit tests, UI standards
+npm test           # layer check, 394 unit tests, UI standards
 npm run build
-npm run smoke      # 170 packaged steps, six reports
+npm run smoke      # 171 packaged steps, six reports
 ```
 
 </details>
@@ -67,15 +62,12 @@ npm run smoke      # 170 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Character/paragraph style presets are the Phase 6 exception.** Per-range character styles need a rich-text run
-  model (runs in the document, run-aware rendering and editing, run-scoped commands); text styling remains per object.
-- **Tab stops are documented-only**: Illustrator 27.3.1's scripting API cannot set them, recorded in the oracle
-  fixtures rather than guessed.
-- Vertical Latin is an **upright stack**, not rotated; no vertical punctuation, tate-chu-yoko, or bidirectional layout.
-- Threading is live but has **no unlink UI**; a continuation's edit stays local until the next reflow, and hidden
-  overflow past the last frame is not marked.
-- Create Outlines uses the **default variation master**, ignores kerning, and only outlines horizontal text.
-- Point-text insertion is still the box's top-left, not Illustrator's baseline.
+- **One effect type** (drop shadow) on **vector shapes**; text and images refuse effects rather than ignoring them, and
+  there is one shadow per toggle rather than a reorderable stack.
+- Shadows do **not expand selection or marquee bounds**, and filter paints are cached per parameter combination rather
+  than evicted by a memory budget.
+- Character/paragraph styles remain the Phase 6 exception; vertical Latin is an upright stack; threading has no unlink
+  UI; Create Outlines uses the default variation master and ignores kerning.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
   anchor, and a compound's own stroke is not outlined.
 
@@ -84,10 +76,11 @@ npm run smoke      # 170 packaged steps, six reports
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **392 unit tests**, production build, and **170 packaged steps** across six reports.
-- The packaged run covers every Phase 6 path: area-frame creation, path-text creation, threading plus reflow,
-  vertical toggle, Create Outlines, and the missing-fonts dialog.
-- `npm run verify:artifact` asserts the Phase 6 contract now (command ids and fields) against the staged build, and
-  writes a receipt with the ASAR and bundle hashes.
+- Typecheck, layer check, **394 unit tests**, production build, and **171 packaged steps** across six reports.
+- New packaged step toggles a drop shadow, asserts the stored effect, and undoes.
+- A rendered proof confirmed the shadow is **visible** (not merely stored), which is how the missing signature entry
+  and the filter-lifetime bug were found.
+- Unit tests pin the effect command's round trip and inverse, and refusals for text, groups, out-of-range blur, and
+  opacity.
 
 </details>

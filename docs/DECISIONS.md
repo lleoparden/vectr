@@ -2489,3 +2489,14 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   Offering a choice between one option would be a dead control; the limit is stated instead.
 - **Detection is pure and shared:** the same function drives the menu's enabled state, the dialog's list, and the
   substitution command, so the app cannot disagree with the renderer about which families are unavailable.
+
+## 2026-11-17 - Effects are a flat document list, rendered with cached Skia filters
+
+- **Flat `Style.effects` first:** a small array of typed effects (today only `dropShadow`) keeps serialization, undo,
+  and the renderer simple, and leaves room for appearance stacks later without pretending they exist now. Effects are
+  refused on text/images rather than stored and ignored.
+- **Filters outlive the recording:** deleting an ImageFilter right after `drawPath` produced no shadow, because the
+  picture references it. Paints and filters are cached by their parameter key; eviction by budget is a follow-up, and
+  the cache is bounded in practice by the number of distinct shadow settings a user creates.
+- **Signature covers effects:** the bucket signature must include pixel-affecting state; omitting effects reproduced
+  the gradient-cache bug. Any new effect field belongs in `contentSignature` in the same change.

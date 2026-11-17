@@ -193,6 +193,8 @@ const SINCE = {
   'text.reflow': '0.5.7',
   'type.missingFonts': '0.5.8',
   missingFontsOpen: '0.5.8',
+  'object.shadow': '0.6.1',
+  dropShadow: '0.6.1',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

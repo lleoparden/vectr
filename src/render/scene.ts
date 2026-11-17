@@ -9,7 +9,7 @@
 import { artboardRects, type ArtboardRect } from '../doc/artboards.ts'
 import { clipPolygon } from '../geom/shapeGeometry.ts'
 import type { PathAnchor } from '../geom/path.ts'
-import type { BlendMode, FillGradient, PathFillRule, Stroke } from '../doc/types.ts'
+import type { BlendMode, Effect, FillGradient, PathFillRule, Stroke } from '../doc/types.ts'
 import { isGroup, isText, type Document, type ImageCrop, type LayerNode, type NodeId, type TextAlign } from '../doc/types.ts'
 
 /** Everything the renderer needs to draw one text node (issue #16). */
@@ -73,6 +73,7 @@ export type SceneShape = {
   opacity: number
   /** Fill blend mode, or null for normal (issue #71). */
   blendMode: BlendMode | null
+  effects: Effect[] | null
   /** Present exactly when `kind` is `text`. */
   text: SceneText | null
   /** Present exactly when `kind` is `image`: the asset the renderer must draw. */
@@ -172,6 +173,7 @@ function walkShapes(
     stroke: node.style.stroke,
     opacity: opacity * node.style.opacity,
     blendMode: node.style.blendMode ?? null,
+    effects: node.style.effects === undefined ? null : node.style.effects.map((effect) => ({ ...effect })),
     text: isText(node)
       ? {
           content: node.text,

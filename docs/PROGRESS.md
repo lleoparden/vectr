@@ -1,6 +1,24 @@
 # Progress
 
 
+## Phase 7.1 started: the first appearance effect, a drop shadow (2026-11-17)
+
+- **Effects are document data now** (`Style.effects`, format v13): a drop shadow carries x/y offset, blur, colour,
+  and opacity; the command `setEffects` validates it (max eight, finite, 0-500 blur, 0-1 opacity) and inverts
+  exactly. Effects are supported on vector shapes in this slice; text and images are refused rather than silently
+  ignored.
+- **Rendered with Skia's ImageFilter**: the shadow is drawn under the shape, with the shadow's opacity folded into
+  its RGBA. Two renderer bugs surfaced on the way: the bucket signature did not include effects (so the cached
+  picture never repainted - the same class of bug as the old gradient one), and deleting the filter after recording
+  rendered nothing. Filters are now cached by parameter key so they outlive the recording.
+- **Appearance panel**: an Effects section with a Drop shadow toggle plus X/Y/blur/opacity/colour controls, and
+  Object > Drop Shadow in the menu. Every edit is one undo entry for the selection.
+- **Evidence:** 394 unit tests (command round trip and inverse; refusals for text, groups, out-of-range blur and
+  opacity) and **171 packaged steps**, including a toggled shadow that round-trips. A rendered proof confirmed the
+  shadow is visible, not merely stored.
+- **Declared limits:** one effect type (drop shadow) and one effect per toggle on vector shapes only; shadows do not
+  expand selection/marquee bounds; filter paints are cached per parameter combination rather than evicted by budget.
+
 ## Phase 6 closed with 0.6.0 (2026-11-17)
 
 - **Shipped in Phase 6:** point text (alignment keeps the insertion anchor; ink-height bounds), area text (authored

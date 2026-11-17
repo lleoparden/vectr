@@ -14,9 +14,9 @@ export type { PathAnchor }
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 12
-/** Versions this build still opens. v12 adds thread chain links (Phase 6.4 live reflow). */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+export const FORMAT_VERSION = 13
+/** Versions this build still opens. v13 adds the first appearance effect, a drop shadow (Phase 7). */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
 export type NodeId = string
 
@@ -105,6 +105,21 @@ export const BLEND_MODES: BlendMode[] = [
   'luminosity',
 ]
 
+export type DropShadow = {
+  type: 'dropShadow'
+  /** Scene-unit offset; positive x is right, positive y is down. */
+  x: number
+  y: number
+  /** Gaussian blur radius in scene units; 0 is a hard shadow. */
+  blur: number
+  color: string
+  /** 0..1 */
+  opacity: number
+}
+
+/** Non-destructive appearance effects, painted beneath the object (Phase 7.1). */
+export type Effect = DropShadow
+
 export type Style = {
   /** CSS hex color, for example `#4f7cff`. */
   fill: string
@@ -117,6 +132,8 @@ export type Style = {
   blendMode?: BlendMode
   /** 0..1, applied to the node and its subtree. */
   opacity: number
+  /** Effects painted under the object; absent means none. */
+  effects?: Effect[]
 }
 
 export type BaseNode = {

@@ -53,6 +53,19 @@ Illustrator oracle are in [PHASE6_REA_CHECKLIST.md](PHASE6_REA_CHECKLIST.md).
 | 6.8 Missing fonts | **Ships**: detection plus a Resolve Missing Fonts dialog that substitutes with Inter in one undo |
 | 6.9 Outlining | **Ships**: Create Outlines via a TrueType reader (default master, no kerning); horizontal text only |
 
+## Phase 7 - Appearance, effects, and advanced paint (in progress)
+
+Scope in [MASTER_PLAN.md](MASTER_PLAN.md): appearance stacks, transparency/knockout/opacity masks, raster effects,
+brushes/patterns/symbols, mesh and freeform gradients.
+
+| Slice | State |
+| --- | --- |
+| 7.1 Appearance effects | **Drop shadow ships** (format v13): model, command, renderer filter, Appearance controls; multiple effects per stack, other effect types, and stacks of fills/strokes remain |
+| 7.2 Transparency | Not started |
+| 7.3 Raster effects | Drop shadow is the first; blur/glow and a gallery remain |
+| 7.4 Brushes, patterns, symbols | Not started |
+| 7.5 Mesh/freeform gradients, recolour | Not started |
+
 ## Phase 2 history (complete, for reference)
 
 The Phase 2 slices shipped across #75-#102 and are audited in `docs/PROGRESS.md`. Their records stay in this

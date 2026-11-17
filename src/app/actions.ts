@@ -48,6 +48,7 @@ import { nestPolygonIndices, polygonTouchesPath } from '../ops/polygon.ts'
 import type { Point } from '../geom/transform.ts'
 import { wrapText } from '../doc/textWrap.ts'
 import { availableFamilies, missingFontFamilies, textNodesWithMissingFonts } from '../doc/missingFonts.ts'
+import type { DropShadow, Effect } from '../doc/types.ts'
 import { localToScene } from '../doc/pathEdit.ts'
 import { parseTrueType, textOutlineContours, type TrueTypeFont } from '../geom/ttf.ts'
 import { distributeLines, frameCapacity } from '../doc/textThread.ts'
@@ -804,6 +805,54 @@ export function applyWidthProfile(preset: 'uniform' | 'taperStart' | 'taperEnd' 
 
 /** Threads two or more selected area frames, distributing the story's lines across them once. */
 /** Toggles selected point text between horizontal and vertical, one undo entry. */
+const DEFAULT_SHADOW: DropShadow = { type: 'dropShadow', x: 6, y: 6, blur: 8, color: '#000000', opacity: 0.35 }
+const EFFECT_KINDS = new Set(['rect', 'ellipse', 'polygon', 'star', 'arc', 'path'])
+
+function shadowTargets(): Array<{ id: NodeId; effects: Effect[] | null }> {
+  const { document, selection } = documentStore.getState()
+  const targets: Array<{ id: NodeId; effects: Effect[] | null }> = []
+  for (const id of selection) {
+    const node = findNode(document, id)
+    if (node === null || node.type === 'group') continue
+    if (!EFFECT_KINDS.has(node.type)) continue
+    targets.push({ id: node.id, effects: node.style.effects ?? null })
+  }
+  return targets
+}
+
+/** Toggles a default drop shadow on the selected vector shapes, one undo entry. */
+export function toggleSelectionShadow(): void {
+  const targets = shadowTargets()
+  if (targets.length === 0) return
+  const clearing = targets.some((target) => target.effects !== null && target.effects.length > 0)
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('drop shadow')
+  for (const target of targets) {
+    documentStore.dispatch(
+      { type: 'setEffects', nodeId: target.id, effects: clearing ? null : [{ ...DEFAULT_SHADOW }] },
+      'drop shadow',
+    )
+  }
+  if (own) documentStore.commitTransaction()
+}
+
+/** Edits the first shadow's x/y/blur/colour/opacity on the selection, one undo entry. */
+export function updateSelectionShadow(patch: Partial<DropShadow>): void {
+  const targets = shadowTargets().filter((target) => target.effects !== null && target.effects.length > 0)
+  if (targets.length === 0) return
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('shadow')
+  for (const target of targets) {
+    const current = target.effects?.[0]
+    if (current === undefined) continue
+    documentStore.dispatch(
+      { type: 'setEffects', nodeId: target.id, effects: [{ ...current, ...patch }] },
+      'shadow',
+    )
+  }
+  if (own) documentStore.commitTransaction()
+}
+
 export function toggleTextOrientation(): void {
   const { document, selection } = documentStore.getState()
   const texts = selection.map((id) => findNode(document, id)).filter((node) => node !== null && isText(node))
@@ -1230,6 +1279,11 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     return editor.selection.some((id) => {
       const node = findNode(editor.document, id)
       return node !== null && isText(node)
+    })
+  case 'object.shadow':
+    return editor.selection.some((id) => {
+      const node = findNode(editor.document, id)
+      return node !== null && EFFECT_KINDS.has(node.type)
     })
   case 'type.missingFonts':
     return missingFontFamilies(editor.document).length > 0
@@ -1709,6 +1763,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.orientation':
       toggleTextOrientation()
+      return
+    case 'object.shadow':
+      toggleSelectionShadow()
       return
     case 'type.missingFonts':
       openMissingFontsDialog()

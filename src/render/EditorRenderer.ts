@@ -18,11 +18,11 @@
  *   skipped rather than drawn wrongly.
  */
 
-import type { BlendMode as CanvasBlendMode, Shader } from 'canvaskit-wasm'
-import type { BlendMode, StrokeCap, StrokeJoin } from '../doc/types.ts'
+import type { BlendMode as CanvasBlendMode, ImageFilter, Shader } from 'canvaskit-wasm'
+import type { BlendMode, DropShadow, StrokeCap, StrokeJoin } from '../doc/types.ts'
 import type { ArtboardRect } from '../doc/artboards.ts'
 import { contentSignature } from './signature.ts'
-import { shaderColors } from './shaders.ts'
+import { shaderColor, shaderColors } from './shaders.ts'
 import { booleanPaths, booleanPolygons, dividePolygons, type BooleanMode, type Polygon } from './boolean.ts'
 import { polygonContains } from '../doc/hitTest.ts'
 import { flattenedWithWidths, offsetRing, offsetSide, strokeOutline, strokeRing, variableOutline, variableRing } from '../geom/offset.ts'
@@ -95,6 +95,8 @@ export class EditorRenderer {
   /** One Skia font per family/size pair, bounded by the distinct sizes in the document. */
   private readonly fonts = new Map<string, Font>()
   private fontBytes: Uint8Array | null = null
+  /** Shadow paints are kept alive by parameter key: a filter deleted after recording can render empty. */
+  private readonly shadowPaints = new Map<string, { paint: Paint; filter: ImageFilter }>()
   private readonly substituted = new Set<string>()
   private typeface: Typeface | null = null
   /** Decoded images, one per asset id, disposed with the renderer. */
@@ -182,6 +184,20 @@ export class EditorRenderer {
       const message = cause instanceof Error ? cause.message : String(cause)
       console.warn(`[vectr-font] Inter could not be loaded: ${message}`)
     }
+  }
+
+  private shadowPaintFor(effect: DropShadow): Paint {
+    const key = `${effect.x}|${effect.y}|${effect.blur}|${effect.color}|${effect.opacity}`
+    const cached = this.shadowPaints.get(key)
+    if (cached !== undefined) return cached.paint
+    const rgba = shaderColor(effect.color)
+    const color = new Float32Array([rgba[0], rgba[1], rgba[2], Math.min(1, Math.max(0, rgba[3] * effect.opacity))])
+    const filter = this.kit.ImageFilter.MakeDropShadow(effect.x, effect.y, effect.blur, effect.blur, color, null)
+    const paint = new this.kit.Paint()
+    paint.setColor(new Float32Array([1, 1, 1, 1]))
+    paint.setImageFilter(filter)
+    this.shadowPaints.set(key, { paint, filter })
+    return paint
   }
 
   /** The raw bundled face, for Create Outlines; null until the font has loaded. */
@@ -520,6 +536,12 @@ export class EditorRenderer {
         const stroke = shape.stroke ?? { color: shape.fill, width: 2 }
         recording.drawPath(path, this.paintFor('stroke', stroke.color, stroke.width, shape.opacity))
       } else {
+        if (shape.effects !== null) {
+          for (const effect of shape.effects) {
+            if (effect.type !== 'dropShadow') continue
+            recording.drawPath(path, this.shadowPaintFor(effect))
+          }
+        }
         const fillPaint = this.fillPaintFor(shape)
         if (shape.blendMode !== null) fillPaint.setBlendMode(this.blendModeFor(shape.blendMode))
         recording.drawPath(path, fillPaint)

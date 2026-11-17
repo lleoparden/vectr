@@ -120,6 +120,7 @@ export const MENU_BAR: MenuSpec[] = [
             command('text.reflow'),
             command('type.orientation'),
             command('type.createOutlines'),
+            command('type.missingFonts'),
       { kind: 'separator' },
       command('type.sizeUp'),
       command('type.sizeDown'),

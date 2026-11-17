@@ -11,6 +11,7 @@
 import { useEffect } from 'react'
 import { AboutDialog } from './shell/AboutDialog.tsx'
 import { CrashRecoveryDialog } from './shell/CrashRecoveryDialog.tsx'
+import { MissingFontsDialog } from './shell/MissingFontsDialog.tsx'
 import { OffsetPathDialog } from './shell/OffsetPathDialog.tsx'
 import { PreferencesDialog } from './shell/PreferencesDialog.tsx'
 import { UnsavedChangesDialog } from './shell/UnsavedChangesDialog.tsx'
@@ -74,6 +75,7 @@ export function App() {
       <CrashRecoveryDialog />
       <PreferencesDialog />
       <OffsetPathDialog />
+      <MissingFontsDialog />
     </>
   )
 }

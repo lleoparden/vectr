@@ -2,22 +2,23 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Threaded text now reflows
-live**: editing a head redistributes the whole chain, and the native format moves to **v12**.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Missing fonts are now a
+visible workflow** instead of a silent substitution.
 
 ### What changed
 
-- **Threads are a real chain.** Thread Text records a link on every frame (head: story + next; continuations: head id +
-  their own next), so a thread can reflow from one place instead of being frozen at the moment it was created.
-- **Edit the head, the chain reflows.** The inline editor loads the whole story for a head; committing it updates the
-  story and redistributes every frame's slice **in one undo entry**. **Type ▸ Reflow Thread** recomputes on demand.
-- **Format v12.** `threadHeadId` is optional, so v1–v11 documents open unchanged.
+- **Type ▸ Resolve Missing Fonts…** opens a dialog listing the families the document references but Vectr does not
+  ship, and substitutes them with **Inter** in one undo entry. The menu item is enabled only when something is
+  actually missing, so the control cannot lie.
+- **Detection is shared and tested.** The same walk powers the menu state, the dialog list, and the substitution
+  command; it sees text inside groups, ignores case when comparing family names, and returns unique, sorted families.
+- No document-format change: `fontFamily` already existed, and existing files with missing families now have a way out.
 
 ### What is in this build
 
-Everything from **0.5.6** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
-point/area/path/threaded/vertical text, and Create Outlines — plus transforms, gradients, blend modes, artboards,
-layers, images, autosave, and crash recovery.
+Everything from **0.5.7** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
+point/area/path/threaded/vertical text, Create Outlines, and live thread reflow — plus transforms, gradients, blend
+modes, artboards, layers, images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -50,9 +51,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 389 unit tests, UI standards
+npm test           # layer check, 392 unit tests, UI standards
 npm run build
-npm run smoke      # 169 packaged steps, six reports
+npm run smoke      # 170 packaged steps, six reports
 ```
 
 </details>
@@ -60,11 +61,11 @@ npm run smoke      # 169 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **No unlink UI**; a continuation's own edit stays local until the next reflow, which then re-derives it from the head.
-- Capacity and wrapping use the **head's** font, size, and leading; lines past the last frame stay in the story but are
-  hidden, with no overflow marker.
-- Create Outlines uses the font's default variation master, ignores kerning, and only handles horizontal text.
-- Vertical Latin is an upright stack; area text has no inset/columns; point insertion is the box's top-left.
+- **Inter is the only face**, so substitution always lands on Inter with no per-family choice; the dialog lists
+  families rather than per-object counts and does not open automatically when a file is loaded.
+- Character/paragraph style presets are not built yet; text styling remains per object.
+- Threading is live but has no unlink UI, and hidden overflow past the last frame is not marked.
+- Create Outlines uses the default variation master and ignores kerning; vertical/path text is not outlined.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
   anchor, and a compound's own stroke is not outlined.
 
@@ -73,9 +74,10 @@ npm run smoke      # 169 packaged steps, six reports
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **389 unit tests**, production build, and **169 packaged steps** across six reports.
-- New packaged step reflows a 12-line story into **3 + 6** visible lines across two frames, then undoes.
-- Unit tests cover chain links and their inverse, a last frame with no next, refusal of a continuation without a head,
-  and refusal of a head that also carries a head id.
+- Typecheck, layer check, **392 unit tests**, production build, and **170 packaged steps** across six reports.
+- New packaged step creates a Comic Sans MS text object, opens the dialog, asserts the family is listed, applies the
+  substitution, checks the family became Inter, and undoes.
+- Unit tests pin unique/sorted/case-insensitive detection, text inside groups, an all-Inter document reporting
+  nothing, and a caller-supplied available list.
 
 </details>

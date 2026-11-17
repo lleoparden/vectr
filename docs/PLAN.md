@@ -47,7 +47,7 @@ Illustrator oracle are in [PHASE6_REA_CHECKLIST.md](PHASE6_REA_CHECKLIST.md).
 | 6.4 Threading | **Live chain**: Thread Text links every frame, head edits reflow the chain, Reflow Thread on demand (format v12); unlink UI remains |
 | 6.5 Styles, 6.6 Tabs | Not started (tabs API gap recorded) |
 | 6.7 Vertical type | **Ships as an upright stack** (format v11); rotated glyphs and vertical punctuation remain |
-| 6.8 Missing fonts | Fixture recorded; substitute workflow not implemented |
+| 6.8 Missing fonts | **Ships**: detection plus a Resolve Missing Fonts dialog that substitutes with Inter in one undo |
 | 6.9 Outlining | **Ships**: Create Outlines via a TrueType reader (default master, no kerning); horizontal text only |
 
 ## Phase 2 history (complete, for reference)

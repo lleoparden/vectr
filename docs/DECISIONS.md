@@ -2470,3 +2470,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   master, which matches the only weight the editor draws today.
 - **Costs stated:** no kerning in the pen positions, vertical/path text skipped, and outlines are paths afterwards -
   text editing ends at the command.
+
+## 2026-11-17 - Threaded text reflows from the head, in one undo entry
+
+- **Chain links, not display order:** every continuation stores `threadHeadId` and its own `threadNextId`, so reflow
+  walks one explicit chain rather than guessing from selection order. The fields are optional (format v12), so
+  earlier files open as they were.
+- **Editing a head edits the story:** the inline editor loads `threadStory` when present, `setTextThread` updates it,
+  and the reflow runs inside the same transaction, so changing a head's text is one undo entry for the whole chain.
+- **Continuation edits stay local** until a reflow, which is the cost of keeping one story on the head without a
+  separate text engine; it is stated in the catalog and release notes.

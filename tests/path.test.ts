@@ -34,8 +34,8 @@ function documentWith(path: PathNode): { document: Document; id: string } {
 }
 
 test('the file format is 5 and still opens 1 through 5', () => {
-  assert.equal(FORMAT_VERSION, 11)
-  assert.deepEqual(SUPPORTED_FORMAT_VERSION_LIST, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  assert.equal(FORMAT_VERSION, 12)
+  assert.deepEqual(SUPPORTED_FORMAT_VERSION_LIST, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 })
 
 test('a straight two-anchor path flattens to its endpoints exactly', () => {
@@ -209,14 +209,14 @@ test('world bounds come from the normalised path box', () => {
   assert.ok(Math.abs(bounds.height - 80) < 1e-6)
 })
 
-test('a saved document with a curve reopens with format 11 and the same anchors', () => {
+test('a saved document with a curve reopens with format 12 and the same anchors', () => {
   const path = createPath('Saved curve', 40, 60, [anchor(0, 0, 12, 0), anchor(80, 30, 0, -12), anchor(0, 60)], {
     closed: true,
     fillRule: 'evenodd',
   })
   const { document } = documentWith(path)
   const saved = serializeDocument(document)
-  assert.match(saved.manifest, /"formatVersion":\s*11/)
+  assert.match(saved.manifest, /"formatVersion":\s*12/)
   const reopened = deserializeDocument(saved.manifest)
   assert.equal(reopened.ok, true)
   if (!reopened.ok) return

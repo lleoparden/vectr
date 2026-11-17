@@ -60,6 +60,37 @@ test('the thread command stores the link and story, and its inverse clears them'
   assert.equal(cleared.threadStory, undefined)
 })
 
+test('a continuation frame links to its head, and the last frame may have no next', () => {
+  const { document, head, next } = frames()
+  const linkedHead = applyCommand(document, { type: 'setTextThread', nodeId: head, nextId: next, story: 'story', headId: null })
+  assert.equal(linkedHead.ok, true)
+  if (!linkedHead.ok) return
+  const continuation = applyCommand(linkedHead.document, {
+    type: 'setTextThread',
+    nodeId: next,
+    nextId: null,
+    story: null,
+    headId: head,
+  })
+  assert.equal(continuation.ok, true, 'the last frame records its head without a next link')
+  if (!continuation.ok) return
+  const frame = findNode(continuation.document, next) as TextNode
+  assert.equal(frame.threadHeadId, head)
+  assert.equal(frame.threadNextId, undefined)
+  const undone = applyCommand(continuation.document, continuation.inverse)
+  assert.equal(undone.ok, true)
+  if (!undone.ok) return
+  assert.equal((findNode(undone.document, next) as TextNode).threadHeadId, undefined)
+})
+
+test('a continuation needs a head and a head cannot carry a head id', () => {
+  const { document, head, next } = frames()
+  const noHead = applyCommand(document, { type: 'setTextThread', nodeId: next, nextId: head, story: null, headId: null })
+  assert.equal(noHead.ok, false)
+  const headWithHead = applyCommand(document, { type: 'setTextThread', nodeId: head, nextId: next, story: 's', headId: next })
+  assert.equal(headWithHead.ok, false)
+})
+
 test('the thread command refuses a non-area frame and a self link', () => {
   const { document, head, next } = frames()
   const point = createText('Point', 0, 0, 'x')

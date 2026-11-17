@@ -1,6 +1,20 @@
 # Progress
 
 
+## Phase 6.4 upgrade: live thread reflow (2026-11-17)
+
+- **Threads are a chain now.** Thread Text records a link on every frame (heads get `threadStory` + `threadNextId`,
+  continuations get `threadHeadId` + their own next), so the whole chain reflows from one head. Format v12; the
+  fields are optional so older files still open.
+- **Editing a head edits the story and reflows every frame** in the same undo entry: the inline editor shows the
+  story, `setTextThread` updates it, and the reflow recomputes each slice with the head's typography. Editing a
+  continuation changes only its slice (declared), and Type > Reflow Thread recomputes on demand.
+- **Evidence:** 389 unit tests (chain links and their inverse, last frame without a next, refusal of a continuation
+  without a head and of a head carrying a head id) and **169 packaged steps**, including a 12-line story reflowing
+  into 3 + 6 visible lines across two frames.
+- **Declared limits:** no unlink UI; continuation edits are local until the next reflow; fonts/leading come from the
+  head for capacity and wrapping; lines past the last frame remain hidden.
+
 ## Phase 6.9: Create Outlines, with our own TrueType reader (2026-10-25)
 
 - **Type > Create Outlines (Ctrl+Shift+O)** replaces selected text with a compound path of its glyph outlines, using

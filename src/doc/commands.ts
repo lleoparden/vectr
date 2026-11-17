@@ -87,7 +87,14 @@ export type Command =
   /** Switches point text between horizontal and vertical (Phase 6.7). */
   | { type: 'setTextOrientation'; nodeId: NodeId; orientation: 'horizontal' | 'vertical' }
   /** Links an area-text head to the next frame and stores the whole story (Phase 6.4). */
-  | { type: 'setTextThread'; nodeId: NodeId; nextId: NodeId | null; story: string | null }
+  | {
+      type: 'setTextThread'
+      nodeId: NodeId
+      nextId: NodeId | null
+      story: string | null
+      /** Continuation frames point at their head; heads leave this null. */
+      headId?: NodeId | null
+    }
   /** Text content, with the measured box when the caller could measure (issue #16). */
   | { type: 'setText'; nodeId: NodeId; text: string; width?: number; height?: number }
   | {
@@ -902,18 +909,39 @@ export function applyCommand(document: Document, command: Command): CommandResul
       if (!isText(node)) return rejected('invalid-parent', `Node ${command.nodeId} is not a text object.`)
       if (node.textType !== 'area') return rejected('invalid-parent', 'Only area text can be threaded.')
       if (isLocked(document, command.nodeId)) return rejected('locked', `Node ${command.nodeId} is locked.`)
-      if (command.nextId !== null) {
+      const headId = command.headId ?? null
+      if (command.nextId === null) {
+        if (command.story !== null) return rejected('invalid-index', 'A frame without a next frame has no story.')
+        if (headId !== null) {
+          if (headId === node.id) return rejected('invalid-parent', 'A frame cannot be its own head.')
+          const head = findNode(document, headId)
+          if (head === null || !isText(head) || head.textType !== 'area' || head.threadStory === undefined) {
+            return rejected('invalid-parent', 'The thread head must be area text with a story.')
+          }
+        }
+      } else {
         const next = findNode(document, command.nextId)
         if (next === null || !isText(next) || next.textType !== 'area') {
           return rejected('invalid-parent', 'The next frame must be area text.')
         }
         if (next.id === node.id) return rejected('invalid-parent', 'A frame cannot follow itself.')
-        if (command.story === null) return rejected('invalid-index', 'A thread needs its story.')
-        if (command.story.length > 100_000) return rejected('invalid-index', 'The story is too large.')
-      } else if (command.story !== null) {
-        return rejected('invalid-index', 'A frame without a next frame has no story.')
+        if (command.story !== null) {
+          if (headId !== null) return rejected('invalid-index', 'A head frame cannot also be a continuation.')
+          if (command.story.length > 100_000) return rejected('invalid-index', 'The story is too large.')
+        } else {
+          if (headId === null) return rejected('invalid-index', 'A continuation frame needs its head.')
+          const head = findNode(document, headId)
+          if (head === null || !isText(head) || head.textType !== 'area' || head.threadStory === undefined) {
+            return rejected('invalid-parent', 'The thread head must be area text with a story.')
+          }
+          if (head.id === node.id) return rejected('invalid-parent', 'A frame cannot be its own head.')
+        }
       }
-      const previous = { nextId: node.threadNextId ?? null, story: node.threadStory ?? null }
+      const previous = {
+        nextId: node.threadNextId ?? null,
+        story: node.threadStory ?? null,
+        headId: node.threadHeadId ?? null,
+      }
       return {
         ok: true,
         document: withRevision(
@@ -923,14 +951,19 @@ export function applyCommand(document: Document, command: Command): CommandResul
             if (command.nextId === null) {
               delete next.threadNextId
               delete next.threadStory
+              if (headId !== null) next.threadHeadId = headId
+              else delete next.threadHeadId
             } else {
               next.threadNextId = command.nextId
-              next.threadStory = command.story ?? ''
+              if (command.story !== null) next.threadStory = command.story
+              else delete next.threadStory
+              if (headId !== null) next.threadHeadId = headId
+              else delete next.threadHeadId
             }
             return next
           }),
         ),
-        inverse: { type: 'setTextThread', nodeId: command.nodeId, nextId: previous.nextId, story: previous.story },
+        inverse: { type: 'setTextThread', nodeId: command.nodeId, nextId: previous.nextId, story: previous.story, headId: previous.headId },
       }
     }
 

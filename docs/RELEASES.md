@@ -2,23 +2,29 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Missing fonts are now a
-visible workflow** instead of a silent substitution.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Phase 6 (Type) is closed in
+scope**: point, area, path, threaded, and vertical text, Create Outlines, and missing-font resolution. The format is at
+**v12**.
 
-### What changed
+### What changed in this phase
 
-- **Type ▸ Resolve Missing Fonts…** opens a dialog listing the families the document references but Vectr does not
-  ship, and substitutes them with **Inter** in one undo entry. The menu item is enabled only when something is
-  actually missing, so the control cannot lie.
-- **Detection is shared and tested.** The same walk powers the menu state, the dialog list, and the substitution
-  command; it sees text inside groups, ignores case when comparing family names, and returns unique, sorted families.
-- No document-format change: `fontFamily` already existed, and existing files with missing families now have a way out.
+- **Point text** with in-place editing, alignment that keeps the insertion anchor fixed, and ink-height bounds
+  (ascent + descent + leading), matching Illustrator's measured box rather than `lines × leading`.
+- **Area text**: drag with the Type tool to author a frame; text wraps at word boundaries, long words break by
+  character, overflow is clipped, and content/style edits keep the frame.
+- **Text on a path**: click a filled path with the Type tool; glyphs are centred along it and rotate to the tangent.
+- **Threaded text with live reflow**: Thread Text links area frames into a chain; editing the head's story
+  redistributes every frame in one undo, and Type ▸ Reflow Thread recomputes on demand.
+- **Vertical type**: an upright stack, one column per line, with area/path frames keeping their box.
+- **Create Outlines** (Ctrl+Shift+O) via **our own TrueType reader** — cmap, loca/glyf, hmtx, quadratic-to-cubic —
+  because CanvasKit exposes glyph metrics but not outlines.
+- **Resolve Missing Fonts**: lists absent families and substitutes them with Inter in one undo.
+- **Format evolution v8 → v12**, each field optional so older documents open unchanged.
 
 ### What is in this build
 
-Everything from **0.5.7** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
-point/area/path/threaded/vertical text, Create Outlines, and live thread reflow — plus transforms, gradients, blend
-modes, artboards, layers, images, autosave, and crash recovery.
+Everything from **0.5.x** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles —
+plus transforms, gradients, blend modes, artboards, layers, images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -61,11 +67,15 @@ npm run smoke      # 170 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **Inter is the only face**, so substitution always lands on Inter with no per-family choice; the dialog lists
-  families rather than per-object counts and does not open automatically when a file is loaded.
-- Character/paragraph style presets are not built yet; text styling remains per object.
-- Threading is live but has no unlink UI, and hidden overflow past the last frame is not marked.
-- Create Outlines uses the default variation master and ignores kerning; vertical/path text is not outlined.
+- **Character/paragraph style presets are the Phase 6 exception.** Per-range character styles need a rich-text run
+  model (runs in the document, run-aware rendering and editing, run-scoped commands); text styling remains per object.
+- **Tab stops are documented-only**: Illustrator 27.3.1's scripting API cannot set them, recorded in the oracle
+  fixtures rather than guessed.
+- Vertical Latin is an **upright stack**, not rotated; no vertical punctuation, tate-chu-yoko, or bidirectional layout.
+- Threading is live but has **no unlink UI**; a continuation's edit stays local until the next reflow, and hidden
+  overflow past the last frame is not marked.
+- Create Outlines uses the **default variation master**, ignores kerning, and only outlines horizontal text.
+- Point-text insertion is still the box's top-left, not Illustrator's baseline.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
   anchor, and a compound's own stroke is not outlined.
 
@@ -75,9 +85,9 @@ npm run smoke      # 170 packaged steps, six reports
 <summary><strong>Evidence</strong></summary>
 
 - Typecheck, layer check, **392 unit tests**, production build, and **170 packaged steps** across six reports.
-- New packaged step creates a Comic Sans MS text object, opens the dialog, asserts the family is listed, applies the
-  substitution, checks the family became Inter, and undoes.
-- Unit tests pin unique/sorted/case-insensitive detection, text inside groups, an all-Inter document reporting
-  nothing, and a caller-supplied available list.
+- The packaged run covers every Phase 6 path: area-frame creation, path-text creation, threading plus reflow,
+  vertical toggle, Create Outlines, and the missing-fonts dialog.
+- `npm run verify:artifact` asserts the Phase 6 contract now (command ids and fields) against the staged build, and
+  writes a receipt with the ASAR and bundle hashes.
 
 </details>

@@ -144,6 +144,18 @@ const CONTRACT = {
     'tool.ellipse',
     'tool.text',
   ],
+  'phase-6': [
+    'type.orientation',
+    'type.createOutlines',
+    'type.missingFonts',
+    'text.thread',
+    'text.reflow',
+    'textType',
+    'textPath',
+    'threadStory',
+    'threadHeadId',
+    'missingFontsOpen',
+  ],
   'phase-5': [
     'tool.pen',
     'tool.shapeBuilder',

@@ -1,6 +1,21 @@
 # Progress
 
 
+## Phase 6 closed with 0.6.0 (2026-11-17)
+
+- **Shipped in Phase 6:** point text (alignment keeps the insertion anchor; ink-height bounds), area text (authored
+  frame, word wrapping, clipped overflow), text on a path (centred glyphs with tangent rotation), threaded text with
+  **live reflow**, vertical type (upright stack), Create Outlines (own TrueType reader), and the Resolve Missing
+  Fonts workflow. Format moved from v7 to **v12** across those slices, each field optional so older files open.
+- **Declared exception:** **character/paragraph style presets are not built.** Per-range character styles need a
+  rich-text run model (runs in the document, run-aware rendering and editing, run-scoped commands), which is a
+  phase-sized slice of its own rather than a preset table. Text styling stays per object, and the catalog says so.
+- **Also outside this phase:** tab stops (Illustrator's scripting API cannot set them in 27.3.1 - recorded in the
+  oracle fixtures), vertical punctuation/tate-chu-yoko/bidi, and editing overlays that follow path text or vertical
+  carets.
+- **Evidence at close:** 392 unit tests, **170 packaged steps**, and a verify:artifact contract that now includes
+  every Phase 6 command id and field, so 0.6.0's receipt proves the phase is actually in the installer.
+
 ## Phase 6.8: the missing-font substitute workflow (2026-11-17)
 
 - **Detection is real now:** `src/doc/missingFonts.ts` walks the tree (groups included), compares text families

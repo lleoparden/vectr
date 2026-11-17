@@ -1,0 +1,285 @@
+{
+  "tool": "verify-artifact",
+  "generatedAt": "2026-11-17T14:50:01.548Z",
+  "asar": {
+    "path": "L:\\vectr\\release\\win-unpacked\\resources\\app.asar",
+    "version": "0.6.0",
+    "sha256": "4737fe7295c14d0fa77b3ffeebd17c2813df72da7fa7cffadc64a832c08e0255",
+    "bytes": 50871060
+  },
+  "expectedVersion": "0.6.0",
+  "bundle": {
+    "path": "dist/assets/index-DN6kVOWj.js",
+    "sha256": "82e189c90f90f9494ae3a4c480cb9442efa6f8d466cb881c94abc6765cc3588b",
+    "bytes": 758306
+  },
+  "checks": [
+    {
+      "name": "repository and artifact versions match",
+      "ok": true,
+      "detail": "artifact 0.6.0, expected 0.6.0"
+    },
+    {
+      "name": "phase-1-4 edit.undo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 edit.redo",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 file.save",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.group",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.ungroup",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.makeClip",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 object.alignLeft",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.select",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.rect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.ellipse",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-1-4 tool.text",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 type.orientation",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 type.createOutlines",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 type.missingFonts",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 text.thread",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 text.reflow",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 textType",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 textPath",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 threadStory",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 threadHeadId",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-6 missingFontsOpen",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.pen",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.shapeBuilder",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.livePaint",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 tool.width",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.addAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.deleteAnchor",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.join",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.unite",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.intersect",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.subtract",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.exclude",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.divide",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.simplify",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.offsetPath",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.outlineStroke",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 path.profileBulge",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 setWidthProfile",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundMake",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "phase-5 object.compoundRelease",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "hitTestAll (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "pointInShape (since 0.5.1)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "placeAreaText (since 0.5.2)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "textType (since 0.5.2)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "textPath (since 0.5.3)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "threadStory (since 0.5.4)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "orientation (since 0.5.5)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "type.createOutlines (since 0.5.6)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "threadHeadId (since 0.5.7)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "text.reflow (since 0.5.7)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "type.missingFonts (since 0.5.8)",
+      "ok": true,
+      "detail": "present as expected"
+    },
+    {
+      "name": "missingFontsOpen (since 0.5.8)",
+      "ok": true,
+      "detail": "present as expected"
+    }
+  ],
+  "passed": true,
+  "failures": []
+}

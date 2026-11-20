@@ -18,7 +18,9 @@ import {
   setSelectionGradient,
   setSelectionOpacity,
   setSelectionStroke,
+  toggleSelectionBlur,
   toggleSelectionShadow,
+  updateSelectionBlur,
   updateSelectionShadow,
 } from '../actions.ts'
 import { ColorField, NumberField, PercentField, Readout, Section, SelectField, ToggleField } from '../ui/components/fields.tsx'
@@ -58,6 +60,7 @@ export function AppearancePanel() {
   const gradient = node.style.gradient ?? null
   const stroke = node.style.stroke
   const shadow = node.style.effects?.find((effect) => effect.type === 'dropShadow') ?? null
+  const blur = node.style.effects?.find((effect) => effect.type === 'blur') ?? null
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -105,6 +108,18 @@ export function AppearancePanel() {
 
       <Section title="Effects">
         <ToggleField label="Drop shadow" checked={shadow !== null} onChange={() => toggleSelectionShadow()} />
+        <ToggleField label="Blur" checked={blur !== null} onChange={() => toggleSelectionBlur()} />
+        {blur !== null && (
+          <NumberField
+            label="Radius"
+            value={blur.radius}
+            min={0}
+            max={100}
+            step={1}
+            suffix="px"
+            onChange={(radius) => updateSelectionBlur(radius)}
+          />
+        )}
         {shadow !== null && (
           <>
             <NumberField

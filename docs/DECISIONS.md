@@ -2500,3 +2500,13 @@ VectorCraft as the base. Reading that repository changed the answer, and the own
   the cache is bounded in practice by the number of distinct shadow settings a user creates.
 - **Signature covers effects:** the bucket signature must include pixel-affecting state; omitting effects reproduced
   the gradient-cache bug. Any new effect field belongs in `contentSignature` in the same change.
+
+## 2026-11-20 - Blur is a filtered layer, not a per-paint filter
+
+- **Layer filter:** a blur must affect the object as a whole (fill and stroke together), so the shape draws inside
+  `saveLayer` with a blur-filtered paint rather than filtering each paint separately. This also keeps the drop shadow
+  outside the blur, which is what the two independent effects imply.
+- **Cached paints:** blur filters have the same recording-lifetime requirement as shadows, so they are cached by
+  radius. Budget-based eviction remains a follow-up for both caches.
+- **Format v14:** a blur in `effects` is unknown to v13 builds; the version bump makes them refuse the file cleanly
+  instead of failing validation with a generic invalid-document error.

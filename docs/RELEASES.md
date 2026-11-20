@@ -2,24 +2,24 @@
 
 Windows x64 · per-user install · unsigned, so SmartScreen warns once · macOS arm64/x64 · ad-hoc signed
 
-**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Phase 7 begins with a real
-drop shadow**, stored in the document and rendered by Skia, and the native format moves to **v13**.
+**Vectr <version>** — the vector editor that reads like Illustrator and writes React. **Blur** joins the drop shadow
+as the second appearance effect, and the native format moves to **v14**.
 
 ### What changed
 
-- **Drop shadow** on vector shapes: offset, blur, colour, and opacity, editable in the **Appearance** panel and
-  available from **Object ▸ Drop Shadow**. Every edit is one undo entry, and the effect is document data, not a paint
-  hack — it saves, reopens, and inverts exactly.
-- **Rendering is an appearance layer**: the shadow is drawn beneath the shape with Skia's drop-shadow image filter,
-  with its opacity folded into the colour. Two cache bugs were fixed to get there: effects now participate in the
-  bucket signature (the same class of bug the gradient cache had), and filters are kept alive across recording.
-- **Format v13**: `Style.effects` is optional, so older documents open unchanged.
+- **Blur** on vector shapes with a 0–100 radius, toggleable in **Appearance ▸ Effects** and from **Object ▸ Blur**.
+  It stacks with a drop shadow in the same effect list, and each toggle is one undo entry.
+- **Rendered as a filtered layer**: fill and stroke are drawn inside a `saveLayer` with Skia's blur filter, so the
+  object blurs as a whole while its shadow stays sharp. Filters are cached by radius, for the same recording-lifetime
+  reason the shadow filters are.
+- **Format v14.** A blur in `effects` is unknown to v13 builds, so the bump lets them refuse the file cleanly rather
+  than fail validation generically.
 
 ### What is in this build
 
-Everything from **0.6.0** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
-point/area/path/threaded/vertical text, Create Outlines, missing-font resolution — plus transforms, gradients, blend
-modes, artboards, layers, images, autosave, and crash recovery.
+Everything from **0.6.1** — paths, booleans, compound paths, Simplify/Outline/Offset, live shapes, width profiles,
+point/area/path/threaded/vertical text, Create Outlines, missing-font resolution, and the drop shadow — plus
+transforms, gradients, blend modes, artboards, layers, images, autosave, and crash recovery.
 
 <details>
 <summary><strong>Install, requirements, and other ways to run it</strong></summary>
@@ -52,9 +52,9 @@ Download **`Vectr-<version>-arm64.dmg`** on Apple Silicon or **`Vectr-<version>-
 ```bash
 npm install
 npm run dev        # Vite + Electron with hot reload
-npm test           # layer check, 394 unit tests, UI standards
+npm test           # layer check, 395 unit tests, UI standards
 npm run build
-npm run smoke      # 171 packaged steps, six reports
+npm run smoke      # 172 packaged steps, six reports
 ```
 
 </details>
@@ -62,10 +62,10 @@ npm run smoke      # 171 packaged steps, six reports
 <details>
 <summary><strong>What this build deliberately does not do</strong></summary>
 
-- **One effect type** (drop shadow) on **vector shapes**; text and images refuse effects rather than ignoring them, and
-  there is one shadow per toggle rather than a reorderable stack.
-- Shadows do **not expand selection or marquee bounds**, and filter paints are cached per parameter combination rather
-  than evicted by a memory budget.
+- **Blur is one Gaussian radius per object** and applies to **vector shapes** only; text and images refuse effects.
+  Glow and other effect types are not built, and there is no reorderable effect stack UI.
+- Shadows do not expand selection bounds, and both effect caches are keyed by parameters rather than evicted by a
+  memory budget.
 - Character/paragraph styles remain the Phase 6 exception; vertical Latin is an upright stack; threading has no unlink
   UI; Create Outlines uses the default variation master and ignores kerning.
 - Phase 5 limits stand: Live Paint paints regions not edges, Divide faces are flattened, width profiles are per
@@ -76,11 +76,9 @@ npm run smoke      # 171 packaged steps, six reports
 <details>
 <summary><strong>Evidence</strong></summary>
 
-- Typecheck, layer check, **394 unit tests**, production build, and **171 packaged steps** across six reports.
-- New packaged step toggles a drop shadow, asserts the stored effect, and undoes.
-- A rendered proof confirmed the shadow is **visible** (not merely stored), which is how the missing signature entry
-  and the filter-lifetime bug were found.
-- Unit tests pin the effect command's round trip and inverse, and refusals for text, groups, out-of-range blur, and
-  opacity.
+- Typecheck, layer check, **395 unit tests**, production build, and **172 packaged steps** across six reports.
+- New packaged step toggles a blur, asserts the stored effect with its radius, and undoes.
+- A rendered proof confirmed the object's edges are actually soft, not just that the effect was serialized.
+- Unit tests pin shadow and blur stored together, out-of-range radius refusal, and validation of the combined list.
 
 </details>

@@ -195,6 +195,7 @@ const SINCE = {
   missingFontsOpen: '0.5.8',
   'object.shadow': '0.6.1',
   dropShadow: '0.6.1',
+  'object.blur': '0.6.2',
 }
 
 const bundlePath = listFiles(asar.header).find((file) => /(^|\/)dist\/assets\/index-[^/]+\.js$/u.test(file))

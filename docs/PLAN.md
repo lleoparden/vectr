@@ -62,7 +62,7 @@ brushes/patterns/symbols, mesh and freeform gradients.
 | --- | --- |
 | 7.1 Appearance effects | **Drop shadow ships** (format v13): model, command, renderer filter, Appearance controls; multiple effects per stack, other effect types, and stacks of fills/strokes remain |
 | 7.2 Transparency | Not started |
-| 7.3 Raster effects | Drop shadow is the first; blur/glow and a gallery remain |
+| 7.3 Raster effects | **Drop shadow and blur ship** (formats v13/v14); glow and a gallery remain |
 | 7.4 Brushes, patterns, symbols | Not started |
 | 7.5 Mesh/freeform gradients, recolour | Not started |
 

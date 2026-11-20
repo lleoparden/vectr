@@ -843,12 +843,44 @@ export function updateSelectionShadow(patch: Partial<DropShadow>): void {
   const own = !documentStore.inTransaction()
   if (own) documentStore.beginTransaction('shadow')
   for (const target of targets) {
-    const current = target.effects?.[0]
+    const current = target.effects?.find((effect) => effect.type === 'dropShadow')
     if (current === undefined) continue
-    documentStore.dispatch(
-      { type: 'setEffects', nodeId: target.id, effects: [{ ...current, ...patch }] },
-      'shadow',
+    const next: Effect[] = (target.effects ?? []).map((effect) => (effect === current ? { ...current, ...patch } : effect))
+    documentStore.dispatch({ type: 'setEffects', nodeId: target.id, effects: next }, 'shadow')
+  }
+  if (own) documentStore.commitTransaction()
+}
+
+const DEFAULT_BLUR = 6
+
+/** Toggles a blur effect on the selected vector shapes, one undo entry. */
+export function toggleSelectionBlur(): void {
+  const targets = shadowTargets()
+  if (targets.length === 0) return
+  const clearing = targets.some((target) => (target.effects ?? []).some((effect) => effect.type === 'blur'))
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('blur')
+  for (const target of targets) {
+    const existing = target.effects ?? []
+    const next = clearing
+      ? existing.filter((effect) => effect.type !== 'blur')
+      : [...existing, { type: 'blur' as const, radius: DEFAULT_BLUR }]
+    documentStore.dispatch({ type: 'setEffects', nodeId: target.id, effects: next.length === 0 ? null : next }, 'blur')
+  }
+  if (own) documentStore.commitTransaction()
+}
+
+/** Sets the blur radius on the selection's blur effects, one undo entry. */
+export function updateSelectionBlur(radius: number): void {
+  const targets = shadowTargets().filter((target) => (target.effects ?? []).some((effect) => effect.type === 'blur'))
+  if (targets.length === 0) return
+  const own = !documentStore.inTransaction()
+  if (own) documentStore.beginTransaction('blur')
+  for (const target of targets) {
+    const next: Effect[] = (target.effects ?? []).map((effect) =>
+      effect.type === 'blur' ? { ...effect, radius } : effect,
     )
+    documentStore.dispatch({ type: 'setEffects', nodeId: target.id, effects: next }, 'blur')
   }
   if (own) documentStore.commitTransaction()
 }
@@ -1279,6 +1311,11 @@ export function canRunAction(id: EditorActionId, editor: EditorState): boolean {
     return editor.selection.some((id) => {
       const node = findNode(editor.document, id)
       return node !== null && isText(node)
+    })
+  case 'object.blur':
+    return editor.selection.some((id) => {
+      const node = findNode(editor.document, id)
+      return node !== null && EFFECT_KINDS.has(node.type)
     })
   case 'object.shadow':
     return editor.selection.some((id) => {
@@ -1763,6 +1800,9 @@ export function runEditorAction(id: EditorActionId): void {
       return
     case 'type.orientation':
       toggleTextOrientation()
+      return
+    case 'object.blur':
+      toggleSelectionBlur()
       return
     case 'object.shadow':
       toggleSelectionShadow()

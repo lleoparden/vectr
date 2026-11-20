@@ -895,12 +895,19 @@ export function applyCommand(document: Document, command: Command): CommandResul
           return rejected('invalid-index', 'An effect stack holds at most eight effects.')
         }
         for (const effect of command.effects) {
-          if (effect.type !== 'dropShadow') return rejected('invalid-index', 'Only drop shadows exist in this build.')
-          if (![effect.x, effect.y, effect.blur, effect.opacity].every((value) => Number.isFinite(value))) {
-            return rejected('non-finite', 'A shadow needs finite numbers.')
-          }
-          if (effect.blur < 0 || effect.blur > 500 || effect.opacity < 0 || effect.opacity > 1) {
-            return rejected('invalid-index', 'A shadow is out of range.')
+          if (effect.type === 'dropShadow') {
+            if (![effect.x, effect.y, effect.blur, effect.opacity].every((value) => Number.isFinite(value))) {
+              return rejected('non-finite', 'A shadow needs finite numbers.')
+            }
+            if (effect.blur < 0 || effect.blur > 500 || effect.opacity < 0 || effect.opacity > 1) {
+              return rejected('invalid-index', 'A shadow is out of range.')
+            }
+          } else if (effect.type === 'blur') {
+            if (!Number.isFinite(effect.radius) || effect.radius < 0 || effect.radius > 100) {
+              return rejected('invalid-index', 'A blur is out of range.')
+            }
+          } else {
+            return rejected('invalid-index', 'Unknown effect.')
           }
         }
       }

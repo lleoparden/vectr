@@ -97,6 +97,8 @@ export class EditorRenderer {
   private fontBytes: Uint8Array | null = null
   /** Shadow paints are kept alive by parameter key: a filter deleted after recording can render empty. */
   private readonly shadowPaints = new Map<string, { paint: Paint; filter: ImageFilter }>()
+  /** Blur layer paints, kept alive for the same reason as the shadow paints. */
+  private readonly blurPaints = new Map<number, { paint: Paint; filter: ImageFilter }>()
   private readonly substituted = new Set<string>()
   private typeface: Typeface | null = null
   /** Decoded images, one per asset id, disposed with the renderer. */
@@ -184,6 +186,16 @@ export class EditorRenderer {
       const message = cause instanceof Error ? cause.message : String(cause)
       console.warn(`[vectr-font] Inter could not be loaded: ${message}`)
     }
+  }
+
+  private blurPaintFor(radius: number): Paint {
+    const cached = this.blurPaints.get(radius)
+    if (cached !== undefined) return cached.paint
+    const filter = this.kit.ImageFilter.MakeBlur(radius, radius, this.kit.TileMode.Decal, null)
+    const paint = new this.kit.Paint()
+    paint.setImageFilter(filter)
+    this.blurPaints.set(radius, { paint, filter })
+    return paint
   }
 
   private shadowPaintFor(effect: DropShadow): Paint {
@@ -542,6 +554,9 @@ export class EditorRenderer {
             recording.drawPath(path, this.shadowPaintFor(effect))
           }
         }
+        const blurEffect = shape.effects?.find((effect) => effect.type === 'blur') ?? null
+        const blurPaint = blurEffect === null ? null : this.blurPaintFor(blurEffect.radius)
+        if (blurPaint !== null) recording.saveLayer(blurPaint)
         const fillPaint = this.fillPaintFor(shape)
         if (shape.blendMode !== null) fillPaint.setBlendMode(this.blendModeFor(shape.blendMode))
         recording.drawPath(path, fillPaint)
@@ -550,6 +565,7 @@ export class EditorRenderer {
             recording.drawPath(path, this.paintFor('stroke', shape.stroke.color, shape.stroke.width, shape.opacity))
           }
         }
+        if (blurPaint !== null) recording.restore()
       }
       recording.restore()
       if (shape.clip !== null) recording.restore()

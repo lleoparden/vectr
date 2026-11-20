@@ -33,6 +33,18 @@ test('a drop shadow is stored, validated, and removed by its inverse', () => {
   assert.equal((findNode(undone.document, id) as RectNode).style.effects, undefined)
 })
 
+test('a blur is stored alongside a shadow and refuses an out-of-range radius', () => {
+  const { document, id } = fixture()
+  const both = applyCommand(document, { type: 'setEffects', nodeId: id, effects: [SHADOW, { type: 'blur', radius: 12 }] })
+  assert.equal(both.ok, true)
+  if (!both.ok) return
+  const node = findNode(both.document, id) as RectNode
+  assert.equal(node.style.effects?.length, 2)
+  assert.equal(validateDocument(both.document).ok, true)
+  const bad = applyCommand(both.document, { type: 'setEffects', nodeId: id, effects: [{ type: 'blur', radius: 200 }] })
+  assert.equal(bad.ok, false)
+})
+
 test('effects are refused on text, groups, and out-of-range shadows', () => {
   const { document } = fixture()
   const text = createText('Text', 0, 0, 'x')

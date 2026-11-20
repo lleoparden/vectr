@@ -1,6 +1,19 @@
 # Progress
 
 
+## Phase 7.3: blur, the second appearance effect (2026-11-20)
+
+- **Blur** joins the shadow in `Style.effects` (format v14): radius 0-100, validated by the command and the
+  document validator, editable in Appearance, and available as Object > Blur. It stacks with a shadow in the same
+  effect list; each toggle is one undo entry.
+- **Rendering wraps the shape in a filtered layer:** fill and stroke are drawn inside a `saveLayer` whose image
+  filter is Skia's blur, so the object blurs without blurring the shadow. Blur paints are cached by radius for the
+  same lifetime reason as the shadow filters.
+- **Evidence:** 395 unit tests (shadow + blur stored together, out-of-range radius refused, both effects validate)
+  and **172 packaged steps**, including a toggled blur. A rendered proof confirms the edges are actually soft.
+- **Declared limits:** blur applies to vector shapes only (like the shadow), is a single Gaussian radius per object,
+  and the filter cache is not budget-evicted; glow is not built yet.
+
 ## Phase 7.1 started: the first appearance effect, a drop shadow (2026-11-17)
 
 - **Effects are document data now** (`Style.effects`, format v13): a drop shadow carries x/y offset, blur, colour,

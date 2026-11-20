@@ -2572,7 +2572,25 @@ export async function runShapeToolsReport(): Promise<SmokeReport> {
   record(
     'Drop Shadow is one undo entry',
     shadow !== null && shadow.type === 'dropShadow' && shadow.blur > 0,
-    shadow === null ? 'no shadow' : `${shadow.x},${shadow.y} blur ${shadow.blur}`,
+    shadow === null || shadow.type !== 'dropShadow' ? 'no shadow' : `${shadow.x},${shadow.y} blur ${shadow.blur}`,
+  )
+  documentStore.undo()
+  await settle(100)
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', bubbles: true }))
+
+  // 35. Blur: the second appearance effect, stored beside the shadow and one undo entry.
+  const blurRect = createRect('Blur fixture', 3400, 300, 120, 90)
+  documentStore.dispatch({ type: 'insertNodes', parentId: documentStore.getState().document.root.id, index: 0, nodes: [blurRect] }, 'blur fixture')
+  documentStore.setSelection([blurRect.id])
+  await settle(80)
+  runEditorAction('object.blur')
+  await settle(120)
+  const blurred = documentStore.getState().document.root.children.find((node) => node.id === blurRect.id)
+  const blurEffect = blurred !== undefined && blurred.type !== 'group' ? (blurred.style.effects?.find((effect) => effect.type === 'blur') ?? null) : null
+  record(
+    'Blur is one undo entry',
+    blurEffect !== null && blurEffect.type === 'blur' && blurEffect.radius > 0,
+    blurEffect === null || blurEffect.type !== 'blur' ? 'no blur' : `radius ${blurEffect.radius}`,
   )
   documentStore.undo()
   await settle(100)

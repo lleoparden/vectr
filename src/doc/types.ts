@@ -14,9 +14,9 @@ export type { PathAnchor }
  */
 
 /** Bump when the persisted shape changes; migration hooks key off this. */
-export const FORMAT_VERSION = 13
-/** Versions this build still opens. v13 adds the first appearance effect, a drop shadow (Phase 7). */
-export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+export const FORMAT_VERSION = 14
+/** Versions this build still opens. v14 adds the blur effect (Phase 7.3). */
+export const SUPPORTED_FORMAT_VERSION_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 export type NodeId = string
 
@@ -117,8 +117,14 @@ export type DropShadow = {
   opacity: number
 }
 
-/** Non-destructive appearance effects, painted beneath the object (Phase 7.1). */
-export type Effect = DropShadow
+export type Blur = {
+  type: 'blur'
+  /** Gaussian blur radius in scene units. */
+  radius: number
+}
+
+/** Non-destructive appearance effects, painted beneath or around the object (Phase 7). */
+export type Effect = DropShadow | Blur
 
 export type Style = {
   /** CSS hex color, for example `#4f7cff`. */
